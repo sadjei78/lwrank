@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Rankings Manager</title>
+    <link rel="stylesheet" href="/src/styles/main.css">
+</head>
+<body>
+    <div id="app">
+        <header>
+            <h1>Daily Rankings Manager</h1>
+            <div id="connectionStatus" class="connection-status">
+                <span class="status-indicator"></span>
+                <span class="status-text">Connecting...</span>
+            </div>
+        </header>
+
+        <div class="controls">
+            <div class="week-navigation">
+                <button id="prevWeek" class="nav-btn">← Previous Week</button>
+                <input type="week" id="weekPicker" class="week-picker">
+                <button id="nextWeek" class="nav-btn">Next Week →</button>
+            </div>
+
+            <div id="adminControls" class="admin-controls" style="display: none;">
+                <div class="file-upload">
+                    <input type="file" id="csvFileUpload" accept=".csv" class="file-input">
+                    <button id="csvFileBtn" class="upload-btn">Process CSV File</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="dataStatus" class="data-status" style="display: none;">
+            <span>Total rankings stored: <strong id="dataCount">0</strong></span>
+        </div>
+
+        <div class="tabs-container">
+            <div id="tabs" class="tabs"></div>
+            <div id="tabContents" class="tab-contents"></div>
+        </div>
+
+        <div id="messages" class="messages"></div>
+    </div>
+
+    <script type="module" src="/src/js/main.js"></script>
+</body>
+</html>
