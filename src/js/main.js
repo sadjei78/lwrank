@@ -31,6 +31,9 @@ class DailyRankingsApp {
         await this.updateWeeklyTabs();
         this.uiManager.updateConnectionStatus(this.rankingManager.getConnectionStatus());
         
+        // Update version number
+        this.updateVersionNumber();
+        
         console.log('Daily Rankings Manager initialized');
     }
 
@@ -113,6 +116,15 @@ class DailyRankingsApp {
         const url = new URL(window.location);
         url.searchParams.delete('admin');
         window.location.href = url.toString();
+    }
+
+    updateVersionNumber() {
+        const versionElement = document.getElementById('versionNumber');
+        if (versionElement) {
+            // For now, we'll use a hardcoded version since Vite doesn't expose package.json
+            // In a real app, you might use import.meta.env.VITE_APP_VERSION
+            versionElement.textContent = 'v1.0.0';
+        }
     }
 
     setDateToCurrentWeek() {
