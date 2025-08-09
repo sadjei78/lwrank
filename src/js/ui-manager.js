@@ -6,11 +6,17 @@ export class UIManager {
     toggleAdminFeatures(isAdmin) {
         console.log('Toggling admin features:', isAdmin);
         const adminControls = document.getElementById('adminControls');
+        const adminStatus = document.getElementById('adminStatus');
+        
         if (adminControls) {
             adminControls.style.display = isAdmin ? 'flex' : 'none';
             console.log('Admin controls display set to:', adminControls.style.display);
         } else {
             console.error('Admin controls element not found');
+        }
+        
+        if (adminStatus) {
+            adminStatus.style.display = isAdmin ? 'flex' : 'none';
         }
     }
 

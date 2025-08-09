@@ -24,9 +24,9 @@ A modern web application for managing daily competitive rankings with enhanced w
 1. Navigate to `http://localhost:5173`
 2. Use the week picker or arrow buttons to select a week
 3. Click on day tabs to view rankings for specific days
-4. Upload CSV files in admin mode (`?admin=true`) to add data
+4. Upload CSV files in admin mode (`?admin=YOUR_ADMIN_CODE`) to add data
 
-### Admin Features (`?admin=true`)
+### Admin Features (`?admin=YOUR_ADMIN_CODE`)
 
 #### Special Event Management
 - **Create Events**: Add custom event tabs with start/end dates

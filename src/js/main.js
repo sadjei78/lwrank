@@ -16,7 +16,7 @@ class DailyRankingsApp {
     async init() {
         this.setupEventListeners();
         
-        // Show admin features if admin=true in URL
+        // Show admin features if admin code matches environment variable
         const isAdmin = this.isAdmin();
         console.log('Admin mode:', isAdmin);
         this.uiManager.toggleAdminFeatures(isAdmin);
@@ -81,6 +81,12 @@ class DailyRankingsApp {
             }
         });
 
+        // Exit admin button
+        const exitAdminBtn = document.getElementById('exitAdminBtn');
+        if (exitAdminBtn) {
+            exitAdminBtn.addEventListener('click', () => this.exitAdminMode());
+        }
+
         // Tab click handlers
         document.getElementById('tabs').addEventListener('click', async (e) => {
             if (e.target.classList.contains('tab')) {
@@ -92,7 +98,21 @@ class DailyRankingsApp {
 
     isAdmin() {
         const params = new URLSearchParams(window.location.search);
-        return params.get('admin') === 'true';
+        const adminCode = params.get('admin');
+        const expectedCode = import.meta.env.VITE_ADMIN_CODE;
+        
+        if (!adminCode || !expectedCode) {
+            return false;
+        }
+        
+        return adminCode === expectedCode;
+    }
+
+    exitAdminMode() {
+        // Remove admin parameter from URL and reload
+        const url = new URL(window.location);
+        url.searchParams.delete('admin');
+        window.location.href = url.toString();
     }
 
     setDateToCurrentWeek() {
