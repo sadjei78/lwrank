@@ -5,9 +5,11 @@ A modern web application for managing daily competitive rankings with enhanced w
 ## 🚀 Features
 
 ### Core Functionality
-- **Weekly Navigation**: Navigate between weeks using date picker or arrow buttons
-- **Daily Tabs**: View rankings for each day of the week (Monday through Sunday)
+- **Weekly Navigation**: Navigate between weeks using date picker or previous/next buttons
+- **Daily Tabs**: View rankings for each day of the week (Monday through Saturday)
+- **Special Events**: Create custom event tabs with start/end dates for tournaments or special competitions
 - **CSV Import**: Bulk import ranking data via CSV files (admin mode)
+- **Player Management**: Update player names across all data to handle name changes
 - **Database Integration**: Supabase backend with localStorage fallback
 
 ### Enhanced Analytics (NEW!)
@@ -23,6 +25,24 @@ A modern web application for managing daily competitive rankings with enhanced w
 2. Use the week picker or arrow buttons to select a week
 3. Click on day tabs to view rankings for specific days
 4. Upload CSV files in admin mode (`?admin=true`) to add data
+
+### Admin Features (`?admin=true`)
+
+#### Special Event Management
+- **Create Events**: Add custom event tabs with start/end dates
+- **Event Tabs**: Special events appear as purple tabs alongside regular days
+- **Persistent Events**: Events persist across sessions and weeks
+
+#### Player Name Management
+- **Update Names**: Change player names across all historical data
+- **Cumulative Updates**: Automatically updates weekly cumulative scores
+- **Ranking Updates**: All rankings reflect the new player name
+- **Confirmation**: Requires confirmation before making changes
+
+#### CSV Import
+- **Confirmation Dialog**: Preview data before importing
+- **Overwrite Protection**: Clear warnings when replacing existing data
+- **Faction Filtering**: Automatically removes faction tags from imports
 
 ### Understanding the Enhanced Features
 
@@ -61,6 +81,8 @@ Ranking,Commander,Points
 1,PlayerName,1500
 2,AnotherPlayer,1400
 ```
+
+**Note**: Faction/clan columns in CSV files will be automatically ignored. Only ranking, commander, and points data is processed.
 
 ### Database Schema
 - `day`: Date key (YYYY-MM-DD)

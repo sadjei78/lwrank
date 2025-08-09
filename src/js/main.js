@@ -60,8 +60,25 @@ class DailyRankingsApp {
         });
 
         // Process CSV button
-        document.getElementById('csvFileBtn').addEventListener('click', () => {
+        document.getElementById('uploadBtn').addEventListener('click', () => {
             this.processCSVFile();
+        });
+
+        // Special event and player management
+        document.getElementById('createEventBtn').addEventListener('click', () => {
+            this.createSpecialEvent();
+        });
+        
+        document.getElementById('updatePlayerBtn').addEventListener('click', () => {
+            this.updatePlayerName();
+        });
+        
+        // Special events toggle
+        document.getElementById('includeSpecialEvents').addEventListener('change', async () => {
+            // Refresh current tab to update weekly calculations
+            if (this.currentTabDate) {
+                await this.showTab(this.currentTabDate);
+            }
         });
 
         // Tab click handlers
@@ -124,8 +141,8 @@ class DailyRankingsApp {
         const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
         startOfWeek.setDate(startOfWeek.getDate() + daysToMonday);
         
-        // Generate weekdays (Monday to Friday)
-        for (let i = 0; i < 5; i++) {
+        // Generate weekdays (Monday to Saturday)
+        for (let i = 0; i < 6; i++) {
             const day = new Date(startOfWeek);
             day.setDate(startOfWeek.getDate() + i);
             week.push(day);
@@ -188,6 +205,27 @@ class DailyRankingsApp {
             tabContentsContainer.appendChild(content);
         }
         
+        // Add special event tabs
+        const specialEvents = await this.rankingManager.getSpecialEvents();
+        for (const event of specialEvents) {
+            const eventKey = event.key;
+            const eventName = event.name;
+            
+            // Create special event tab
+            const eventTab = document.createElement('button');
+            eventTab.className = 'tab special-event-tab';
+            eventTab.textContent = eventName;
+            eventTab.setAttribute('data-date', eventKey);
+            eventTab.setAttribute('data-type', 'special-event');
+            tabsContainer.appendChild(eventTab);
+            
+            // Create special event content
+            const eventContent = document.createElement('div');
+            eventContent.className = 'tab-content';
+            eventContent.id = `tab-${eventKey}`;
+            tabContentsContainer.appendChild(eventContent);
+        }
+        
         // Show first tab by default
         if (weekDates.length > 0) {
             const firstDateKey = this.formatDateKey(weekDates[0]);
@@ -213,33 +251,66 @@ class DailyRankingsApp {
         if (selectedContent) {
             selectedContent.classList.add('active');
             
-            // Load and display rankings for this date
-            const rankings = await this.rankingManager.getRankingsForDate(dateKey);
-            console.log('Rankings for', dateKey, ':', rankings);
+            // Check if this is a special event tab
+            const isSpecialEvent = dateKey.startsWith('event_');
             
-            // Ensure we're using the correct date for display
-            const date = new Date(dateKey + 'T00:00:00'); // Ensure correct date parsing
-            const displayName = this.formatDateDisplay(date);
-            
-            // Get weekly statistics for enhanced display
-            const weekDates = this.getWeekDates(this.selectedDate);
-            const top10Occurrences = this.rankingManager.getWeeklyTop10Occurrences(weekDates);
-            const cumulativeScores = this.rankingManager.getWeeklyCumulativeScores(weekDates);
-            
-            if (rankings && rankings.length > 0) {
-                selectedContent.innerHTML = this.uiManager.createRankingTable(
-                    rankings, 
-                    displayName, 
-                    top10Occurrences, 
-                    cumulativeScores
-                );
+            if (isSpecialEvent) {
+                // Handle special event display
+                const eventName = dateKey.split('_').slice(1, -2).join('_');
+                
+                // Load special event data
+                const eventRankings = await this.rankingManager.getRankingsForSpecialEvent(dateKey);
+                
+                if (eventRankings && eventRankings.length > 0) {
+                    // For special events, show all rankings without weekly stats
+                    selectedContent.innerHTML = this.uiManager.createRankingTable(
+                        eventRankings, 
+                        eventName, 
+                        {}, // No top 10 occurrences for special events
+                        {}, // No bottom 20 occurrences for special events
+                        {}, // No cumulative scores for special events
+                        true // isSpecialEvent = true
+                    );
+                } else {
+                    selectedContent.innerHTML = `
+                        <div class="no-data">
+                            <h3>Special Event: ${eventName}</h3>
+                            <p>No ranking data available for this special event. Upload a CSV file to add rankings.</p>
+                        </div>
+                    `;
+                }
             } else {
-                selectedContent.innerHTML = `
-                    <div class="no-data">
-                        <h3>No ranking data available for ${displayName}</h3>
-                        <p>Upload a CSV file to add rankings for this date.</p>
-                    </div>
-                `;
+                // Load and display rankings for this date
+                const rankings = await this.rankingManager.getRankingsForDate(dateKey);
+                
+                // Ensure we're using the correct date for display
+                const date = new Date(dateKey + 'T00:00:00'); // Ensure correct date parsing
+                const displayName = this.formatDateDisplay(date);
+                
+                const weekDates = this.getWeekDates(this.selectedDate);
+                // Convert Date objects to date keys for weekly calculations
+                const weekDateKeys = weekDates.map(date => this.formatDateKey(date));
+                const top10Occurrences = await this.rankingManager.getWeeklyTop10Occurrences(weekDateKeys);
+                const bottom20Occurrences = await this.rankingManager.getWeeklyBottom20Occurrences(weekDateKeys);
+                const cumulativeScores = await this.rankingManager.getWeeklyCumulativeScores(weekDateKeys);
+                
+                if (rankings && rankings.length > 0) {
+                    selectedContent.innerHTML = this.uiManager.createRankingTable(
+                        rankings, 
+                        displayName, 
+                        top10Occurrences, 
+                        bottom20Occurrences,
+                        cumulativeScores,
+                        false // isSpecialEvent = false
+                    );
+                } else {
+                    selectedContent.innerHTML = `
+                        <div class="no-data">
+                            <h3>No ranking data available for ${displayName}</h3>
+                            <p>Upload a CSV file to add rankings for this date.</p>
+                        </div>
+                    `;
+                }
             }
         }
         
@@ -269,18 +340,134 @@ class DailyRankingsApp {
                 return;
             }
 
+            // Check if this is a special event
+            const isSpecialEvent = selectedDateKey.startsWith('event_');
+            
+            // Show confirmation dialog with sample data
+            const confirmed = await this.showImportConfirmation(rankings, selectedDateKey);
+            
+            if (!confirmed) {
+                // Clear the file input if user cancels
+                fileInput.value = '';
+                return;
+            }
+
             const uniqueRankings = this.rankingManager.removeDuplicateRankings(rankings);
-            await this.rankingManager.setRankingsForDate(selectedDateKey, uniqueRankings);
+            
+            if (isSpecialEvent) {
+                // Handle special event data
+                await this.rankingManager.setRankingsForSpecialEvent(selectedDateKey, uniqueRankings);
+                const eventName = selectedDateKey.split('_').slice(1, -2).join('_');
+                this.uiManager.showSuccess(`Successfully processed ${uniqueRankings.length} rankings for special event: ${eventName}!`);
+            } else {
+                // Handle regular date data
+                await this.rankingManager.setRankingsForDate(selectedDateKey, uniqueRankings);
+                
+                // Refresh data from database to ensure weekly statistics are accurate
+                await this.rankingManager.refreshDataFromDatabase();
+                
+                const selectedDate = new Date(selectedDateKey);
+                this.uiManager.showSuccess(`Successfully processed ${uniqueRankings.length} rankings for ${this.formatDateDisplay(selectedDate)}!`);
+            }
             
             // Refresh the current tab to show new data
             await this.showTab(selectedDateKey);
-            const selectedDate = new Date(selectedDateKey);
-            this.uiManager.showSuccess(`Successfully processed ${uniqueRankings.length} rankings for ${this.formatDateDisplay(selectedDate)}!`);
             this.updateDataStatus();
             
             // Clear the file input
             fileInput.value = '';
         });
+    }
+
+    async showImportConfirmation(rankings, dateKey) {
+        // Check if this is a special event
+        const isSpecialEvent = dateKey.startsWith('event_');
+        
+        let displayDate;
+        let existingData;
+        
+        if (isSpecialEvent) {
+            // Extract event name from the key
+            const eventName = dateKey.split('_').slice(1, -2).join('_');
+            displayDate = `Special Event: ${eventName}`;
+            existingData = await this.rankingManager.getRankingsForSpecialEvent(dateKey);
+        } else {
+            // Regular date handling
+            const date = new Date(dateKey + 'T00:00:00');
+            displayDate = this.formatDateDisplay(date);
+            existingData = await this.rankingManager.getRankingsForDate(dateKey);
+        }
+        
+        // Use the custom modal from UI manager
+        return await this.uiManager.showImportConfirmation(rankings, dateKey, displayDate, existingData);
+    }
+
+    async createSpecialEvent() {
+        const eventName = document.getElementById('eventName').value.trim();
+        const startDate = document.getElementById('eventStartDate').value;
+        const endDate = document.getElementById('eventEndDate').value;
+        
+        if (!eventName || !startDate || !endDate) {
+            alert('Please fill in all fields for the special event.');
+            return;
+        }
+        
+        if (new Date(startDate) > new Date(endDate)) {
+            alert('Start date must be before end date.');
+            return;
+        }
+        
+        const success = await this.rankingManager.createSpecialEvent(eventName, startDate, endDate);
+        
+        if (success) {
+            this.uiManager.showSuccess(`Special event "${eventName}" created successfully!`);
+            // Clear form
+            document.getElementById('eventName').value = '';
+            document.getElementById('eventStartDate').value = '';
+            document.getElementById('eventEndDate').value = '';
+            
+            // Refresh tabs to include new special event
+            await this.updateWeeklyTabs();
+        } else {
+            this.uiManager.showError('Failed to create special event. Please try again.');
+        }
+    }
+
+    async updatePlayerName() {
+        const oldName = document.getElementById('oldPlayerName').value.trim();
+        const newName = document.getElementById('newPlayerName').value.trim();
+        
+        if (!oldName || !newName) {
+            alert('Please enter both old and new player names.');
+            return;
+        }
+        
+        if (oldName === newName) {
+            alert('Old and new names cannot be the same.');
+            return;
+        }
+        
+        const confirmed = confirm(`Are you sure you want to update all records for player "${oldName}" to "${newName}"? This will affect cumulative scores and rankings.`);
+        
+        if (!confirmed) {
+            return;
+        }
+        
+        const success = await this.rankingManager.updatePlayerName(oldName, newName);
+        
+        if (success) {
+            this.uiManager.showSuccess(`Successfully updated player name from "${oldName}" to "${newName}". Cumulative scores and rankings have been updated.`);
+            // Clear form
+            document.getElementById('oldPlayerName').value = '';
+            document.getElementById('newPlayerName').value = '';
+            
+            // Refresh current tab to show updated data
+            if (this.currentTabDate) {
+                await this.showTab(this.currentTabDate);
+            }
+        } else {
+            this.uiManager.showError('Failed to update player name. Player may not exist or no changes were made.');
+        }
     }
 
     updateDataStatus() {

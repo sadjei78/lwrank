@@ -44,23 +44,37 @@ export class CSVProcessor {
             }
 
             const ranking = this.extractNumber(parts[0]);
-            const commander = this.cleanQuotedString(parts[1]);
             
-            // Handle different CSV formats
+            // Clean commander name and remove faction tags
+            let commander = this.cleanQuotedString(parts[1]);
+            commander = this.removeFactionTags(commander);
+            
+            // Skip if commander name is empty (was a faction entry)
+            if (!commander || commander.trim() === '') {
+                continue;
+            }
+
+            // Always use the last column for points, regardless of format
+            // This excludes faction/clan columns that might be in the middle
             let points;
-            if (parts.length >= 4) {
-                // Format: ranking, commander, clan, points
-                points = this.extractNumber(parts[3]);
+            if (parts.length >= 3) {
+                // Use the last column for points (excludes faction/clan)
+                const rawPoints = parts[parts.length - 1];
+                points = this.extractNumber(rawPoints);
+                
+                // Debug: Log the original points value
+                if (points > 1000000) {
+                    console.log(`Original points value: "${rawPoints}" -> parsed as: ${points}`);
+                }
             } else {
-                // Format: ranking, commander, points
-                points = this.extractNumber(parts[2]);
+                continue; // Skip if not enough columns
             }
 
             if (ranking > 0 && commander && points) {
                 rankings.push({
                     ranking: ranking,
                     commander: commander,
-                    points: points.toString()
+                    points: parseInt(points) // Ensure points is stored as integer
                 });
             }
         }
@@ -70,13 +84,66 @@ export class CSVProcessor {
 
     extractNumber(str) {
         if (!str) return 0;
-        const cleaned = str.replace(/[^\d]/g, '');
-        return cleaned ? parseInt(cleaned) : 0;
+        
+        // Remove quotes and trim
+        let cleaned = str.replace(/(^"|"$)/g, '').trim();
+        
+        // Handle comma-separated numbers (e.g., "87,264,360" -> 87264360)
+        if (cleaned.includes(',')) {
+            cleaned = cleaned.replace(/,/g, '');
+        }
+        
+        // Handle period-separated numbers (e.g., "87.264.360" -> 87264360)
+        if (cleaned.includes('.') && !cleaned.includes('e') && !cleaned.includes('E')) {
+            cleaned = cleaned.replace(/\./g, '');
+        }
+        
+        // Extract only digits
+        const digits = cleaned.replace(/[^\d]/g, '');
+        
+        // Convert to integer, but limit to reasonable size
+        const result = digits ? parseInt(digits) : 0;
+        
+        // Log if we're getting unusually large numbers
+        if (result > 1000000) {
+            console.warn(`Large number detected: ${str} -> ${result}`);
+        }
+        
+        return result;
     }
 
     cleanQuotedString(str) {
         if (!str) return '';
         return str.replace(/(^"|"$)/g, '').trim();
+    }
+
+    removeFactionTags(commanderName) {
+        if (!commanderName) return '';
+        
+        const original = commanderName;
+        
+        // Check if this is a pure faction entry (contains faction tags)
+        const hasFactionTags = /\[[^\]]*\]/.test(original);
+        
+        if (hasFactionTags) {
+            console.log(`Removed entire faction entry: "${original}"`);
+            return ''; // Return empty to filter out this entry
+        }
+        
+        // For regular commander names, remove any faction tags that might be present
+        let cleaned = commanderName.replace(/\[[^\]]*\]/g, '');
+        cleaned = cleaned.replace(/\([^)]*\)/g, ''); // Remove parentheses content
+        cleaned = cleaned.replace(/<[^>]*>/g, ''); // Remove angle brackets content
+        
+        // Clean up extra spaces that might be left
+        cleaned = cleaned.replace(/\s+/g, ' ').trim();
+        
+        // Log if faction tags were removed
+        if (original !== cleaned) {
+            console.log(`Removed faction tags: "${original}" → "${cleaned}"`);
+        }
+        
+        return cleaned;
     }
 
     validateCSVFormat(csvContent) {
@@ -103,7 +170,7 @@ export class CSVProcessor {
         if (!parts || parts.length < 3) {
             return { 
                 valid: false, 
-                error: 'Invalid CSV format. Expected at least 3 columns: ranking, commander, points' 
+                error: 'Invalid CSV format. Expected at least 3 columns: ranking, commander, points (faction/clan columns will be ignored)' 
             };
         }
 

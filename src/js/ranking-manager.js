@@ -251,11 +251,11 @@ export class RankingManager {
             return null;
         }
 
-        const headers = ['Ranking', 'Commander', 'Clan', 'Points'];
+        const headers = ['Ranking', 'Commander', 'Points'];
         const csvContent = [
             headers.join(','),
             ...rankings.map(rank => 
-                `${rank.ranking},"${rank.commander}","Unknown","${rank.points}"`
+                `${rank.ranking},"${rank.commander}","${rank.points}"`
             )
         ].join('\n');
 
@@ -275,61 +275,231 @@ export class RankingManager {
     }
 
     // New methods for weekly statistics
-    getWeeklyTop10Occurrences(weekDates) {
-        const top10Players = {};
+    async getWeeklyTop10Occurrences(weekDates) {
+        const top10Occurrences = {};
         
-        // Collect all players who appear in top 10 for each day
-        weekDates.forEach(date => {
-            const dateKey = this.formatDateKey(date);
-            const rankings = this.rankingsData[dateKey] || [];
+        console.log('Calculating weekly top 10 occurrences for dates:', weekDates);
+        
+        // Count top 10 occurrences for each day in the selected week
+        for (const dateKey of weekDates) {
+            const dailyRankings = this.rankingsData[dateKey] || [];
+            console.log(`Processing ${dateKey}:`, dailyRankings.length, 'rankings');
             
-            // Get top 10 players for this day
-            const top10 = rankings.slice(0, 10);
-            top10.forEach(ranking => {
+            // Get top 10 for this specific day
+            const top10ForDay = dailyRankings.slice(0, 10);
+            
+            // Count occurrences in top 10 for this day
+            top10ForDay.forEach(ranking => {
                 const commander = ranking.commander;
-                if (!top10Players[commander]) {
-                    top10Players[commander] = 0;
-                }
-                top10Players[commander]++;
+                top10Occurrences[commander] = (top10Occurrences[commander] || 0) + 1;
             });
+        }
+        
+        // Include special events if toggle is enabled
+        if (this.shouldIncludeSpecialEvents()) {
+            console.log('Including special events in top 10 calculations...');
+            for (const dateKey of weekDates) {
+                const specialEventRankings = await this.getSpecialEventRankingsForDate(dateKey);
+                
+                // Get top 10 for special events on this day
+                const top10SpecialForDay = specialEventRankings.slice(0, 10);
+                
+                // Count occurrences in top 10 for special events (but only if no daily data for this date)
+                top10SpecialForDay.forEach(ranking => {
+                    const commander = ranking.commander;
+                    // Only count if this player doesn't already have daily data for this date
+                    const hasDailyData = this.rankingsData[dateKey]?.some(dailyRank => dailyRank.commander === commander);
+                    if (!hasDailyData) {
+                        top10Occurrences[commander] = (top10Occurrences[commander] || 0) + 1;
+                    }
+                });
+            }
+        } else {
+            console.log('Special events excluded from top 10 calculations (toggle is OFF)');
+        }
+        
+        console.log('Top 10 occurrences:', top10Occurrences);
+        
+        // Only return players who appear 2 or more times
+        const filteredTop10Occurrences = {};
+        Object.entries(top10Occurrences).forEach(([commander, count]) => {
+            if (count >= 2) {
+                filteredTop10Occurrences[commander] = count;
+            }
         });
         
-        // Return only players who appear in top 10 more than once
-        return Object.entries(top10Players)
-            .filter(([_, count]) => count > 1)
-            .reduce((acc, [commander, count]) => {
-                acc[commander] = count;
-                return acc;
-            }, {});
+        console.log('Filtered top 10 occurrences (2+ times):', filteredTop10Occurrences);
+        return filteredTop10Occurrences;
     }
 
-    getWeeklyCumulativeScores(weekDates) {
-        const cumulativeScores = {};
+    async getWeeklyBottom20Occurrences(weekDates) {
+        const bottom20Occurrences = {};
         
-        // Calculate cumulative scores for each player across the week
-        weekDates.forEach(date => {
-            const dateKey = this.formatDateKey(date);
-            const rankings = this.rankingsData[dateKey] || [];
+        console.log('Calculating weekly bottom 20 occurrences for dates:', weekDates);
+        
+        // Count bottom 20 occurrences for each day in the selected week
+        for (const dateKey of weekDates) {
+            const dailyRankings = this.rankingsData[dateKey] || [];
+            console.log(`Processing ${dateKey}:`, dailyRankings.length, 'rankings');
             
-            rankings.forEach(ranking => {
+            // Get bottom 20 for this specific day (ranks 11-30)
+            const bottom20ForDay = dailyRankings.filter(ranking => ranking.ranking > 10 && ranking.ranking <= 30);
+            
+            // Count occurrences in bottom 20 for this day
+            bottom20ForDay.forEach(ranking => {
                 const commander = ranking.commander;
-                const points = parseInt(ranking.points) || 0;
-                
-                if (!cumulativeScores[commander]) {
-                    cumulativeScores[commander] = 0;
-                }
-                cumulativeScores[commander] += points;
+                bottom20Occurrences[commander] = (bottom20Occurrences[commander] || 0) + 1;
             });
+        }
+        
+        // Include special events if toggle is enabled
+        if (this.shouldIncludeSpecialEvents()) {
+            console.log('Including special events in bottom 20 calculations...');
+            for (const dateKey of weekDates) {
+                const specialEventRankings = await this.getSpecialEventRankingsForDate(dateKey);
+                
+                // Get bottom 20 for special events on this day (ranks 11-30)
+                const bottom20SpecialForDay = specialEventRankings.filter(ranking => ranking.ranking > 10 && ranking.ranking <= 30);
+                
+                // Count occurrences in bottom 20 for special events (but only if no daily data for this date)
+                bottom20SpecialForDay.forEach(ranking => {
+                    const commander = ranking.commander;
+                    // Only count if this player doesn't already have daily data for this date
+                    const hasDailyData = this.rankingsData[dateKey]?.some(dailyRank => dailyRank.commander === commander);
+                    if (!hasDailyData) {
+                        bottom20Occurrences[commander] = (bottom20Occurrences[commander] || 0) + 1;
+                    }
+                });
+            }
+        } else {
+            console.log('Special events excluded from bottom 20 calculations (toggle is OFF)');
+        }
+        
+        console.log('Bottom 20 occurrences:', bottom20Occurrences);
+        
+        // Only return players who appear 2 or more times
+        const filteredBottom20Occurrences = {};
+        Object.entries(bottom20Occurrences).forEach(([commander, count]) => {
+            if (count >= 2) {
+                filteredBottom20Occurrences[commander] = count;
+            }
         });
         
-        // Sort by cumulative score (descending) and return top 5
-        return Object.entries(cumulativeScores)
-            .sort(([,a], [,b]) => b - a)
-            .slice(0, 5)
+        console.log('Filtered bottom 20 occurrences (2+ times):', filteredBottom20Occurrences);
+        return filteredBottom20Occurrences;
+    }
+
+    async getWeeklyCumulativeScores(weekDates) {
+        const cumulativeScores = {};
+        
+        console.log('Calculating weekly cumulative scores for dates:', weekDates);
+        
+        // Calculate cumulative scores from daily data (one score per player per day)
+        for (const dateKey of weekDates) {
+            const dailyRankings = this.rankingsData[dateKey] || [];
+            console.log(`Processing ${dateKey}:`, dailyRankings.length, 'rankings');
+            
+            // For each day, only count the highest ranking (lowest rank number) for each player
+            const playerBestRanking = {};
+            dailyRankings.forEach(ranking => {
+                const commander = ranking.commander;
+                if (!playerBestRanking[commander] || ranking.ranking < playerBestRanking[commander].ranking) {
+                    playerBestRanking[commander] = ranking;
+                }
+            });
+            
+            // Add the best ranking for each player to cumulative scores
+            Object.values(playerBestRanking).forEach(ranking => {
+                const commander = ranking.commander;
+                const currentScore = cumulativeScores[commander] || 0;
+                const pointsToAdd = parseInt(ranking.points) || 0;
+                cumulativeScores[commander] = currentScore + pointsToAdd;
+                console.log(`  ${commander}: +${pointsToAdd} = ${cumulativeScores[commander]}`);
+            });
+        }
+        
+        // Include special events if toggle is enabled
+        if (this.shouldIncludeSpecialEvents()) {
+            console.log('Including special events in cumulative scores...');
+            for (const dateKey of weekDates) {
+                const specialEventRankings = await this.getSpecialEventRankingsForDate(dateKey);
+                
+                // For special events, also only count the best ranking per player per day
+                const playerBestSpecialRanking = {};
+                specialEventRankings.forEach(ranking => {
+                    const commander = ranking.commander;
+                    if (!playerBestSpecialRanking[commander] || ranking.ranking < playerBestSpecialRanking[commander].ranking) {
+                        playerBestSpecialRanking[commander] = ranking;
+                    }
+                });
+                
+                // Add special event scores to cumulative (but daily data takes precedence)
+                Object.values(playerBestSpecialRanking).forEach(ranking => {
+                    const commander = ranking.commander;
+                    // Only add if this player doesn't already have daily data for this date
+                    const hasDailyData = this.rankingsData[dateKey]?.some(dailyRank => dailyRank.commander === commander);
+                    if (!hasDailyData) {
+                        const currentScore = cumulativeScores[commander] || 0;
+                        const pointsToAdd = parseInt(ranking.points) || 0;
+                        cumulativeScores[commander] = currentScore + pointsToAdd;
+                        console.log(`  Special Event ${commander}: +${pointsToAdd} = ${cumulativeScores[commander]}`);
+                    }
+                });
+            }
+        } else {
+            console.log('Special events excluded from cumulative scores (toggle is OFF)');
+        }
+        
+        // Return only top 5 players by cumulative score
+        const top5Players = Object.entries(cumulativeScores)
+            .sort(([,a], [,b]) => b - a) // Sort by score descending
+            .slice(0, 5) // Take top 5
             .reduce((acc, [commander, score]) => {
                 acc[commander] = score;
                 return acc;
             }, {});
+        
+        console.log('Top 5 cumulative scores:', top5Players);
+        return top5Players;
+    }
+
+    // Add method to refresh data from database
+    async refreshDataFromDatabase() {
+        if (!this.isOnline) {
+            return;
+        }
+
+        try {
+            console.log('Refreshing data from database...');
+            const { data, error } = await supabase
+                .from('rankings')
+                .select('*')
+                .order('day')
+                .order('ranking');
+
+            if (error) {
+                console.error('Error refreshing from database:', error);
+                return;
+            }
+
+            // Update in-memory data
+            this.rankingsData = {};
+            data.forEach(ranking => {
+                const dateKey = ranking.day;
+                if (!this.rankingsData[dateKey]) {
+                    this.rankingsData[dateKey] = [];
+                }
+                this.rankingsData[dateKey].push({
+                    ranking: ranking.ranking,
+                    commander: ranking.commander,
+                    points: ranking.points
+                });
+            });
+
+            console.log('Data refreshed from database:', Object.keys(this.rankingsData).length, 'days');
+        } catch (error) {
+            console.error('Database refresh error:', error);
+        }
     }
 
     formatDateKey(date) {
@@ -337,5 +507,198 @@ export class RankingManager {
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const day = String(date.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
+    }
+
+    // Special Event Management
+    async createSpecialEvent(eventName, startDate, endDate) {
+        const eventKey = `event_${eventName.replace(/\s+/g, '_').toLowerCase()}_${startDate}_${endDate}`;
+        
+        // Store event metadata
+        const eventData = {
+            name: eventName,
+            startDate: startDate,
+            endDate: endDate,
+            key: eventKey,
+            created: new Date().toISOString()
+        };
+        
+        // Try to save to database first (primary storage)
+        if (this.isOnline) {
+            try {
+                const { error } = await supabase
+                    .from('special_events')
+                    .insert([eventData]);
+                
+                if (error) {
+                    console.warn('Database error creating event, using localStorage:', error);
+                    // Fall back to localStorage
+                    const events = JSON.parse(localStorage.getItem('specialEvents') || '[]');
+                    events.push(eventData);
+                    localStorage.setItem('specialEvents', JSON.stringify(events));
+                } else {
+                    // Successfully saved to database, also save to localStorage as backup
+                    const events = JSON.parse(localStorage.getItem('specialEvents') || '[]');
+                    events.push(eventData);
+                    localStorage.setItem('specialEvents', JSON.stringify(events));
+                }
+            } catch (error) {
+                console.warn('Database error creating event, using localStorage:', error);
+                // Fall back to localStorage
+                const events = JSON.parse(localStorage.getItem('specialEvents') || '[]');
+                events.push(eventData);
+                localStorage.setItem('specialEvents', JSON.stringify(events));
+            }
+        } else {
+            // Offline mode - use localStorage
+            const events = JSON.parse(localStorage.getItem('specialEvents') || '[]');
+            events.push(eventData);
+            localStorage.setItem('specialEvents', JSON.stringify(events));
+        }
+        
+        return true;
+    }
+
+    async getSpecialEvents() {
+        // Try to get from database first (primary storage)
+        if (this.isOnline) {
+            try {
+                const { data, error } = await supabase
+                    .from('special_events')
+                    .select('*')
+                    .order('created', { ascending: false });
+                
+                if (error) {
+                    console.warn('Database error fetching events, using localStorage:', error);
+                    return JSON.parse(localStorage.getItem('specialEvents') || '[]');
+                }
+                
+                // Successfully got data from database
+                if (data && data.length > 0) {
+                    // Also update localStorage as backup
+                    localStorage.setItem('specialEvents', JSON.stringify(data));
+                    return data;
+                }
+            } catch (error) {
+                console.warn('Database error fetching events, using localStorage:', error);
+                return JSON.parse(localStorage.getItem('specialEvents') || '[]');
+            }
+        }
+        
+        // Fall back to localStorage
+        return JSON.parse(localStorage.getItem('specialEvents') || '[]');
+    }
+
+    // Player Name Management
+    async updatePlayerName(oldName, newName) {
+        if (!oldName || !newName || oldName.trim() === '' || newName.trim() === '') {
+            return false;
+        }
+        
+        let updatedCount = 0;
+        
+        // Update in memory
+        Object.keys(this.rankingsData).forEach(dateKey => {
+            const rankings = this.rankingsData[dateKey];
+            rankings.forEach(ranking => {
+                if (ranking.commander === oldName) {
+                    ranking.commander = newName;
+                    updatedCount++;
+                }
+            });
+        });
+        
+        // Update in database
+        if (this.isOnline) {
+            try {
+                const { error } = await supabase
+                    .from('rankings')
+                    .update({ commander: newName })
+                    .eq('commander', oldName);
+                
+                if (error) {
+                    console.error('Error updating player name in database:', error);
+                    return false;
+                }
+            } catch (error) {
+                console.error('Database error updating player name:', error);
+                return false;
+            }
+        }
+        
+        // Save to localStorage
+        this.saveToStorage();
+        
+        console.log(`Updated ${updatedCount} records for player name change: ${oldName} → ${newName}`);
+        return updatedCount > 0;
+    }
+
+    // Special Event Data Management
+    async getRankingsForSpecialEvent(eventKey) {
+        // Get special event data from localStorage
+        const eventData = JSON.parse(localStorage.getItem(`event_${eventKey}`) || '[]');
+        return eventData;
+    }
+
+    async setRankingsForSpecialEvent(eventKey, rankings) {
+        const sortedRankings = [...rankings].sort((a, b) => a.ranking - b.ranking);
+        
+        // Store in localStorage
+        localStorage.setItem(`event_${eventKey}`, JSON.stringify(sortedRankings));
+        
+        console.log(`Saved ${sortedRankings.length} rankings for special event: ${eventKey}`);
+        return true;
+    }
+
+    // Get all special events that fall within a date range
+    async getSpecialEventsInRange(startDate, endDate) {
+        const events = await this.getSpecialEvents();
+        return events.filter(event => {
+            const eventStart = new Date(event.startDate);
+            const eventEnd = new Date(event.endDate);
+            const rangeStart = new Date(startDate);
+            const rangeEnd = new Date(endDate);
+            
+            // Check if event overlaps with the date range
+            return eventStart <= rangeEnd && eventEnd >= rangeStart;
+        });
+    }
+
+    // Get all special event rankings for a date range
+    async getSpecialEventRankingsInRange(startDate, endDate) {
+        const eventsInRange = await this.getSpecialEventsInRange(startDate, endDate);
+        const allRankings = [];
+        
+        for (const event of eventsInRange) {
+            const eventRankings = await this.getRankingsForSpecialEvent(event.key);
+            allRankings.push(...eventRankings);
+        }
+        
+        return allRankings;
+    }
+
+    // Get special event rankings for a specific date (for cumulative calculations)
+    async getSpecialEventRankingsForDate(targetDate) {
+        const events = await this.getSpecialEvents();
+        const allRankings = [];
+        
+        for (const event of events) {
+            const eventStart = new Date(event.startDate);
+            const eventEnd = new Date(event.endDate);
+            const target = new Date(targetDate);
+            
+            // Only include if the target date falls within the event period
+            if (target >= eventStart && target <= eventEnd) {
+                const eventRankings = await this.getRankingsForSpecialEvent(event.key);
+                allRankings.push(...eventRankings);
+            }
+        }
+        
+        return allRankings;
+    }
+
+    // Check if special events should be included in weekly calculations
+    shouldIncludeSpecialEvents() {
+        const checkbox = document.getElementById('includeSpecialEvents');
+        return checkbox ? checkbox.checked : true; // Default to true if checkbox not found
     }
 }

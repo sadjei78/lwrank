@@ -23,10 +23,57 @@
                 <button id="nextWeek" class="nav-btn">Next Week →</button>
             </div>
 
+            <div class="weekly-calculations-controls">
+                <h3>Weekly Calculations</h3>
+                <div class="toggle-control">
+                    <label for="includeSpecialEvents">
+                        <input type="checkbox" id="includeSpecialEvents">
+                        Include Special Events in Weekly Calculations
+                    </label>
+                    <p class="toggle-description">When enabled, special event scores will be included in cumulative scores and frequency calculations for the current week.</p>
+                </div>
+            </div>
+
             <div id="adminControls" class="admin-controls" style="display: none;">
-                <div class="file-upload">
-                    <input type="file" id="csvFileUpload" accept=".csv" class="file-input">
-                    <button id="csvFileBtn" class="upload-btn">Process CSV File</button>
+                <h3>Admin Controls</h3>
+                <div class="csv-upload">
+                    <label for="csvFileUpload">Upload CSV:</label>
+                    <input type="file" id="csvFileUpload" accept=".csv">
+                    <button id="uploadBtn">Upload</button>
+                </div>
+                
+                <div class="special-event-controls">
+                    <h3>Special Event Management</h3>
+                    <div class="event-form">
+                        <div class="form-group">
+                            <label for="eventName">Event Name:</label>
+                            <input type="text" id="eventName" placeholder="e.g., Summer Tournament" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="eventStartDate">Start Date:</label>
+                            <input type="date" id="eventStartDate" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="eventEndDate">End Date:</label>
+                            <input type="date" id="eventEndDate" class="form-input">
+                        </div>
+                        <button id="createEventBtn" class="event-btn">Create Special Event</button>
+                    </div>
+                </div>
+                
+                <div class="player-management">
+                    <h3>Player Name Management</h3>
+                    <div class="player-form">
+                        <div class="form-group">
+                            <label for="oldPlayerName">Old Player Name:</label>
+                            <input type="text" id="oldPlayerName" placeholder="Enter old name" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="newPlayerName">New Player Name:</label>
+                            <input type="text" id="newPlayerName" placeholder="Enter new name" class="form-input">
+                        </div>
+                        <button id="updatePlayerBtn" class="player-btn">Update Player Name</button>
+                    </div>
                 </div>
             </div>
         </div>

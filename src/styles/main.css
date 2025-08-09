@@ -191,8 +191,119 @@ header h1 {
 .upload-btn:disabled {
     background: #9ca3af;
     cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
+}
+
+/* Special Event Controls */
+.special-event-controls {
+    margin-top: 20px;
+    padding: 20px;
+    background: #f8fafc;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+}
+
+.special-event-controls h3 {
+    margin: 0 0 15px 0;
+    color: #1f2937;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.event-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.form-group label {
+    font-weight: 500;
+    color: #374151;
+    font-size: 14px;
+}
+
+.form-input {
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.2s;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.event-btn, .player-btn {
+    padding: 10px 16px;
+    background: #059669;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.event-btn:hover, .player-btn:hover {
+    background: #047857;
+}
+
+/* Player Management */
+.player-management {
+    margin-top: 20px;
+    padding: 20px;
+    background: #f8fafc;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+}
+
+.player-management h3 {
+    margin: 0 0 15px 0;
+    color: #1f2937;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.player-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* Special Event Tab Styles */
+.special-event-tab {
+    background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
+    color: white;
+    font-weight: 600;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    position: relative;
+}
+
+.special-event-tab::before {
+    content: '🎯';
+    margin-right: 6px;
+    font-size: 12px;
+}
+
+.special-event-tab:hover {
+    background: linear-gradient(135deg, #7c3aed 0%, #9333ea 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+}
+
+.special-event-tab.active {
+    background: linear-gradient(135deg, #7c3aed 0%, #9333ea 100%);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+    border-color: rgba(255, 255, 255, 0.4);
 }
 
 .data-status {
@@ -331,7 +442,7 @@ header h1 {
 
 /* New styles for enhanced ranking features */
 .top10-indicator {
-    color: #e74c3c;
+    color: #fbbf24;
     font-weight: bold;
     font-size: 0.9em;
     margin-left: 4px;
@@ -404,6 +515,14 @@ header h1 {
     .ranking-legend span {
         color: #d1d5db !important;
     }
+    
+    .top10-indicator {
+        color: #fbbf24 !important;
+    }
+    
+    .bottom20-indicator {
+        color: #f87171 !important;
+    }
 }
 
 /* Responsive legend */
@@ -418,6 +537,38 @@ header h1 {
     }
 }
 
+/* Import confirmation modal styles */
+.import-confirmation-modal {
+    transition: all 0.3s ease;
+}
+
+.import-confirmation-modal:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Dark mode support for modal */
+@media (prefers-color-scheme: dark) {
+    .import-confirmation-modal {
+        background: #1f2937 !important;
+        color: #f9fafb !important;
+    }
+    
+    .import-confirmation-modal h3,
+    .import-confirmation-modal h4 {
+        color: #f9fafb !important;
+    }
+    
+    .import-confirmation-modal button {
+        border-color: #374151 !important;
+    }
+    
+    .import-confirmation-modal button#cancelImport {
+        background: #374151 !important;
+        color: #f9fafb !important;
+    }
+}
+
 .rank-number {
     font-weight: 700;
     color: #667eea;
@@ -425,9 +576,16 @@ header h1 {
 }
 
 .points {
-    font-weight: 600;
+    font-family: 'Courier New', monospace;
+    font-weight: 500;
+    text-align: right;
     color: #059669;
-    font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+}
+
+/* Ensure formatted numbers are readable */
+.points, .cumulative-indicator {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
 }
 
 .no-data {
@@ -664,5 +822,70 @@ header h1 {
     
     .no-data h3 {
         color: #e5e7eb;
+    }
+}
+
+/* Weekly Calculations Controls - Visible to all users */
+.weekly-calculations-controls {
+    margin: 20px 0;
+    padding: 16px;
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    border-radius: 8px;
+    border: 1px solid #0ea5e9;
+    box-shadow: 0 2px 4px rgba(14, 165, 233, 0.1);
+}
+
+.weekly-calculations-controls h3 {
+    margin: 0 0 12px 0;
+    color: #0c4a6e;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.toggle-control {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.toggle-control label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+    color: #0c4a6e;
+    cursor: pointer;
+}
+
+.toggle-control input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #0ea5e9;
+}
+
+.toggle-description {
+    margin: 0;
+    font-size: 13px;
+    color: #0369a1;
+    line-height: 1.4;
+}
+
+/* Dark mode support for toggle */
+@media (prefers-color-scheme: dark) {
+    .weekly-calculations-controls {
+        background: linear-gradient(135deg, #0c4a6e 0%, #075985 100%);
+        border-color: #0ea5e9;
+    }
+    
+    .weekly-calculations-controls h3 {
+        color: #e0f2fe;
+    }
+    
+    .toggle-control label {
+        color: #e0f2fe;
+    }
+    
+    .toggle-description {
+        color: #7dd3fc;
     }
 }
