@@ -38,21 +38,29 @@ A modern web application for managing daily competitive rankings with enhanced w
 
 ### Admin Features (`?admin=YOUR_ADMIN_CODE`)
 
+#### CSV Import
+- **Confirmation Dialog**: Preview data before importing
+- **Overwrite Protection**: Clear warnings when replacing existing data
+- **Faction Filtering**: Automatically removes faction tags from imports
+
 #### Special Event Management
+- **Collapsible Interface**: Click to expand/collapse when needed
 - **Create Events**: Add custom event tabs with start/end dates
 - **Event Tabs**: Special events appear as purple tabs alongside regular days
 - **Persistent Events**: Events persist across sessions and weeks
 
 #### Player Name Management
+- **Collapsible Interface**: Click to expand/collapse when needed
 - **Update Names**: Change player names across all historical data
 - **Cumulative Updates**: Automatically updates weekly cumulative scores
 - **Ranking Updates**: All rankings reflect the new player name
 - **Confirmation**: Requires confirmation before making changes
 
-#### CSV Import
-- **Confirmation Dialog**: Preview data before importing
-- **Overwrite Protection**: Clear warnings when replacing existing data
-- **Faction Filtering**: Automatically removes faction tags from imports
+#### Data Analysis Summary
+- **Real-time Insights**: Automatic analysis of current day/week data
+- **Performance Metrics**: Player counts, average points, top performers
+- **Weekly Trends**: Identifies consistent performers and weekly leaders
+- **Special Event Analysis**: Dedicated insights for tournament/event data
 
 ### Understanding the Enhanced Features
 

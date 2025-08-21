@@ -52,37 +52,47 @@
                     <button id="uploadBtn">Upload</button>
                 </div>
                 
-                <div class="special-event-controls">
-                    <h3>Special Event Management</h3>
-                    <div class="event-form">
-                        <div class="form-group">
-                            <label for="eventName">Event Name:</label>
-                            <input type="text" id="eventName" placeholder="e.g., Summer Tournament" class="form-input">
+                <div class="collapsible-section">
+                    <button class="collapsible-header collapsed" data-target="specialEventSection">
+                        <span class="collapsible-icon">▼</span>
+                        Special Event Management
+                    </button>
+                    <div id="specialEventSection" class="collapsible-content collapsed">
+                        <div class="event-form">
+                            <div class="form-group">
+                                <label for="eventName">Event Name:</label>
+                                <input type="text" id="eventName" placeholder="e.g., Summer Tournament" class="form-input">
+                            </div>
+                            <div class="form-group">
+                                <label for="eventStartDate">Start Date:</label>
+                                <input type="date" id="eventStartDate" class="form-input">
+                            </div>
+                            <div class="form-group">
+                                <label for="eventEndDate">End Date:</label>
+                                <input type="date" id="eventEndDate" class="form-input">
+                            </div>
+                            <button id="createEventBtn" class="event-btn">Create Special Event</button>
                         </div>
-                        <div class="form-group">
-                            <label for="eventStartDate">Start Date:</label>
-                            <input type="date" id="eventStartDate" class="form-input">
-                        </div>
-                        <div class="form-group">
-                            <label for="eventEndDate">End Date:</label>
-                            <input type="date" id="eventEndDate" class="form-input">
-                        </div>
-                        <button id="createEventBtn" class="event-btn">Create Special Event</button>
                     </div>
                 </div>
                 
-                <div class="player-management">
-                    <h3>Player Name Management</h3>
-                    <div class="player-form">
-                        <div class="form-group">
-                            <label for="oldPlayerName">Old Player Name:</label>
-                            <input type="text" id="oldPlayerName" placeholder="Enter old name" class="form-input">
+                <div class="collapsible-section">
+                    <button class="collapsible-header collapsed" data-target="playerManagementSection">
+                        <span class="collapsible-icon">▼</span>
+                        Player Name Management
+                    </button>
+                    <div id="playerManagementSection" class="collapsible-content collapsed">
+                        <div class="player-form">
+                            <div class="form-group">
+                                <label for="oldPlayerName">Old Player Name:</label>
+                                <input type="text" id="oldPlayerName" placeholder="Enter old name" class="form-input">
+                            </div>
+                            <div class="form-group">
+                                <label for="newPlayerName">New Player Name:</label>
+                                <input type="text" id="newPlayerName" placeholder="Enter new name" class="form-input">
+                            </div>
+                            <button id="updatePlayerBtn" class="player-btn">Update Player Name</button>
                         </div>
-                        <div class="form-group">
-                            <label for="newPlayerName">New Player Name:</label>
-                            <input type="text" id="newPlayerName" placeholder="Enter new name" class="form-input">
-                        </div>
-                        <button id="updatePlayerBtn" class="player-btn">Update Player Name</button>
                     </div>
                 </div>
             </div>
@@ -90,6 +100,13 @@
 
         <div id="dataStatus" class="data-status" style="display: none;">
             <span>Total rankings stored: <strong id="dataCount">0</strong></span>
+        </div>
+
+        <div id="dataAnalysis" class="data-analysis" style="display: none;">
+            <h3>📊 Data Analysis Summary</h3>
+            <div id="analysisContent" class="analysis-content">
+                <p class="loading-analysis">Analyzing current data...</p>
+            </div>
         </div>
 
         <div class="tabs-container">

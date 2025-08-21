@@ -100,6 +100,31 @@ class DailyRankingsApp {
                 await this.showTab(dateKey);
             }
         });
+
+        // Collapsible section handlers
+        this.setupCollapsibleSections();
+    }
+
+    setupCollapsibleSections() {
+        const collapsibleHeaders = document.querySelectorAll('.collapsible-header');
+        
+        collapsibleHeaders.forEach(header => {
+            header.addEventListener('click', () => {
+                const targetId = header.getAttribute('data-target');
+                const content = document.getElementById(targetId);
+                const icon = header.querySelector('.collapsible-icon');
+                
+                if (content.classList.contains('collapsed')) {
+                    // Expand
+                    content.classList.remove('collapsed');
+                    header.classList.remove('collapsed');
+                } else {
+                    // Collapse
+                    content.classList.add('collapsed');
+                    header.classList.add('collapsed');
+                }
+            });
+        });
     }
 
     isAdmin() {
@@ -356,6 +381,9 @@ class DailyRankingsApp {
                 tab.classList.add('active');
             }
         });
+
+        // Update data analysis summary
+        await this.updateDataAnalysis();
     }
 
     async processCSVFile() {
@@ -557,6 +585,126 @@ class DailyRankingsApp {
                 console.log(`Invalid day parameter: ${dayParam}. Valid values are: ${Object.keys(dayMapping).join(', ')}`);
             }
         }
+    }
+
+    async updateDataAnalysis() {
+        const dataAnalysis = document.getElementById('dataAnalysis');
+        const analysisContent = document.getElementById('analysisContent');
+        
+        if (!dataAnalysis || !analysisContent) return;
+        
+        try {
+            const currentDateKey = this.currentTabDate;
+            if (!currentDateKey) return;
+            
+            const isSpecialEvent = currentDateKey.startsWith('event_');
+            
+            if (isSpecialEvent) {
+                // Special event analysis
+                const eventName = currentDateKey.split('_').slice(1, -2).join('_');
+                const eventRankings = await this.rankingManager.getRankingsForSpecialEvent(currentDateKey);
+                
+                if (eventRankings && eventRankings.length > 0) {
+                    const analysis = this.generateSpecialEventAnalysis(eventRankings, eventName);
+                    analysisContent.innerHTML = analysis;
+                    dataAnalysis.style.display = 'block';
+                } else {
+                    dataAnalysis.style.display = 'none';
+                }
+            } else {
+                // Regular date analysis
+                const rankings = await this.rankingManager.getRankingsForDate(currentDateKey);
+                const weekDates = this.getWeekDates(this.selectedDate);
+                const weekDateKeys = weekDates.map(date => this.formatDateKey(date));
+                const top10Occurrences = await this.rankingManager.getWeeklyTop10Occurrences(weekDateKeys);
+                const cumulativeScores = await this.rankingManager.getWeeklyCumulativeScores(weekDateKeys);
+                
+                if (rankings && rankings.length > 0) {
+                    const analysis = this.generateDailyAnalysis(rankings, currentDateKey, top10Occurrences, cumulativeScores, weekDateKeys);
+                    analysisContent.innerHTML = analysis;
+                    dataAnalysis.style.display = 'block';
+                } else {
+                    dataAnalysis.style.display = 'none';
+                }
+            }
+        } catch (error) {
+            console.error('Error updating data analysis:', error);
+            dataAnalysis.style.display = 'none';
+        }
+    }
+
+    generateDailyAnalysis(rankings, dateKey, top10Occurrences, cumulativeScores, weekDateKeys) {
+        const date = new Date(dateKey + 'T00:00:00');
+        const dayName = this.formatSimpleDayName(date);
+        const totalPlayers = rankings.length;
+        
+        // Find top performers
+        const top3 = rankings.slice(0, 3);
+        const top3Names = top3.map(r => r.commander).join(', ');
+        
+        // Calculate average points
+        const totalPoints = rankings.reduce((sum, r) => sum + r.points, 0);
+        const avgPoints = Math.round(totalPoints / totalPlayers);
+        
+        // Find players with multiple top 10 appearances this week
+        const multiTop10Players = Object.entries(top10Occurrences)
+            .filter(([_, count]) => count > 1)
+            .sort(([_, a], [__, b]) => b - a)
+            .slice(0, 3);
+        
+        // Find top cumulative performers
+        const topCumulative = Object.entries(cumulativeScores)
+            .sort(([_, a], [__, b]) => b - a)
+            .slice(0, 3);
+        
+        let analysis = `
+            <p><span class="analysis-highlight">${dayName} Analysis:</span> ${totalPlayers} players competed today with an average of ${avgPoints} points.</p>
+            <div class="analysis-stat">
+                <strong>Top 3 Today:</strong> ${top3Names}
+            </div>
+        `;
+        
+        if (multiTop10Players.length > 0) {
+            const multiTop10Text = multiTop10Players
+                .map(([name, count]) => `${name} (${count}x)`)
+                .join(', ');
+            analysis += `
+                <div class="analysis-stat">
+                    <strong>Consistent Performers This Week:</strong> ${multiTop10Text}
+                </div>
+            `;
+        }
+        
+        if (topCumulative.length > 0) {
+            const topCumulativeText = topCumulative
+                .map(([name, score]) => `${name} (${score} pts)`)
+                .join(', ');
+            analysis += `
+                <div class="analysis-stat">
+                    <strong>Weekly Leaders:</strong> ${topCumulativeText}
+                </div>
+            `;
+        }
+        
+        return analysis;
+    }
+
+    generateSpecialEventAnalysis(rankings, eventName) {
+        const totalPlayers = rankings.length;
+        const totalPoints = rankings.reduce((sum, r) => sum + r.points, 0);
+        const avgPoints = Math.round(totalPoints / totalPlayers);
+        
+        const top3 = rankings.slice(0, 3);
+        const top3Names = top3.map(r => r.commander).join(', ');
+        
+        const analysis = `
+            <p><span class="analysis-highlight">${eventName} Analysis:</span> ${totalPlayers} players participated in this special event with an average of ${avgPoints} points.</p>
+            <div class="analysis-stat">
+                <strong>Event Winners:</strong> ${top3Names}
+            </div>
+        `;
+        
+        return analysis;
     }
 }
 
