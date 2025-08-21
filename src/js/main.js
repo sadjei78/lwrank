@@ -642,9 +642,32 @@ class DailyRankingsApp {
         const top3 = rankings.slice(0, 3);
         const top3Names = top3.map(r => r.commander).join(', ');
         
-        // Calculate average points
-        const totalPoints = rankings.reduce((sum, r) => sum + r.points, 0);
-        const avgPoints = Math.round(totalPoints / totalPlayers);
+        // Calculate average points with validation and debugging
+        console.log('Rankings data for average calculation:', rankings);
+        console.log('Sample ranking object:', rankings[0]);
+        
+        const validRankings = rankings.filter(r => {
+            const hasPoints = r.points !== null && r.points !== undefined;
+            const isNumber = !isNaN(Number(r.points));
+            const isPositive = Number(r.points) > 0;
+            console.log(`Player ${r.commander}: points=${r.points}, hasPoints=${hasPoints}, isNumber=${isNumber}, isPositive=${isPositive}`);
+            return hasPoints && isNumber && isPositive;
+        });
+        
+        console.log('Valid rankings with points:', validRankings);
+        
+        let avgPoints = 0;
+        let pointsAnalysis = '';
+        
+        if (validRankings.length > 0) {
+            const totalPoints = validRankings.reduce((sum, r) => sum + Number(r.points), 0);
+            avgPoints = Math.round(totalPoints / validRankings.length);
+            console.log('Total points:', totalPoints, 'Valid players:', validRankings.length, 'Average:', avgPoints);
+            pointsAnalysis = `with an average of ${avgPoints} points`;
+        } else {
+            pointsAnalysis = '(points data not available)';
+            console.warn('No valid points data found for average calculation');
+        }
         
         // Find players with multiple top 10 appearances this week
         const multiTop10Players = Object.entries(top10Occurrences)
@@ -658,7 +681,7 @@ class DailyRankingsApp {
             .slice(0, 3);
         
         let analysis = `
-            <p><span class="analysis-highlight">${dayName} Analysis:</span> ${totalPlayers} players competed today with an average of ${avgPoints} points.</p>
+            <p><span class="analysis-highlight">${dayName} Analysis:</span> ${totalPlayers} players competed today ${pointsAnalysis}.</p>
             <div class="analysis-stat">
                 <strong>Top 3 Today:</strong> ${top3Names}
             </div>
@@ -691,14 +714,31 @@ class DailyRankingsApp {
 
     generateSpecialEventAnalysis(rankings, eventName) {
         const totalPlayers = rankings.length;
-        const totalPoints = rankings.reduce((sum, r) => sum + r.points, 0);
-        const avgPoints = Math.round(totalPoints / totalPlayers);
+        
+        // Calculate average points with validation
+        const validRankings = rankings.filter(r => {
+            const hasPoints = r.points !== null && r.points !== undefined;
+            const isNumber = !isNaN(Number(r.points));
+            const isPositive = Number(r.points) > 0;
+            return hasPoints && isNumber && isPositive;
+        });
+        
+        let avgPoints = 0;
+        let pointsAnalysis = '';
+        
+        if (validRankings.length > 0) {
+            const totalPoints = validRankings.reduce((sum, r) => sum + Number(r.points), 0);
+            avgPoints = Math.round(totalPoints / validRankings.length);
+            pointsAnalysis = `with an average of ${avgPoints} points`;
+        } else {
+            pointsAnalysis = '(points data not available)';
+        }
         
         const top3 = rankings.slice(0, 3);
         const top3Names = top3.map(r => r.commander).join(', ');
         
         const analysis = `
-            <p><span class="analysis-highlight">${eventName} Analysis:</span> ${totalPlayers} players participated in this special event with an average of ${avgPoints} points.</p>
+            <p><span class="analysis-highlight">${eventName} Analysis:</span> ${totalPlayers} players participated in this special event ${pointsAnalysis}.</p>
             <div class="analysis-stat">
                 <strong>Event Winners:</strong> ${top3Names}
             </div>
