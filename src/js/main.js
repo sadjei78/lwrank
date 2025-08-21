@@ -34,6 +34,9 @@ class DailyRankingsApp {
         // Update version number
         this.updateVersionNumber();
         
+        // Check for day parameter and navigate to specific day tab
+        await this.handleDayParameter();
+        
         console.log('Daily Rankings Manager initialized');
     }
 
@@ -512,6 +515,47 @@ class DailyRankingsApp {
             dataStatus.style.display = 'block';
         } else {
             dataStatus.style.display = 'none';
+        }
+    }
+
+    async handleDayParameter() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const dayParam = urlParams.get('day');
+        
+        if (dayParam) {
+            const dayMapping = {
+                'mon': 'Monday',
+                'tue': 'Tuesday', 
+                'wed': 'Wednesday',
+                'thu': 'Thursday',
+                'fri': 'Friday',
+                'sat': 'Saturday',
+                'sun': 'Sunday'
+            };
+            
+            const targetDay = dayMapping[dayParam.toLowerCase()];
+            if (targetDay) {
+                // Find the tab with the target day name
+                const tabs = document.querySelectorAll('.tab');
+                let targetTab = null;
+                
+                for (const tab of tabs) {
+                    if (tab.textContent === targetDay) {
+                        targetTab = tab;
+                        break;
+                    }
+                }
+                
+                if (targetTab) {
+                    // Click the target tab to show it
+                    targetTab.click();
+                    console.log(`Navigated to ${targetDay} tab via day parameter`);
+                } else {
+                    console.log(`Day tab ${targetDay} not found`);
+                }
+            } else {
+                console.log(`Invalid day parameter: ${dayParam}. Valid values are: ${Object.keys(dayMapping).join(', ')}`);
+            }
         }
     }
 }

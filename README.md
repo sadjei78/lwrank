@@ -26,6 +26,16 @@ A modern web application for managing daily competitive rankings with enhanced w
 3. Click on day tabs to view rankings for specific days
 4. Upload CSV files in admin mode (`?admin=YOUR_ADMIN_CODE`) to add data
 
+### URL Parameters
+- **Admin Mode**: `?admin=YOUR_ADMIN_CODE` - Enables admin features (CSV upload, special events, player management)
+- **Day Navigation**: `?day=mon` - Automatically navigates to the Monday tab on page load
+
+**Valid day values**: `mon`, `tue`, `wed`, `thu`, `fri`, `sat`, `sun`
+
+**Examples**:
+- `?day=mon` - Opens Monday tab
+- `?admin=YOUR_CODE&day=fri` - Opens Friday tab with admin features enabled
+
 ### Admin Features (`?admin=YOUR_ADMIN_CODE`)
 
 #### Special Event Management

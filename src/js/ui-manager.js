@@ -61,31 +61,31 @@ export class UIManager {
             html += '</tbody></table>';
         } else {
             // For regular daily rankings, ALWAYS show top 10 and bottom 20 with gap
-            const top10 = sortedRankings.slice(0, 10);
-            const bottom20 = sortedRankings.slice(-20);
-            const hasGap = sortedRankings.length > 30;
-            
-            const gapStart = top10[top10.length - 1]?.ranking + 1;
-            const gapEnd = bottom20[0]?.ranking - 1;
+        const top10 = sortedRankings.slice(0, 10);
+        const bottom20 = sortedRankings.slice(-20);
+        const hasGap = sortedRankings.length > 30;
+        
+        const gapStart = top10[top10.length - 1]?.ranking + 1;
+        const gapEnd = bottom20[0]?.ranking - 1;
 
             html = `
                 <h2>Daily Rankings - ${this.escapeHTML(displayName)}</h2>
-                <div style="margin-bottom: 15px; color: #666; font-style: italic;">
-                    Showing top 10 and bottom 20 ranks (${sortedRankings.length} total entries)
-                </div>
-                <table class="ranking-table">
-                    <thead>
-                        <tr>
-                            <th>Rank</th>
-                            <th>Commander</th>
-                            <th>Points</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-            `;
+            <div style="margin-bottom: 15px; color: #666; font-style: italic;">
+                Showing top 10 and bottom 20 ranks (${sortedRankings.length} total entries)
+            </div>
+            <table class="ranking-table">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Commander</th>
+                        <th>Points</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
 
-            // Add top 10
-            top10.forEach(rank => {
+        // Add top 10
+        top10.forEach(rank => {
                 const commander = rank.commander;
                 const isTop10Multiple = top10Occurrences[commander];
                 const isTop5Cumulative = cumulativeScores[commander];
@@ -100,28 +100,28 @@ export class UIManager {
                 const top10Indicator = isTop10Multiple ? ` <span class="top10-indicator" title="Appears in top 10 ${isTop10Multiple} times this week">*${isTop10Multiple}</span>` : '';
                 const cumulativeIndicator = isTop5Cumulative ? ` <span class="cumulative-indicator" title="Weekly cumulative score">★${this.formatNumber(cumulativeScore)}</span>` : '';
                 
-                html += `
+            html += `
                     <tr class="${rowClass}">
-                        <td class="rank-number">#${this.escapeHTML(rank.ranking.toString())}</td>
+                    <td class="rank-number">#${this.escapeHTML(rank.ranking.toString())}</td>
                         <td>${this.escapeHTML(commander)}${top10Indicator}${cumulativeIndicator}</td>
                         <td class="points">${this.escapeHTML(this.formatNumber(rank.points))}</td>
-                    </tr>
-                `;
-            });
+                </tr>
+            `;
+        });
 
-            // Add gap indicator if needed
-            if (hasGap && gapStart <= gapEnd) {
-                html += `
-                    <tr style="background: #f0f0f0; font-style: italic; text-align: center;">
-                        <td colspan="3" style="padding: 20px; color: #666; border-top: 2px dashed #ccc; border-bottom: 2px dashed #ccc;">
-                            ... ${gapEnd - gapStart + 1} ranks omitted (${this.escapeHTML(gapStart.toString())} - ${this.escapeHTML(gapEnd.toString())}) ...
-                        </td>
-                    </tr>
-                `;
-            }
+        // Add gap indicator if needed
+        if (hasGap && gapStart <= gapEnd) {
+            html += `
+                <tr style="background: #f0f0f0; font-style: italic; text-align: center;">
+                    <td colspan="3" style="padding: 20px; color: #666; border-top: 2px dashed #ccc; border-bottom: 2px dashed #ccc;">
+                        ... ${gapEnd - gapStart + 1} ranks omitted (${this.escapeHTML(gapStart.toString())} - ${this.escapeHTML(gapEnd.toString())}) ...
+                    </td>
+                </tr>
+            `;
+        }
 
-            // Add bottom 20
-            bottom20.forEach(rank => {
+        // Add bottom 20
+        bottom20.forEach(rank => {
                 const commander = rank.commander;
                 const isTop10Multiple = top10Occurrences[commander];
                 const isBottom20Multiple = bottom20Occurrences[commander];
@@ -138,16 +138,16 @@ export class UIManager {
                 const bottom20Indicator = isBottom20Multiple ? ` <span class="bottom20-indicator" title="Appears in bottom 20 ${isBottom20Multiple} times this week">*${isBottom20Multiple}</span>` : '';
                 const cumulativeIndicator = isTop5Cumulative ? ` <span class="cumulative-indicator" title="Weekly cumulative score">★${this.formatNumber(cumulativeScore)}</span>` : '';
                 
-                html += `
+            html += `
                     <tr class="${rowClass}">
-                        <td class="rank-number">#${this.escapeHTML(rank.ranking.toString())}</td>
+                    <td class="rank-number">#${this.escapeHTML(rank.ranking.toString())}</td>
                         <td>${this.escapeHTML(commander)}${top10Indicator}${bottom20Indicator}${cumulativeIndicator}</td>
                         <td class="points">${this.escapeHTML(this.formatNumber(rank.points))}</td>
-                    </tr>
-                `;
-            });
+                </tr>
+            `;
+        });
 
-            html += '</tbody></table>';
+        html += '</tbody></table>';
         }
         
         // Add legend only for regular daily rankings (not special events)
