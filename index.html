@@ -114,6 +114,53 @@
             <div id="tabContents" class="tab-contents"></div>
         </div>
 
+        <div id="reportsTab" class="reports-tab" style="display: none;">
+            <div class="reports-header">
+                <h2>📊 Analytics & Reports</h2>
+                <p>Comprehensive performance analysis across all data</p>
+            </div>
+            
+            <div class="reports-controls">
+                <div class="report-type-selector">
+                    <label for="reportType">Select Report:</label>
+                    <select id="reportType" class="report-select">
+                        <option value="">Choose a report...</option>
+                        <option value="top10-alltime">🏆 Top 10 Performers All Time</option>
+                        <option value="bottom10-alltime">📉 Bottom 10 All Time (Excluding Top 10 Achievers)</option>
+                        <option value="top10-avgpoints">⭐ Top 10 Individual Average Points</option>
+                        <option value="bottom10-avgpoints">🔻 Bottom 10 Individual Average Points</option>
+                        <option value="top10-weekly">📈 Top 10 Weekly Total Points</option>
+                        <option value="bottom10-weekly">📊 Bottom 10 Weekly Total Points</option>
+                    </select>
+                    <button id="generateReportBtn" class="generate-report-btn">Generate Report</button>
+                </div>
+                
+                <div class="report-filters">
+                    <div class="filter-group">
+                        <label for="minAppearances">Minimum Appearances:</label>
+                        <input type="number" id="minAppearances" value="3" min="1" max="100" class="filter-input">
+                    </div>
+                    <div class="filter-group">
+                        <label for="dateRange">Date Range:</label>
+                        <select id="dateRange" class="filter-input">
+                            <option value="all">All Time</option>
+                            <option value="last30">Last 30 Days</option>
+                            <option value="last90">Last 90 Days</option>
+                            <option value="lastyear">Last Year</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="reportResults" class="report-results">
+                <div class="report-loading" style="display: none;">
+                    <div class="loading-spinner"></div>
+                    <p>Generating report...</p>
+                </div>
+                <div id="reportContent" class="report-content"></div>
+            </div>
+        </div>
+
         <div id="messages" class="messages"></div>
     </div>
 

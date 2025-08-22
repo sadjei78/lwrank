@@ -11,12 +11,14 @@ A modern web application for managing daily competitive rankings with enhanced w
 - **CSV Import**: Bulk import ranking data via CSV files (admin mode)
 - **Player Management**: Update player names across all data to handle name changes
 - **Database Integration**: Supabase backend with localStorage fallback
+- **Reports & Analytics**: Comprehensive performance analysis with 6 different report types
 
 ### Enhanced Analytics (NEW!)
 - **Top 10 Multi-Day Indicators**: Players who rank in the top 10 on multiple days are marked with `*[count]`
 - **Weekly Cumulative Scores**: Players with top 5 cumulative scores across the week are highlighted with special styling and inline score indicators
 - **Inline Score Display**: Cumulative scores shown as `★[score]` next to player names
 - **Visual Legend**: Automatic legend explaining the indicators and styling
+- **Data Analysis Summary**: Real-time insights about current day/week performance
 
 ## 🎯 How to Use
 
@@ -61,6 +63,24 @@ A modern web application for managing daily competitive rankings with enhanced w
 - **Performance Metrics**: Player counts, average points, top performers
 - **Weekly Trends**: Identifies consistent performers and weekly leaders
 - **Special Event Analysis**: Dedicated insights for tournament/event data
+
+### Reports & Analytics Tab
+The Reports tab provides comprehensive performance analysis across all your ranking data with 6 different report types:
+
+#### Available Reports:
+1. **🏆 Top 10 Performers All Time** - Best overall performers based on average ranking
+2. **📉 Bottom 10 All Time** - Lowest performers (excluding players who've achieved top 10)
+3. **⭐ Top 10 Individual Average Points** - Highest average points per appearance
+4. **🔻 Bottom 10 Individual Average Points** - Lowest average points per appearance
+5. **📈 Top 10 Weekly Total Points** - Best weekly cumulative performers
+6. **📊 Bottom 10 Weekly Total Points** - Lowest weekly cumulative performers
+
+#### Report Features:
+- **Real-time Generation**: Reports generate instantly from your current data
+- **Flexible Filtering**: Set minimum appearances and date ranges
+- **Interactive Tables**: Sortable results with detailed metrics
+- **Performance Metrics**: Comprehensive statistics for each player
+- **Date Range Options**: All time, last 30/90 days, or last year
 
 ### Understanding the Enhanced Features
 

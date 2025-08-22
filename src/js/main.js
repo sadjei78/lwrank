@@ -97,7 +97,13 @@ class DailyRankingsApp {
         document.getElementById('tabs').addEventListener('click', async (e) => {
             if (e.target.classList.contains('tab')) {
                 const dateKey = e.target.getAttribute('data-date');
-                await this.showTab(dateKey);
+                const tabType = e.target.getAttribute('data-type');
+                
+                if (tabType === 'reports') {
+                    await this.showTab('reports');
+                } else if (dateKey) {
+                    await this.showTab(dateKey);
+                }
             }
         });
 
@@ -286,6 +292,13 @@ class DailyRankingsApp {
             tabContentsContainer.appendChild(eventContent);
         }
         
+        // Add Reports tab
+        const reportsTab = document.createElement('button');
+        reportsTab.className = 'tab reports-tab';
+        reportsTab.textContent = '📊 Reports';
+        reportsTab.setAttribute('data-type', 'reports');
+        tabsContainer.appendChild(reportsTab);
+        
         // Show first tab by default
         if (weekDates.length > 0) {
             const firstDateKey = this.formatDateKey(weekDates[0]);
@@ -298,6 +311,7 @@ class DailyRankingsApp {
     async showTab(dateKey) {
         console.log('Showing tab for dateKey:', dateKey);
         this.currentTabDate = dateKey;
+        
         // Hide all tab contents
         const allContents = document.querySelectorAll('.tab-content');
         allContents.forEach(content => content.classList.remove('active'));
@@ -305,6 +319,27 @@ class DailyRankingsApp {
         // Remove active class from all tabs
         const allTabs = document.querySelectorAll('.tab');
         allTabs.forEach(tab => tab.classList.remove('active'));
+        
+        // Check if this is the Reports tab
+        if (dateKey === 'reports') {
+            // Show reports tab
+            document.getElementById('reportsTab').style.display = 'block';
+            document.querySelector('.tabs-container').style.display = 'none';
+            
+            // Add active class to reports tab
+            const reportsTab = document.querySelector('.tab[data-type="reports"]');
+            if (reportsTab) {
+                reportsTab.classList.add('active');
+            }
+            
+            // Initialize reports functionality
+            this.initializeReports();
+            return;
+        } else {
+            // Hide reports tab and show regular tabs
+            document.getElementById('reportsTab').style.display = 'none';
+            document.querySelector('.tabs-container').style.display = 'block';
+        }
         
         // Show selected tab content
         const selectedContent = document.getElementById(`tab-${dateKey}`);
@@ -745,6 +780,465 @@ class DailyRankingsApp {
         `;
         
         return analysis;
+    }
+
+    initializeReports() {
+        // Set up report generation button
+        const generateBtn = document.getElementById('generateReportBtn');
+        if (generateBtn) {
+            generateBtn.addEventListener('click', () => this.generateReport());
+        }
+        
+        // Set up report type change handler
+        const reportType = document.getElementById('reportType');
+        if (reportType) {
+            reportType.addEventListener('change', () => {
+                if (reportType.value) {
+                    this.generateReport();
+                }
+            });
+        }
+        
+        // Set up filter change handlers
+        const minAppearances = document.getElementById('minAppearances');
+        const dateRange = document.getElementById('dateRange');
+        
+        if (minAppearances) {
+            minAppearances.addEventListener('change', () => {
+                if (reportType.value) {
+                    this.generateReport();
+                }
+            });
+        }
+        
+        if (dateRange) {
+            dateRange.addEventListener('change', () => {
+                if (reportType.value) {
+                    this.generateReport();
+                }
+            });
+        }
+    }
+
+    async generateReport() {
+        const reportType = document.getElementById('reportType').value;
+        const minAppearances = parseInt(document.getElementById('minAppearances').value) || 3;
+        const dateRange = document.getElementById('dateRange').value;
+        
+        if (!reportType) return;
+        
+        // Show loading
+        this.showReportLoading(true);
+        
+        try {
+            let reportData;
+            let reportTitle;
+            
+            switch (reportType) {
+                case 'top10-alltime':
+                    reportData = await this.generateTop10AllTimeReport(minAppearances, dateRange);
+                    reportTitle = '🏆 Top 10 Performers All Time';
+                    break;
+                case 'bottom10-alltime':
+                    reportData = await this.generateBottom10AllTimeReport(minAppearances, dateRange);
+                    reportTitle = '📉 Bottom 10 All Time (Excluding Top 10 Achievers)';
+                    break;
+                case 'top10-avgpoints':
+                    reportData = await this.generateTop10AvgPointsReport(minAppearances, dateRange);
+                    reportTitle = '⭐ Top 10 Individual Average Points';
+                    break;
+                case 'bottom10-avgpoints':
+                    reportData = await this.generateBottom10AvgPointsReport(minAppearances, dateRange);
+                    reportTitle = '🔻 Bottom 10 Individual Average Points';
+                    break;
+                case 'top10-weekly':
+                    reportData = await this.generateTop10WeeklyReport(minAppearances, dateRange);
+                    reportTitle = '📈 Top 10 Weekly Total Points';
+                    break;
+                case 'bottom10-weekly':
+                    reportData = await this.generateBottom10WeeklyReport(minAppearances, dateRange);
+                    reportTitle = '📊 Bottom 10 Weekly Total Points';
+                    break;
+                default:
+                    throw new Error('Unknown report type');
+            }
+            
+            this.displayReport(reportTitle, reportData);
+        } catch (error) {
+            console.error('Error generating report:', error);
+            this.displayReportError('Failed to generate report: ' + error.message);
+        } finally {
+            this.showReportLoading(false);
+        }
+    }
+
+    showReportLoading(show) {
+        const loading = document.querySelector('.report-loading');
+        const content = document.getElementById('reportContent');
+        
+        if (loading) loading.style.display = show ? 'block' : 'none';
+        if (content) content.style.display = show ? 'none' : 'block';
+    }
+
+    displayReport(title, data) {
+        const content = document.getElementById('reportContent');
+        if (!content) return;
+        
+        let html = `
+            <div class="report-header">
+                <h3>${title}</h3>
+                <div class="report-meta">
+                    <span class="meta-item">📊 ${data.length} results</span>
+                    <span class="meta-item">⏰ Generated: ${new Date().toLocaleString()}</span>
+                </div>
+            </div>
+            <div class="report-table-container">
+                <table class="report-table">
+                    <thead>
+                        <tr>
+        `;
+        
+        // Add headers based on data structure
+        if (data.length > 0) {
+            const headers = Object.keys(data[0]);
+            headers.forEach(header => {
+                html += `<th>${this.formatHeader(header)}</th>`;
+            });
+        }
+        
+        html += `
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+        
+        // Add data rows
+        data.forEach((row, index) => {
+            html += '<tr>';
+            Object.values(row).forEach(value => {
+                html += `<td>${this.formatValue(value)}</td>`;
+            });
+            html += '</tr>';
+        });
+        
+        html += `
+                    </tbody>
+                </table>
+            </div>
+        `;
+        
+        content.innerHTML = html;
+    }
+
+    displayReportError(message) {
+        const content = document.getElementById('reportContent');
+        if (!content) return;
+        
+        content.innerHTML = `
+            <div class="report-error">
+                <h3>❌ Error</h3>
+                <p>${message}</p>
+            </div>
+        `;
+    }
+
+    formatHeader(header) {
+        return header
+            .replace(/([A-Z])/g, ' $1')
+            .replace(/^./, str => str.toUpperCase())
+            .replace(/_/g, ' ');
+    }
+
+    formatValue(value) {
+        if (value === null || value === undefined) return '-';
+        if (typeof value === 'number') {
+            return value.toLocaleString();
+        }
+        return value.toString();
+    }
+
+    // Report Generation Methods
+    async generateTop10AllTimeReport(minAppearances, dateRange) {
+        const allRankings = await this.rankingManager.getAllRankings();
+        const filteredRankings = this.filterRankingsByDateRange(allRankings, dateRange);
+        
+        // Group by player and calculate metrics
+        const playerStats = this.calculatePlayerStats(filteredRankings, minAppearances);
+        
+        // Sort by average ranking (lower is better)
+        const sortedPlayers = playerStats
+            .sort((a, b) => a.avgRanking - b.avgRanking)
+            .slice(0, 10);
+        
+        return sortedPlayers.map(player => ({
+            rank: 0, // Will be set by displayReport
+            commander: player.commander,
+            totalAppearances: player.totalAppearances,
+            averageRanking: Math.round(player.avgRanking * 100) / 100,
+            bestRanking: player.bestRanking,
+            worstRanking: player.worstRanking,
+            daysParticipated: player.daysParticipated,
+            averagePoints: Math.round(player.avgPoints)
+        }));
+    }
+
+    async generateBottom10AllTimeReport(minAppearances, dateRange) {
+        const allRankings = await this.rankingManager.getAllRankings();
+        const filteredRankings = this.filterRankingsByDateRange(allRankings, dateRange);
+        
+        // Get players who have achieved top 10
+        const top10Achievers = new Set();
+        filteredRankings.forEach(ranking => {
+            if (ranking.ranking <= 10) {
+                top10Achievers.add(ranking.commander);
+            }
+        });
+        
+        // Filter out top 10 achievers and calculate stats
+        const nonTop10Rankings = filteredRankings.filter(r => !top10Achievers.has(r.commander));
+        const playerStats = this.calculatePlayerStats(nonTop10Rankings, minAppearances);
+        
+        // Sort by average ranking (higher is worse)
+        const sortedPlayers = playerStats
+            .sort((a, b) => b.avgRanking - a.avgRanking)
+            .slice(0, 10);
+        
+        return sortedPlayers.map(player => ({
+            rank: 0,
+            commander: player.commander,
+            totalAppearances: player.totalAppearances,
+            averageRanking: Math.round(player.avgRanking * 100) / 100,
+            bestRanking: player.bestRanking,
+            worstRanking: player.worstRanking,
+            daysParticipated: player.daysParticipated,
+            averagePoints: Math.round(player.avgPoints)
+        }));
+    }
+
+    async generateTop10AvgPointsReport(minAppearances, dateRange) {
+        const allRankings = await this.rankingManager.getAllRankings();
+        const filteredRankings = this.filterRankingsByDateRange(allRankings, dateRange);
+        
+        const playerStats = this.calculatePlayerStats(filteredRankings, minAppearances);
+        
+        // Sort by average points (higher is better)
+        const sortedPlayers = playerStats
+            .filter(p => p.avgPoints > 0)
+            .sort((a, b) => b.avgPoints - a.avgPoints)
+            .slice(0, 10);
+        
+        return sortedPlayers.map(player => ({
+            rank: 0,
+            commander: player.commander,
+            totalAppearances: player.totalAppearances,
+            averagePoints: Math.round(player.avgPoints),
+            averageRanking: Math.round(player.avgRanking * 100) / 100,
+            bestRanking: player.bestRanking,
+            daysParticipated: player.daysParticipated
+        }));
+    }
+
+    async generateBottom10AvgPointsReport(minAppearances, dateRange) {
+        const allRankings = await this.rankingManager.getAllRankings();
+        const filteredRankings = this.filterRankingsByDateRange(allRankings, dateRange);
+        
+        const playerStats = this.calculatePlayerStats(filteredRankings, minAppearances);
+        
+        // Sort by average points (lower is worse)
+        const sortedPlayers = playerStats
+            .filter(p => p.avgPoints > 0)
+            .sort((a, b) => a.avgPoints - b.avgPoints)
+            .slice(0, 10);
+        
+        return sortedPlayers.map(player => ({
+            rank: 0,
+            commander: player.commander,
+            totalAppearances: player.totalAppearances,
+            averagePoints: Math.round(player.avgPoints),
+            averageRanking: Math.round(player.avgRanking * 100) / 100,
+            worstRanking: player.worstRanking,
+            daysParticipated: player.daysParticipated
+        }));
+    }
+
+    async generateTop10WeeklyReport(minAppearances, dateRange) {
+        const allRankings = await this.rankingManager.getAllRankings();
+        const filteredRankings = this.filterRankingsByDateRange(allRankings, dateRange);
+        
+        // Group by week and player
+        const weeklyStats = this.calculateWeeklyStats(filteredRankings, minAppearances);
+        
+        // Sort by total weekly points (higher is better)
+        const sortedPlayers = weeklyStats
+            .sort((a, b) => b.totalWeeklyPoints - a.totalWeeklyPoints)
+            .slice(0, 10);
+        
+        return sortedPlayers.map(player => ({
+            rank: 0,
+            commander: player.commander,
+            totalWeeklyPoints: Math.round(player.totalWeeklyPoints),
+            weeksParticipated: player.weeksParticipated,
+            averageWeeklyPoints: Math.round(player.avgWeeklyPoints),
+            bestWeekPoints: Math.round(player.bestWeekPoints),
+            totalAppearances: player.totalAppearances
+        }));
+    }
+
+    async generateBottom10WeeklyReport(minAppearances, dateRange) {
+        const allRankings = await this.rankingManager.getAllRankings();
+        const filteredRankings = this.filterRankingsByDateRange(allRankings, dateRange);
+        
+        const weeklyStats = this.calculateWeeklyStats(filteredRankings, minAppearances);
+        
+        // Sort by total weekly points (lower is worse)
+        const sortedPlayers = weeklyStats
+            .sort((a, b) => a.totalWeeklyPoints - b.totalWeeklyPoints)
+            .slice(0, 10);
+        
+        return sortedPlayers.map(player => ({
+            rank: 0,
+            commander: player.commander,
+            totalWeeklyPoints: Math.round(player.totalWeeklyPoints),
+            weeksParticipated: player.weeksParticipated,
+            averageWeeklyPoints: Math.round(player.avgWeeklyPoints),
+            worstWeekPoints: Math.round(player.worstWeekPoints),
+            totalAppearances: player.totalAppearances
+        }));
+    }
+
+    // Helper methods for report generation
+    filterRankingsByDateRange(rankings, dateRange) {
+        if (dateRange === 'all') return rankings;
+        
+        const now = new Date();
+        let cutoffDate;
+        
+        switch (dateRange) {
+            case 'last30':
+                cutoffDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+                break;
+            case 'last90':
+                cutoffDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+                break;
+            case 'lastyear':
+                cutoffDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+                break;
+            default:
+                return rankings;
+        }
+        
+        return rankings.filter(ranking => {
+            const rankingDate = new Date(ranking.day + 'T00:00:00');
+            return rankingDate >= cutoffDate;
+        });
+    }
+
+    calculatePlayerStats(rankings, minAppearances) {
+        const playerMap = new Map();
+        
+        rankings.forEach(ranking => {
+            if (!playerMap.has(ranking.commander)) {
+                playerMap.set(ranking.commander, {
+                    commander: ranking.commander,
+                    totalAppearances: 0,
+                    totalPoints: 0,
+                    totalRanking: 0,
+                    bestRanking: Infinity,
+                    worstRanking: 0,
+                    days: new Set()
+                });
+            }
+            
+            const player = playerMap.get(ranking.commander);
+            player.totalAppearances++;
+            player.totalRanking += ranking.ranking;
+            player.bestRanking = Math.min(player.bestRanking, ranking.ranking);
+            player.worstRanking = Math.max(player.worstRanking, ranking.ranking);
+            player.days.add(ranking.day);
+            
+            // Handle points conversion
+            if (ranking.points && !isNaN(Number(ranking.points))) {
+                player.totalPoints += Number(ranking.points);
+            }
+        });
+        
+        return Array.from(playerMap.values())
+            .filter(player => player.totalAppearances >= minAppearances)
+            .map(player => ({
+                commander: player.commander,
+                totalAppearances: player.totalAppearances,
+                avgRanking: player.totalRanking / player.totalAppearances,
+                avgPoints: player.totalPoints / player.totalAppearances,
+                bestRanking: player.bestRanking === Infinity ? 0 : player.bestRanking,
+                worstRanking: player.worstRanking,
+                daysParticipated: player.days.size
+            }));
+    }
+
+    calculateWeeklyStats(rankings, minAppearances) {
+        const playerMap = new Map();
+        
+        // Group by week and player
+        rankings.forEach(ranking => {
+            const weekKey = this.getWeekKey(ranking.day);
+            const playerKey = ranking.commander;
+            
+            if (!playerMap.has(playerKey)) {
+                playerMap.set(playerKey, {
+                    commander: playerKey,
+                    weeklyPoints: new Map(),
+                    totalAppearances: 0
+                });
+            }
+            
+            const player = playerMap.get(playerKey);
+            player.totalAppearances++;
+            
+            if (!player.weeklyPoints.has(weekKey)) {
+                player.weeklyPoints.set(weekKey, 0);
+            }
+            
+            if (ranking.points && !isNaN(Number(ranking.points))) {
+                player.weeklyPoints.set(weekKey, player.weeklyPoints.get(weekKey) + Number(ranking.points));
+            }
+        });
+        
+        return Array.from(playerMap.values())
+            .filter(player => player.totalAppearances >= minAppearances)
+            .map(player => {
+                const weeklyPoints = Array.from(player.weeklyPoints.values());
+                const totalWeeklyPoints = weeklyPoints.reduce((sum, points) => sum + points, 0);
+                const avgWeeklyPoints = totalWeeklyPoints / player.weeklyPoints.size;
+                const bestWeekPoints = Math.max(...weeklyPoints);
+                const worstWeekPoints = Math.min(...weeklyPoints);
+                
+                return {
+                    commander: player.commander,
+                    totalWeeklyPoints,
+                    avgWeeklyPoints,
+                    bestWeekPoints,
+                    worstWeekPoints,
+                    weeksParticipated: player.weeklyPoints.size,
+                    totalAppearances: player.totalAppearances
+                };
+            });
+    }
+
+    getWeekKey(dayString) {
+        // Convert day string to week key
+        try {
+            const date = new Date(dayString + 'T00:00:00');
+            if (isNaN(date.getTime())) {
+                // If it's not a valid date, return the original string
+                return dayString;
+            }
+            
+            const year = date.getFullYear();
+            const week = Math.ceil((date.getDate() + new Date(date.getFullYear(), date.getMonth(), 1).getDay()) / 7);
+            return `${year}-W${week.toString().padStart(2, '0')}`;
+        } catch (error) {
+            return dayString;
+        }
     }
 }
 
