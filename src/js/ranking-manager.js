@@ -107,7 +107,26 @@ export class RankingManager {
     }
 
     getAllRankings() {
-        return this.rankingsData;
+        // Convert the nested rankingsData object to a flat array
+        const allRankings = [];
+        
+        for (const dateKey in this.rankingsData) {
+            if (this.rankingsData.hasOwnProperty(dateKey)) {
+                const dayRankings = this.rankingsData[dateKey];
+                if (Array.isArray(dayRankings)) {
+                    // Add day information to each ranking
+                    dayRankings.forEach(ranking => {
+                        allRankings.push({
+                            ...ranking,
+                            day: dateKey
+                        });
+                    });
+                }
+            }
+        }
+        
+        console.log('getAllRankings returning:', allRankings.length, 'rankings');
+        return allRankings;
     }
 
     async getRankingsForDate(dateKey) {

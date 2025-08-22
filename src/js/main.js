@@ -959,155 +959,233 @@ class DailyRankingsApp {
 
     // Report Generation Methods
     async generateTop10AllTimeReport(minAppearances, dateRange) {
-        const allRankings = await this.rankingManager.getAllRankings();
-        const filteredRankings = this.filterRankingsByDateRange(allRankings, dateRange);
-        
-        // Group by player and calculate metrics
-        const playerStats = this.calculatePlayerStats(filteredRankings, minAppearances);
-        
-        // Sort by average ranking (lower is better)
-        const sortedPlayers = playerStats
-            .sort((a, b) => a.avgRanking - b.avgRanking)
-            .slice(0, 10);
-        
-        return sortedPlayers.map(player => ({
-            rank: 0, // Will be set by displayReport
-            commander: player.commander,
-            totalAppearances: player.totalAppearances,
-            averageRanking: Math.round(player.avgRanking * 100) / 100,
-            bestRanking: player.bestRanking,
-            worstRanking: player.worstRanking,
-            daysParticipated: player.daysParticipated,
-            averagePoints: Math.round(player.avgPoints)
-        }));
+        try {
+            const allRankings = await this.rankingManager.getAllRankings();
+            
+            // Validate that we got an array
+            if (!Array.isArray(allRankings)) {
+                console.error('getAllRankings did not return an array:', allRankings);
+                throw new Error('Failed to retrieve rankings data');
+            }
+            
+            const filteredRankings = this.filterRankingsByDateRange(allRankings, dateRange);
+            
+            // Group by player and calculate metrics
+            const playerStats = this.calculatePlayerStats(filteredRankings, minAppearances);
+            
+            // Sort by average ranking (lower is better)
+            const sortedPlayers = playerStats
+                .sort((a, b) => a.avgRanking - b.avgRanking)
+                .slice(0, 10);
+            
+            return sortedPlayers.map(player => ({
+                rank: 0, // Will be set by displayReport
+                commander: player.commander,
+                totalAppearances: player.totalAppearances,
+                averageRanking: Math.round(player.avgRanking * 100) / 100,
+                bestRanking: player.bestRanking,
+                worstRanking: player.worstRanking,
+                daysParticipated: player.daysParticipated,
+                averagePoints: Math.round(player.avgPoints)
+            }));
+        } catch (error) {
+            console.error('Error in generateTop10AllTimeReport:', error);
+            throw new Error(`Failed to generate Top 10 All Time report: ${error.message}`);
+        }
     }
 
     async generateBottom10AllTimeReport(minAppearances, dateRange) {
-        const allRankings = await this.rankingManager.getAllRankings();
-        const filteredRankings = this.filterRankingsByDateRange(allRankings, dateRange);
-        
-        // Get players who have achieved top 10
-        const top10Achievers = new Set();
-        filteredRankings.forEach(ranking => {
-            if (ranking.ranking <= 10) {
-                top10Achievers.add(ranking.commander);
+        try {
+            const allRankings = await this.rankingManager.getAllRankings();
+            
+            // Validate that we got an array
+            if (!Array.isArray(allRankings)) {
+                console.error('getAllRankings did not return an array:', allRankings);
+                throw new Error('Failed to retrieve rankings data');
             }
-        });
-        
-        // Filter out top 10 achievers and calculate stats
-        const nonTop10Rankings = filteredRankings.filter(r => !top10Achievers.has(r.commander));
-        const playerStats = this.calculatePlayerStats(nonTop10Rankings, minAppearances);
-        
-        // Sort by average ranking (higher is worse)
-        const sortedPlayers = playerStats
-            .sort((a, b) => b.avgRanking - a.avgRanking)
-            .slice(0, 10);
-        
-        return sortedPlayers.map(player => ({
-            rank: 0,
-            commander: player.commander,
-            totalAppearances: player.totalAppearances,
-            averageRanking: Math.round(player.avgRanking * 100) / 100,
-            bestRanking: player.bestRanking,
-            worstRanking: player.worstRanking,
-            daysParticipated: player.daysParticipated,
-            averagePoints: Math.round(player.avgPoints)
-        }));
+            
+            const filteredRankings = this.filterRankingsByDateRange(allRankings, dateRange);
+            
+            // Get players who have achieved top 10
+            const top10Achievers = new Set();
+            filteredRankings.forEach(ranking => {
+                if (ranking.ranking <= 10) {
+                    top10Achievers.add(ranking.commander);
+                }
+            });
+            
+            // Filter out top 10 achievers and calculate stats
+            const nonTop10Rankings = filteredRankings.filter(r => !top10Achievers.has(r.commander));
+            const playerStats = this.calculatePlayerStats(nonTop10Rankings, minAppearances);
+            
+            // Sort by average ranking (higher is worse)
+            const sortedPlayers = playerStats
+                .sort((a, b) => b.avgRanking - a.avgRanking)
+                .slice(0, 10);
+            
+            return sortedPlayers.map(player => ({
+                rank: 0,
+                commander: player.commander,
+                totalAppearances: player.totalAppearances,
+                averageRanking: Math.round(player.avgRanking * 100) / 100,
+                bestRanking: player.bestRanking,
+                worstRanking: player.worstRanking,
+                daysParticipated: player.daysParticipated,
+                averagePoints: Math.round(player.avgPoints)
+            }));
+        } catch (error) {
+            console.error('Error in generateBottom10AllTimeReport:', error);
+            throw new Error(`Failed to generate Bottom 10 All Time report: ${error.message}`);
+        }
     }
 
     async generateTop10AvgPointsReport(minAppearances, dateRange) {
-        const allRankings = await this.rankingManager.getAllRankings();
-        const filteredRankings = this.filterRankingsByDateRange(allRankings, dateRange);
-        
-        const playerStats = this.calculatePlayerStats(filteredRankings, minAppearances);
-        
-        // Sort by average points (higher is better)
-        const sortedPlayers = playerStats
-            .filter(p => p.avgPoints > 0)
-            .sort((a, b) => b.avgPoints - a.avgPoints)
-            .slice(0, 10);
-        
-        return sortedPlayers.map(player => ({
-            rank: 0,
-            commander: player.commander,
-            totalAppearances: player.totalAppearances,
-            averagePoints: Math.round(player.avgPoints),
-            averageRanking: Math.round(player.avgRanking * 100) / 100,
-            bestRanking: player.bestRanking,
-            daysParticipated: player.daysParticipated
-        }));
+        try {
+            const allRankings = await this.rankingManager.getAllRankings();
+            
+            // Validate that we got an array
+            if (!Array.isArray(allRankings)) {
+                console.error('getAllRankings did not return an array:', allRankings);
+                throw new Error('Failed to retrieve rankings data');
+            }
+            
+            const filteredRankings = this.filterRankingsByDateRange(allRankings, dateRange);
+            
+            const playerStats = this.calculatePlayerStats(filteredRankings, minAppearances);
+            
+            // Sort by average points (higher is better)
+            const sortedPlayers = playerStats
+                .filter(p => p.avgPoints > 0)
+                .sort((a, b) => b.avgPoints - a.avgPoints)
+                .slice(0, 10);
+            
+            return sortedPlayers.map(player => ({
+                rank: 0,
+                commander: player.commander,
+                totalAppearances: player.totalAppearances,
+                averagePoints: Math.round(player.avgPoints),
+                averageRanking: Math.round(player.avgRanking * 100) / 100,
+                bestRanking: player.bestRanking,
+                daysParticipated: player.daysParticipated
+            }));
+        } catch (error) {
+            console.error('Error in generateTop10AvgPointsReport:', error);
+            throw new Error(`Failed to generate Top 10 Average Points report: ${error.message}`);
+        }
     }
 
     async generateBottom10AvgPointsReport(minAppearances, dateRange) {
-        const allRankings = await this.rankingManager.getAllRankings();
-        const filteredRankings = this.filterRankingsByDateRange(allRankings, dateRange);
-        
-        const playerStats = this.calculatePlayerStats(filteredRankings, minAppearances);
-        
-        // Sort by average points (lower is worse)
-        const sortedPlayers = playerStats
-            .filter(p => p.avgPoints > 0)
-            .sort((a, b) => a.avgPoints - b.avgPoints)
-            .slice(0, 10);
-        
-        return sortedPlayers.map(player => ({
-            rank: 0,
-            commander: player.commander,
-            totalAppearances: player.totalAppearances,
-            averagePoints: Math.round(player.avgPoints),
-            averageRanking: Math.round(player.avgRanking * 100) / 100,
-            worstRanking: player.worstRanking,
-            daysParticipated: player.daysParticipated
-        }));
+        try {
+            const allRankings = await this.rankingManager.getAllRankings();
+            
+            // Validate that we got an array
+            if (!Array.isArray(allRankings)) {
+                console.error('getAllRankings did not return an array:', allRankings);
+                throw new Error('Failed to retrieve rankings data');
+            }
+            
+            const filteredRankings = this.filterRankingsByDateRange(allRankings, dateRange);
+            
+            const playerStats = this.calculatePlayerStats(filteredRankings, minAppearances);
+            
+            // Sort by average points (lower is worse)
+            const sortedPlayers = playerStats
+                .filter(p => p.avgPoints > 0)
+                .sort((a, b) => a.avgPoints - b.avgPoints)
+                .slice(0, 10);
+            
+            return sortedPlayers.map(player => ({
+                rank: 0,
+                commander: player.commander,
+                totalAppearances: player.totalAppearances,
+                averagePoints: Math.round(player.avgPoints),
+                averageRanking: Math.round(player.avgRanking * 100) / 100,
+                worstRanking: player.worstRanking,
+                daysParticipated: player.daysParticipated
+            }));
+        } catch (error) {
+            console.error('Error in generateBottom10AvgPointsReport:', error);
+            throw new Error(`Failed to generate Bottom 10 Average Points report: ${error.message}`);
+        }
     }
 
     async generateTop10WeeklyReport(minAppearances, dateRange) {
-        const allRankings = await this.rankingManager.getAllRankings();
-        const filteredRankings = this.filterRankingsByDateRange(allRankings, dateRange);
-        
-        // Group by week and player
-        const weeklyStats = this.calculateWeeklyStats(filteredRankings, minAppearances);
-        
-        // Sort by total weekly points (higher is better)
-        const sortedPlayers = weeklyStats
-            .sort((a, b) => b.totalWeeklyPoints - a.totalWeeklyPoints)
-            .slice(0, 10);
-        
-        return sortedPlayers.map(player => ({
-            rank: 0,
-            commander: player.commander,
-            totalWeeklyPoints: Math.round(player.totalWeeklyPoints),
-            weeksParticipated: player.weeksParticipated,
-            averageWeeklyPoints: Math.round(player.avgWeeklyPoints),
-            bestWeekPoints: Math.round(player.bestWeekPoints),
-            totalAppearances: player.totalAppearances
-        }));
+        try {
+            const allRankings = await this.rankingManager.getAllRankings();
+            
+            // Validate that we got an array
+            if (!Array.isArray(allRankings)) {
+                console.error('getAllRankings did not return an array:', allRankings);
+                throw new Error('Failed to retrieve rankings data');
+            }
+            
+            const filteredRankings = this.filterRankingsByDateRange(allRankings, dateRange);
+            
+            // Group by week and player
+            const weeklyStats = this.calculateWeeklyStats(filteredRankings, minAppearances);
+            
+            // Sort by total weekly points (higher is better)
+            const sortedPlayers = weeklyStats
+                .sort((a, b) => b.totalWeeklyPoints - a.totalWeeklyPoints)
+                .slice(0, 10);
+            
+            return sortedPlayers.map(player => ({
+                rank: 0,
+                commander: player.commander,
+                totalWeeklyPoints: Math.round(player.totalWeeklyPoints),
+                weeksParticipated: player.weeksParticipated,
+                averageWeeklyPoints: Math.round(player.avgWeeklyPoints),
+                bestWeekPoints: Math.round(player.bestWeekPoints),
+                totalAppearances: player.totalAppearances
+            }));
+        } catch (error) {
+            console.error('Error in generateTop10WeeklyReport:', error);
+            throw new Error(`Failed to generate Top 10 Weekly report: ${error.message}`);
+        }
     }
 
     async generateBottom10WeeklyReport(minAppearances, dateRange) {
-        const allRankings = await this.rankingManager.getAllRankings();
-        const filteredRankings = this.filterRankingsByDateRange(allRankings, dateRange);
-        
-        const weeklyStats = this.calculateWeeklyStats(filteredRankings, minAppearances);
-        
-        // Sort by total weekly points (lower is worse)
-        const sortedPlayers = weeklyStats
-            .sort((a, b) => a.totalWeeklyPoints - b.totalWeeklyPoints)
-            .slice(0, 10);
-        
-        return sortedPlayers.map(player => ({
-            rank: 0,
-            commander: player.commander,
-            totalWeeklyPoints: Math.round(player.totalWeeklyPoints),
-            weeksParticipated: player.weeksParticipated,
-            averageWeeklyPoints: Math.round(player.avgWeeklyPoints),
-            worstWeekPoints: Math.round(player.worstWeekPoints),
-            totalAppearances: player.totalAppearances
-        }));
+        try {
+            const allRankings = await this.rankingManager.getAllRankings();
+            
+            // Validate that we got an array
+            if (!Array.isArray(allRankings)) {
+                console.error('getAllRankings did not return an array:', allRankings);
+                throw new Error('Failed to retrieve rankings data');
+            }
+            
+            const filteredRankings = this.filterRankingsByDateRange(allRankings, dateRange);
+            
+            const weeklyStats = this.calculateWeeklyStats(filteredRankings, minAppearances);
+            
+            // Sort by total weekly points (lower is worse)
+            const sortedPlayers = weeklyStats
+                .sort((a, b) => a.totalWeeklyPoints - b.totalWeeklyPoints)
+                .slice(0, 10);
+            
+            return sortedPlayers.map(player => ({
+                rank: 0,
+                commander: player.commander,
+                totalWeeklyPoints: Math.round(player.totalWeeklyPoints),
+                weeksParticipated: player.weeksParticipated,
+                averageWeeklyPoints: Math.round(player.avgWeeklyPoints),
+                worstWeekPoints: Math.round(player.worstWeekPoints),
+                totalAppearances: player.totalAppearances
+            }));
+        } catch (error) {
+            console.error('Error in generateBottom10WeeklyReport:', error);
+            throw new Error(`Failed to generate Bottom 10 Weekly report: ${error.message}`);
+        }
     }
 
     // Helper methods for report generation
     filterRankingsByDateRange(rankings, dateRange) {
+        // Validate input
+        if (!Array.isArray(rankings)) {
+            console.error('filterRankingsByDateRange: rankings is not an array:', rankings);
+            return [];
+        }
+        
         if (dateRange === 'all') return rankings;
         
         const now = new Date();
@@ -1128,37 +1206,58 @@ class DailyRankingsApp {
         }
         
         return rankings.filter(ranking => {
-            const rankingDate = new Date(ranking.day + 'T00:00:00');
-            return rankingDate >= cutoffDate;
+            try {
+                if (!ranking || !ranking.day) return false;
+                const rankingDate = new Date(ranking.day + 'T00:00:00');
+                return !isNaN(rankingDate.getTime()) && rankingDate >= cutoffDate;
+            } catch (error) {
+                console.warn('Error processing ranking date:', ranking, error);
+                return false;
+            }
         });
     }
 
     calculatePlayerStats(rankings, minAppearances) {
+        // Validate input
+        if (!Array.isArray(rankings)) {
+            console.error('calculatePlayerStats: rankings is not an array:', rankings);
+            return [];
+        }
+        
         const playerMap = new Map();
         
         rankings.forEach(ranking => {
-            if (!playerMap.has(ranking.commander)) {
-                playerMap.set(ranking.commander, {
-                    commander: ranking.commander,
-                    totalAppearances: 0,
-                    totalPoints: 0,
-                    totalRanking: 0,
-                    bestRanking: Infinity,
-                    worstRanking: 0,
-                    days: new Set()
-                });
-            }
-            
-            const player = playerMap.get(ranking.commander);
-            player.totalAppearances++;
-            player.totalRanking += ranking.ranking;
-            player.bestRanking = Math.min(player.bestRanking, ranking.ranking);
-            player.worstRanking = Math.max(player.worstRanking, ranking.ranking);
-            player.days.add(ranking.day);
-            
-            // Handle points conversion
-            if (ranking.points && !isNaN(Number(ranking.points))) {
-                player.totalPoints += Number(ranking.points);
+            try {
+                if (!ranking || !ranking.commander || !ranking.ranking) {
+                    console.warn('Skipping invalid ranking:', ranking);
+                    return;
+                }
+                
+                if (!playerMap.has(ranking.commander)) {
+                    playerMap.set(ranking.commander, {
+                        commander: ranking.commander,
+                        totalAppearances: 0,
+                        totalPoints: 0,
+                        totalRanking: 0,
+                        bestRanking: Infinity,
+                        worstRanking: 0,
+                        days: new Set()
+                    });
+                }
+                
+                const player = playerMap.get(ranking.commander);
+                player.totalAppearances++;
+                player.totalRanking += Number(ranking.ranking) || 0;
+                player.bestRanking = Math.min(player.bestRanking, Number(ranking.ranking) || Infinity);
+                player.worstRanking = Math.max(player.worstRanking, Number(ranking.ranking) || 0);
+                player.days.add(ranking.day);
+                
+                // Handle points conversion
+                if (ranking.points && !isNaN(Number(ranking.points))) {
+                    player.totalPoints += Number(ranking.points);
+                }
+            } catch (error) {
+                console.warn('Error processing ranking:', ranking, error);
             }
         });
         
@@ -1176,52 +1275,73 @@ class DailyRankingsApp {
     }
 
     calculateWeeklyStats(rankings, minAppearances) {
+        // Validate input
+        if (!Array.isArray(rankings)) {
+            console.error('calculateWeeklyStats: rankings is not an array:', rankings);
+            return [];
+        }
+        
         const playerMap = new Map();
         
         // Group by week and player
         rankings.forEach(ranking => {
-            const weekKey = this.getWeekKey(ranking.day);
-            const playerKey = ranking.commander;
-            
-            if (!playerMap.has(playerKey)) {
-                playerMap.set(playerKey, {
-                    commander: playerKey,
-                    weeklyPoints: new Map(),
-                    totalAppearances: 0
-                });
-            }
-            
-            const player = playerMap.get(playerKey);
-            player.totalAppearances++;
-            
-            if (!player.weeklyPoints.has(weekKey)) {
-                player.weeklyPoints.set(weekKey, 0);
-            }
-            
-            if (ranking.points && !isNaN(Number(ranking.points))) {
-                player.weeklyPoints.set(weekKey, player.weeklyPoints.get(weekKey) + Number(ranking.points));
+            try {
+                if (!ranking || !ranking.commander || !ranking.day) {
+                    console.warn('Skipping invalid ranking for weekly stats:', ranking);
+                    return;
+                }
+                
+                const weekKey = this.getWeekKey(ranking.day);
+                const playerKey = ranking.commander;
+                
+                if (!playerMap.has(playerKey)) {
+                    playerMap.set(playerKey, {
+                        commander: playerKey,
+                        weeklyPoints: new Map(),
+                        totalAppearances: 0
+                    });
+                }
+                
+                const player = playerMap.get(playerKey);
+                player.totalAppearances++;
+                
+                if (!player.weeklyPoints.has(weekKey)) {
+                    player.weeklyPoints.set(weekKey, 0);
+                }
+                
+                if (ranking.points && !isNaN(Number(ranking.points))) {
+                    player.weeklyPoints.set(weekKey, player.weeklyPoints.get(weekKey) + Number(ranking.points));
+                }
+            } catch (error) {
+                console.warn('Error processing ranking for weekly stats:', ranking, error);
             }
         });
         
         return Array.from(playerMap.values())
             .filter(player => player.totalAppearances >= minAppearances)
             .map(player => {
-                const weeklyPoints = Array.from(player.weeklyPoints.values());
-                const totalWeeklyPoints = weeklyPoints.reduce((sum, points) => sum + points, 0);
-                const avgWeeklyPoints = totalWeeklyPoints / player.weeklyPoints.size;
-                const bestWeekPoints = Math.max(...weeklyPoints);
-                const worstWeekPoints = Math.min(...weeklyPoints);
-                
-                return {
-                    commander: player.commander,
-                    totalWeeklyPoints,
-                    avgWeeklyPoints,
-                    bestWeekPoints,
-                    worstWeekPoints,
-                    weeksParticipated: player.weeklyPoints.size,
-                    totalAppearances: player.totalAppearances
-                };
-            });
+                try {
+                    const weeklyPoints = Array.from(player.weeklyPoints.values());
+                    const totalWeeklyPoints = weeklyPoints.reduce((sum, points) => sum + (points || 0), 0);
+                    const avgWeeklyPoints = weeklyPoints.length > 0 ? totalWeeklyPoints / weeklyPoints.length : 0;
+                    const bestWeekPoints = weeklyPoints.length > 0 ? Math.max(...weeklyPoints) : 0;
+                    const worstWeekPoints = weeklyPoints.length > 0 ? Math.min(...weeklyPoints) : 0;
+                    
+                    return {
+                        commander: player.commander,
+                        totalWeeklyPoints,
+                        avgWeeklyPoints,
+                        bestWeekPoints,
+                        worstWeekPoints,
+                        weeksParticipated: player.weeklyPoints.size,
+                        totalAppearances: player.totalAppearances
+                    };
+                } catch (error) {
+                    console.error('Error calculating weekly stats for player:', player, error);
+                    return null;
+                }
+            })
+            .filter(player => player !== null); // Remove any failed calculations
     }
 
     getWeekKey(dayString) {
