@@ -1,16 +1,32 @@
 import { RankingManager } from './ranking-manager.js';
 import { CSVProcessor } from './csv-processor.js';
 import { UIManager } from './ui-manager.js';
+import { LeaderVIPManager } from './leader-vip-manager.js';
+import { AutocompleteService } from './autocomplete-service.js';
 
 class DailyRankingsApp {
     constructor() {
         this.rankingManager = new RankingManager();
         this.csvProcessor = new CSVProcessor();
         this.uiManager = new UIManager();
+        this.leaderVIPManager = new LeaderVIPManager();
+        this.autocompleteService = new AutocompleteService(this.rankingManager, this.leaderVIPManager);
         this.selectedDate = new Date();
         this.currentTabDate = null;
+        this.adminAuthenticated = false;
+        this.modalEventListenersSetup = false;
         
-        this.init();
+        // Set the leader VIP manager in the UI manager
+        this.uiManager.setLeaderVIPManager(this.leaderVIPManager);
+        
+        // Wait for DOM to be ready before initializing
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                this.init();
+            });
+        } else {
+            this.init();
+        }
     }
 
     async init() {
@@ -23,6 +39,10 @@ class DailyRankingsApp {
         
         // Wait for data to load from database
         await this.rankingManager.initializeConnection();
+        await this.leaderVIPManager.initializeConnection();
+        
+        // Initialize autocomplete service
+        await this.autocompleteService.initialize();
         
         // Set initial date to current week
         this.setDateToCurrentWeek();
@@ -31,11 +51,27 @@ class DailyRankingsApp {
         await this.updateWeeklyTabs();
         this.uiManager.updateConnectionStatus(this.rankingManager.getConnectionStatus());
         
+        // Initialize leader system UI
+        this.updateLeaderDropdowns();
+        this.updateRecentVIPsList();
+        
+        // Initialize rotation management after data is loaded
+        this.updateRotationOrderList();
+        
+        // Initialize special events list
+        this.updateSpecialEventsList();
+        
+        // Check if we need to create sample data
+        await this.checkAndCreateSampleData();
+        
         // Update version number
         this.updateVersionNumber();
         
         // Check for day parameter and navigate to specific day tab
         await this.handleDayParameter();
+        
+        // Set up periodic updates for rotation dates
+        this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
     }
@@ -78,6 +114,57 @@ class DailyRankingsApp {
         document.getElementById('updatePlayerBtn').addEventListener('click', () => {
             this.updatePlayerName();
         });
+
+        // Leader and VIP management
+        document.getElementById('addLeaderBtn').addEventListener('click', () => {
+            this.addAllianceLeader();
+        });
+        
+        // Debug button for testing
+        const debugAddLeaderBtn = document.getElementById('debugAddLeaderBtn');
+        if (debugAddLeaderBtn) {
+            debugAddLeaderBtn.addEventListener('click', () => {
+                this.debugAddTestLeader();
+            });
+        }
+        
+        const removeLeaderBtn = document.getElementById('removeLeaderBtn');
+        if (removeLeaderBtn) {
+            console.log('Remove leader button found, adding event listener');
+            removeLeaderBtn.addEventListener('click', () => {
+                console.log('Remove leader button clicked');
+                this.removeAllianceLeader();
+            });
+        } else {
+            console.error('Remove leader button not found in DOM');
+        }
+        
+        document.getElementById('setVIPBtn').addEventListener('click', () => {
+            this.setVIPForDate();
+        });
+
+        // VIP player input change listeners for frequency display
+        document.getElementById('vipPlayer').addEventListener('input', (e) => {
+            this.updateVIPFrequencyDisplay('vipPlayer', e.target.value);
+        });
+
+        document.getElementById('editVipPlayer').addEventListener('input', (e) => {
+            this.updateVIPFrequencyDisplay('editVipPlayer', e.target.value);
+        });
+
+
+        
+        // Admin login button
+        const adminLoginBtn = document.getElementById('adminLoginBtn');
+        if (adminLoginBtn) {
+            console.log('Admin login button found, adding event listener');
+            adminLoginBtn.addEventListener('click', () => {
+                console.log('Admin login button clicked');
+                this.showAdminLoginModal();
+            });
+        } else {
+            console.error('Admin login button not found in DOM');
+        }
         
         // Special events toggle
         document.getElementById('includeSpecialEvents').addEventListener('change', async () => {
@@ -91,6 +178,12 @@ class DailyRankingsApp {
         const exitAdminBtn = document.getElementById('exitAdminBtn');
         if (exitAdminBtn) {
             exitAdminBtn.addEventListener('click', () => this.exitAdminMode());
+        }
+
+        // Sync data button
+        const syncDataBtn = document.getElementById('syncDataBtn');
+        if (syncDataBtn) {
+            syncDataBtn.addEventListener('click', () => this.syncLocalData());
         }
 
         // Tab click handlers
@@ -134,6 +227,12 @@ class DailyRankingsApp {
     }
 
     isAdmin() {
+        // Check if admin is authenticated via password
+        return this.adminAuthenticated;
+    }
+
+    // Legacy admin code check (for backward compatibility)
+    checkLegacyAdmin() {
         const params = new URLSearchParams(window.location.search);
         const adminCode = params.get('admin');
         const expectedCode = import.meta.env.VITE_ADMIN_CODE;
@@ -146,10 +245,92 @@ class DailyRankingsApp {
     }
 
     exitAdminMode() {
-        // Remove admin parameter from URL and reload
-        const url = new URL(window.location);
-        url.searchParams.delete('admin');
-        window.location.href = url.toString();
+        // Clear admin authentication and hide admin features
+        this.adminAuthenticated = false;
+        this.uiManager.toggleAdminFeatures(false);
+        
+        // Remove admin tab if it exists
+        const adminTab = document.querySelector('.tab[data-type="admin"]');
+        if (adminTab) {
+            adminTab.remove();
+        }
+        
+        // Show success message
+        this.uiManager.showSuccess('Admin mode exited successfully');
+    }
+
+    showAdminLoginModal() {
+        console.log('showAdminLoginModal called');
+        const modal = document.getElementById('adminLoginModal');
+        if (modal) {
+            console.log('Modal found, showing it');
+            modal.classList.add('show');
+            this.setupAdminLoginListeners();
+        } else {
+            console.error('Admin login modal not found in DOM');
+        }
+    }
+
+    setupAdminLoginListeners() {
+        const modal = document.getElementById('adminLoginModal');
+        const closeBtn = modal.querySelector('.close');
+        const loginForm = document.getElementById('adminLoginForm');
+        const cancelBtn = document.getElementById('cancelAdminLogin');
+        
+        // Close modal when clicking X
+        closeBtn.addEventListener('click', () => {
+            modal.classList.remove('show');
+        });
+        
+        // Close modal when clicking outside
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.remove('show');
+            }
+        });
+        
+        // Handle form submission
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await this.authenticateAdmin();
+        });
+        
+        // Handle cancel button
+        cancelBtn.addEventListener('click', () => {
+            modal.classList.remove('show');
+        });
+    }
+
+    async authenticateAdmin() {
+        const password = document.getElementById('adminPassword').value;
+        const expectedPassword = import.meta.env.VITE_ADMIN_PASSWORD;
+        
+        if (!expectedPassword) {
+            // Fallback to legacy admin code system
+            if (this.checkLegacyAdmin()) {
+                this.adminAuthenticated = true;
+                this.uiManager.toggleAdminFeatures(true);
+                document.getElementById('adminLoginModal').classList.remove('show');
+                this.uiManager.showSuccess('Admin access granted via legacy code');
+                return;
+            }
+            this.uiManager.showError('Admin system not configured');
+            return;
+        }
+        
+        if (password === expectedPassword) {
+            this.adminAuthenticated = true;
+            this.uiManager.toggleAdminFeatures(true);
+            document.getElementById('adminLoginModal').classList.remove('show');
+            document.getElementById('adminPassword').value = '';
+            this.uiManager.showSuccess('Admin access granted');
+            
+            // Add admin tab
+            await this.updateWeeklyTabs();
+        } else {
+            this.uiManager.showError('Invalid admin password');
+            document.getElementById('adminPassword').value = '';
+        }
     }
 
     updateVersionNumber() {
@@ -157,7 +338,7 @@ class DailyRankingsApp {
         if (versionElement) {
             // For now, we'll use a hardcoded version since Vite doesn't expose package.json
             // In a real app, you might use import.meta.env.VITE_APP_VERSION
-            versionElement.textContent = 'v1.0.0';
+            versionElement.textContent = 'v1.1.0';
         }
     }
 
@@ -207,8 +388,8 @@ class DailyRankingsApp {
         const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
         startOfWeek.setDate(startOfWeek.getDate() + daysToMonday);
         
-        // Generate weekdays (Monday to Saturday)
-        for (let i = 0; i < 6; i++) {
+        // Generate full week (Monday to Sunday)
+        for (let i = 0; i < 7; i++) {
             const day = new Date(startOfWeek);
             day.setDate(startOfWeek.getDate() + i);
             week.push(day);
@@ -271,25 +452,54 @@ class DailyRankingsApp {
             tabContentsContainer.appendChild(content);
         }
         
-        // Add special event tabs
+        // Add special event tabs (only if they occur within the selected week)
         const specialEvents = await this.rankingManager.getSpecialEvents();
+        const weekStart = this.getWeekStart(this.selectedDate);
+        const weekEnd = this.getWeekEnd(this.selectedDate);
+        
+        console.log('Filtering special events for week:', {
+            weekStart: weekStart.toISOString().split('T')[0],
+            weekEnd: weekEnd.toISOString().split('T')[0],
+            totalEvents: specialEvents.length
+        });
+        
         for (const event of specialEvents) {
-            const eventKey = event.key;
-            const eventName = event.name;
+            // Check if event overlaps with the selected week
+            const eventStart = new Date(event.start_date + 'T00:00:00');
+            const eventEnd = new Date(event.end_date + 'T23:59:59');
             
-            // Create special event tab
-            const eventTab = document.createElement('button');
-            eventTab.className = 'tab special-event-tab';
-            eventTab.textContent = eventName;
-            eventTab.setAttribute('data-date', eventKey);
-            eventTab.setAttribute('data-type', 'special-event');
-            tabsContainer.appendChild(eventTab);
+            // Event overlaps if: event starts before week ends AND event ends after week starts
+            const eventOverlapsWeek = eventStart <= weekEnd && eventEnd >= weekStart;
             
-            // Create special event content
-            const eventContent = document.createElement('div');
-            eventContent.className = 'tab-content';
-            eventContent.id = `tab-${eventKey}`;
-            tabContentsContainer.appendChild(eventContent);
+            console.log('Event date check:', {
+                eventName: event.name,
+                eventStart: event.start_date,
+                eventEnd: event.end_date,
+                eventStartParsed: eventStart.toISOString(),
+                eventEndParsed: eventEnd.toISOString(),
+                weekStart: weekStart.toISOString(),
+                weekEnd: weekEnd.toISOString(),
+                overlaps: eventOverlapsWeek
+            });
+            
+            if (eventOverlapsWeek) {
+                const eventKey = event.key;
+                const eventName = event.name;
+                
+                // Create special event tab
+                const eventTab = document.createElement('button');
+                eventTab.className = 'tab special-event-tab';
+                eventTab.textContent = eventName;
+                eventTab.setAttribute('data-date', eventKey);
+                eventTab.setAttribute('data-type', 'special-event');
+                tabsContainer.appendChild(eventTab);
+                
+                // Create special event content
+                const eventContent = document.createElement('div');
+                eventContent.className = 'tab-content';
+                eventContent.id = `tab-${eventKey}`;
+                tabContentsContainer.appendChild(eventContent);
+            }
         }
         
         // Add Reports tab
@@ -298,6 +508,20 @@ class DailyRankingsApp {
         reportsTab.textContent = '📊 Reports';
         reportsTab.setAttribute('data-type', 'reports');
         tabsContainer.appendChild(reportsTab);
+        
+        // Add Admin tab (only show if admin mode is active)
+        if (this.isAdmin()) {
+            const adminTab = document.createElement('button');
+            adminTab.className = 'tab admin-tab';
+            adminTab.textContent = '🔐 Admin';
+            adminTab.setAttribute('data-type', 'admin');
+            tabsContainer.appendChild(adminTab);
+            
+            // Add click handler for admin tab
+            adminTab.addEventListener('click', () => {
+                this.showTab('admin');
+            });
+        }
         
         // Show first tab by default
         if (weekDates.length > 0) {
@@ -324,6 +548,7 @@ class DailyRankingsApp {
         if (dateKey === 'reports') {
             // Show reports tab
             document.getElementById('reportsTab').style.display = 'block';
+            document.getElementById('adminTab').style.display = 'none';
             document.querySelector('.tabs-container').style.display = 'none';
             
             // Add active class to reports tab
@@ -335,9 +560,25 @@ class DailyRankingsApp {
             // Initialize reports functionality
             this.initializeReports();
             return;
-        } else {
-            // Hide reports tab and show regular tabs
+        } else if (dateKey === 'admin') {
+            // Show admin tab
+            document.getElementById('adminTab').style.display = 'block';
             document.getElementById('reportsTab').style.display = 'none';
+            document.querySelector('.tabs-container').style.display = 'none';
+            
+            // Add active class to admin tab
+            const adminTab = document.querySelector('.tab[data-type="admin"]');
+            if (adminTab) {
+                adminTab.classList.add('active');
+            }
+            
+            // Initialize admin functionality
+            this.showAdminTab();
+            return;
+        } else {
+            // Hide special tabs and show regular tabs
+            document.getElementById('reportsTab').style.display = 'none';
+            document.getElementById('adminTab').style.display = 'none';
             document.querySelector('.tabs-container').style.display = 'block';
         }
         
@@ -364,10 +605,14 @@ class DailyRankingsApp {
                         {}, // No top 10 occurrences for special events
                         {}, // No bottom 20 occurrences for special events
                         {}, // No cumulative scores for special events
-                        true // isSpecialEvent = true
+                        true, // isSpecialEvent = true
+                        new Date(dateKey + 'T00:00:00') // date parameter
                     );
                 } else {
+                    // Show conductor banner even when there are no rankings for special events
+                    const conductorBanner = this.uiManager.createTrainConductorVIPDisplay(new Date(dateKey + 'T00:00:00'));
                     selectedContent.innerHTML = `
+                        ${conductorBanner}
                         <div class="no-data">
                             <h3>Special Event: ${eventName}</h3>
                             <p>No ranking data available for this special event. Upload a CSV file to add rankings.</p>
@@ -396,10 +641,14 @@ class DailyRankingsApp {
                         top10Occurrences, 
                         bottom20Occurrences,
                         cumulativeScores,
-                        false // isSpecialEvent = false
+                        false, // isSpecialEvent = false
+                        new Date(dateKey + 'T00:00:00') // date parameter
                     );
                 } else {
+                    // Show conductor banner even when there are no rankings
+                    const conductorBanner = this.uiManager.createTrainConductorVIPDisplay(new Date(dateKey + 'T00:00:00'));
                     selectedContent.innerHTML = `
+                        ${conductorBanner}
                         <div class="no-data">
                             <h3>No ranking data available for ${displayName}</h3>
                             <p>Upload a CSV file to add rankings for this date.</p>
@@ -468,6 +717,9 @@ class DailyRankingsApp {
                 this.uiManager.showSuccess(`Successfully processed ${uniqueRankings.length} rankings for ${this.formatDateDisplay(selectedDate)}!`);
             }
             
+            // Refresh autocomplete with new player names
+            await this.autocompleteService.refreshPlayerNames();
+            
             // Refresh the current tab to show new data
             await this.showTab(selectedDateKey);
             this.updateDataStatus();
@@ -526,6 +778,9 @@ class DailyRankingsApp {
             
             // Refresh tabs to include new special event
             await this.updateWeeklyTabs();
+            
+            // Refresh the special events list in admin tab
+            this.updateSpecialEventsList();
         } else {
             this.uiManager.showError('Failed to create special event. Please try again.');
         }
@@ -536,37 +791,633 @@ class DailyRankingsApp {
         const newName = document.getElementById('newPlayerName').value.trim();
         
         if (!oldName || !newName) {
-            alert('Please enter both old and new player names.');
+            this.uiManager.showError('Please enter both old and new player names.');
             return;
         }
         
         if (oldName === newName) {
-            alert('Old and new names cannot be the same.');
+            this.uiManager.showError('Old and new names cannot be the same.');
             return;
         }
         
-        const confirmed = confirm(`Are you sure you want to update all records for player "${oldName}" to "${newName}"? This will affect cumulative scores and rankings.`);
+        const confirmed = confirm(`Are you sure you want to update all records for player "${oldName}" to "${newName}"? This will affect:\n\n• All ranking records\n• Alliance leader status\n• Train conductor rotation\n• VIP selections\n• Special event records\n\nThis action cannot be undone.`);
         
         if (!confirmed) {
             return;
         }
         
-        const success = await this.rankingManager.updatePlayerName(oldName, newName);
-        
-        if (success) {
-            this.uiManager.showSuccess(`Successfully updated player name from "${oldName}" to "${newName}". Cumulative scores and rankings have been updated.`);
+        try {
+            // Update all references across all tables
+            await this.updatePlayerNameEverywhere(oldName, newName);
+            
+            this.uiManager.showSuccess(`Successfully updated player name from "${oldName}" to "${newName}" across all tables.`);
+            
             // Clear form
             document.getElementById('oldPlayerName').value = '';
             document.getElementById('newPlayerName').value = '';
+            
+            // Refresh all UI components
+            this.updateLeaderDropdowns();
+            this.updateRotationOrderList();
+            this.updateRecentVIPsList();
             
             // Refresh current tab to show updated data
             if (this.currentTabDate) {
                 await this.showTab(this.currentTabDate);
             }
-        } else {
-            this.uiManager.showError('Failed to update player name. Player may not exist or no changes were made.');
+        } catch (error) {
+            this.uiManager.showError(`Failed to update player name: ${error.message}`);
         }
     }
+
+    async updatePlayerNameEverywhere(oldName, newName) {
+        // 1. Update ranking records
+        await this.rankingManager.updatePlayerName(oldName, newName);
+        
+        // 2. Update alliance leaders
+        await this.leaderVIPManager.updatePlayerName(oldName, newName);
+        
+        // 3. Update special events (if they reference player names)
+        await this.rankingManager.updatePlayerNameInSpecialEvents(oldName, newName);
+        
+        // 4. Refresh all data to ensure consistency
+        await this.leaderVIPManager.loadFromDatabase();
+        await this.rankingManager.loadFromDatabase();
+    }
+
+    async addAllianceLeader() {
+        const leaderName = document.getElementById('newLeaderName').value.trim();
+        
+        if (!leaderName) {
+            this.uiManager.showError('Please enter a leader name');
+            return;
+        }
+        
+        try {
+            await this.leaderVIPManager.addAllianceLeader(leaderName);
+            this.uiManager.showSuccess(`Successfully added "${leaderName}" as an alliance leader`);
+            
+            // Clear form
+            document.getElementById('newLeaderName').value = '';
+            
+            // Update leader dropdowns
+            this.updateLeaderDropdowns();
+            
+            // Update rotation order list
+            this.updateRotationOrderList();
+        } catch (error) {
+            this.uiManager.showError(`Error adding alliance leader: ${error.message}`);
+        }
+    }
+
+    async removeAllianceLeader() {
+        console.log('removeAllianceLeader method called');
+        const leaderName = document.getElementById('removeLeaderName').value;
+        console.log('Selected leader name:', leaderName);
+        
+        if (!leaderName) {
+            this.uiManager.showError('Please select a leader to remove');
+            return;
+        }
+        
+        try {
+            console.log('Calling leaderVIPManager.removeAllianceLeader...');
+            await this.leaderVIPManager.removeAllianceLeader(leaderName);
+            this.uiManager.showSuccess(`Successfully removed "${leaderName}" as an alliance leader`);
+            
+            // Update leader dropdowns
+            this.updateLeaderDropdowns();
+            
+            // Update rotation order list
+            this.updateRotationOrderList();
+        } catch (error) {
+            console.error('Error in removeAllianceLeader:', error);
+            
+            // Check if this was a soft delete (leader marked as inactive)
+            if (error.message.includes('Status marked as inactive')) {
+                this.uiManager.showSuccess(`Leader "${leaderName}" marked as inactive due to VIP records. They are no longer visible in active lists.`);
+                
+                // Even for soft delete, we need to refresh the UI
+                this.updateLeaderDropdowns();
+                this.updateRotationOrderList();
+            } else {
+                this.uiManager.showError(`Error removing alliance leader: ${error.message}`);
+            }
+        }
+    }
+
+    async setVIPForDate() {
+        const date = document.getElementById('vipDate').value;
+        const vipPlayer = document.getElementById('vipPlayer').value.trim();
+        const notes = document.getElementById('vipNotes').value.trim();
+        
+        if (!date || !vipPlayer) {
+            this.uiManager.showError('Please enter both date and VIP player name');
+            return;
+        }
+        
+        try {
+            // Create date in local timezone to avoid timezone shift
+            const selectedDate = this.createLocalDate(date);
+            const trainConductor = this.leaderVIPManager.getCurrentTrainConductor(selectedDate);
+            
+            if (!trainConductor) {
+                this.uiManager.showError('No train conductor available for the selected date');
+                return;
+            }
+            
+            await this.leaderVIPManager.setVIPForDate(selectedDate, trainConductor, vipPlayer, notes);
+            this.uiManager.showSuccess(`Successfully set "${vipPlayer}" as VIP for ${date}`);
+            
+            // Clear form
+            document.getElementById('vipDate').value = '';
+            document.getElementById('vipPlayer').value = '';
+            document.getElementById('vipNotes').value = '';
+            
+            // Hide frequency info
+            this.updateVIPFrequencyDisplay('vipPlayer', '');
+            
+            // Update VIP display
+            this.updateRecentVIPsList();
+            
+            // Refresh current tab to show VIP badges
+            if (this.currentTabDate) {
+                await this.showTab(this.currentTabDate);
+            }
+        } catch (error) {
+            this.uiManager.showError(`Error setting VIP: ${error.message}`);
+        }
+    }
+
+    // Helper function to create a date in local timezone
+    createLocalDate(dateString) {
+        const [year, month, day] = dateString.split('-').map(Number);
+        return new Date(year, month - 1, day); // month is 0-indexed
+    }
+
+    // Helper function to format date for display (no timezone conversion)
+    formatDateForDisplay(dateString) {
+        try {
+            if (!dateString || typeof dateString !== 'string') {
+                console.warn('Invalid date string for formatDateForDisplay:', dateString);
+                return 'Invalid Date';
+            }
+            
+            const [year, month, day] = dateString.split('-').map(Number);
+            
+            // Validate the parsed values
+            if (isNaN(year) || isNaN(month) || isNaN(day)) {
+                console.warn('Invalid date parts:', { year, month, day });
+                return 'Invalid Date';
+            }
+            
+            // Use the date parts directly to avoid timezone issues
+            return `${month}/${day}/${year}`;
+        } catch (error) {
+            console.error('Error in formatDateForDisplay:', error);
+            return 'Error';
+        }
+    }
+
+    // Get week start (Monday) for a given date
+    getWeekStart(date) {
+        const d = new Date(date);
+        const day = d.getDay();
+        const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
+        return new Date(d.setDate(diff));
+    }
+
+    // Get week end (Sunday) for a given date
+    getWeekEnd(date) {
+        const weekStart = this.getWeekStart(date);
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekStart.getDate() + 6);
+        return weekEnd;
+    }
+
+    // Get the next date a specific rotation index will be conductor
+    getNextConductorDate(rotationIndex) {
+        try {
+            const activeRotation = this.leaderVIPManager.trainConductorRotation.filter(entry => entry.is_active);
+            if (activeRotation.length === 0) return new Date();
+            
+            const today = new Date();
+            const startDate = new Date('2024-01-01'); // Base date for rotation calculation
+            
+            // Find the next occurrence of this rotation index
+            let currentDate = new Date(today);
+            let daysChecked = 0;
+            const maxDaysToCheck = 365; // Prevent infinite loop
+            
+            while (daysChecked < maxDaysToCheck) {
+                const daysDiff = Math.floor((currentDate - startDate) / (1000 * 60 * 60 * 24));
+                const currentRotationIndex = daysDiff % activeRotation.length;
+                
+                if (currentRotationIndex === rotationIndex) {
+                    return currentDate;
+                }
+                
+                currentDate.setDate(currentDate.getDate() + 1);
+                daysChecked++;
+            }
+            
+            // Fallback to today if no future date found
+            return today;
+        } catch (error) {
+            console.error('Error in getNextConductorDate:', error);
+            return new Date();
+        }
+    }
+
+    // Update rotation dates to show current/next dates
+    updateRotationDates() {
+        // This will be called periodically to update the dates
+        this.updateRotationOrderList();
+    }
+
+    // Set up periodic updates for rotation dates
+    setupRotationDateUpdates() {
+        // Update rotation dates every hour to keep them current
+        setInterval(() => {
+            this.updateRotationDates();
+        }, 60 * 60 * 1000); // 1 hour in milliseconds
+        
+        // Also update when the page becomes visible (user returns to tab)
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                this.updateRotationDates();
+            }
+        });
+    }
+
+    // Check if we need to create sample data for testing
+    async checkAndCreateSampleData() {
+        const hasLeaders = this.leaderVIPManager.allianceLeaders.length > 0;
+        const hasRotation = this.leaderVIPManager.trainConductorRotation.length > 0;
+        
+        console.log('Data check:', { hasLeaders, hasRotation });
+        console.log('Alliance leaders:', this.leaderVIPManager.allianceLeaders);
+        console.log('Train conductor rotation:', this.leaderVIPManager.trainConductorRotation);
+        
+        if (!hasLeaders && !hasRotation) {
+            console.log('No data found, creating sample alliance leaders...');
+            
+            // Create some sample alliance leaders for testing
+            const sampleLeaders = ['Alice', 'Bob', 'Charlie', 'Diana', 'Eve'];
+            
+            for (const leaderName of sampleLeaders) {
+                try {
+                    await this.leaderVIPManager.addAllianceLeader(leaderName);
+                    console.log(`Added sample leader: ${leaderName}`);
+                } catch (error) {
+                    console.log(`Could not add sample leader ${leaderName}:`, error.message);
+                }
+            }
+            
+            // Refresh the rotation display
+            this.updateRotationOrderList();
+        }
+    }
+
+    // Debug method to manually add a test leader
+    async debugAddTestLeader() {
+        console.log('Debug: Adding test leader...');
+        try {
+            await this.leaderVIPManager.addAllianceLeader('TestLeader');
+            this.uiManager.showSuccess('Test leader added successfully!');
+            
+            // Refresh UI
+            this.updateLeaderDropdowns();
+            this.updateRotationOrderList();
+            
+            console.log('Current data after adding test leader:');
+            console.log('Alliance leaders:', this.leaderVIPManager.allianceLeaders);
+            console.log('Train conductor rotation:', this.leaderVIPManager.trainConductorRotation);
+        } catch (error) {
+            console.error('Error adding test leader:', error);
+            this.uiManager.showError(`Error adding test leader: ${error.message}`);
+        }
+    }
+
+    // Update special events list in admin tab
+    async updateSpecialEventsList() {
+        const eventsListContainer = document.getElementById('currentEventsList');
+        const eventCountElement = document.getElementById('eventCount');
+        
+        if (!eventsListContainer || !eventCountElement) {
+            console.log('Special events list elements not found');
+            return;
+        }
+        
+        try {
+            const specialEvents = await this.rankingManager.getSpecialEvents();
+            console.log('All special events:', specialEvents);
+            
+            // Update event count
+            eventCountElement.textContent = specialEvents.length;
+            
+            if (specialEvents.length === 0) {
+                eventsListContainer.innerHTML = '<p class="no-events">No special events found.</p>';
+                return;
+            }
+            
+            let html = '';
+            specialEvents.forEach(event => {
+                const startDate = new Date(event.start_date);
+                const endDate = new Date(event.end_date);
+                const startDateStr = startDate.toLocaleDateString();
+                const endDateStr = endDate.toLocaleDateString();
+                
+                html += `
+                    <div class="event-entry" data-event-key="${this.escapeHTML(event.key)}" data-event-name="${this.escapeHTML(event.name)}" data-start-date="${event.start_date}" data-end-date="${event.end_date}">
+                        <div class="event-info">
+                            <div class="event-name">${this.escapeHTML(event.name)}</div>
+                            <div class="event-dates">${startDateStr} - ${endDateStr}</div>
+                            <div class="event-key">Key: ${this.escapeHTML(event.key)}</div>
+                        </div>
+                        <div class="event-actions">
+                            <button class="event-btn edit" data-action="edit">✏️ Edit</button>
+                            <button class="event-btn delete" data-action="delete">🗑️ Delete</button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            eventsListContainer.innerHTML = html;
+            
+            // Setup event delegation for edit/delete buttons
+            this.setupSpecialEventListeners();
+            
+        } catch (error) {
+            console.error('Error updating special events list:', error);
+            eventsListContainer.innerHTML = '<p class="error">Error loading special events.</p>';
+        }
+    }
+
+    // Setup event delegation for special event buttons
+    setupSpecialEventListeners() {
+        const eventsListContainer = document.getElementById('currentEventsList');
+        if (!eventsListContainer) return;
+        
+        eventsListContainer.addEventListener('click', (e) => {
+            if (e.target.classList.contains('event-btn')) {
+                const eventEntry = e.target.closest('.event-entry');
+                if (!eventEntry) return;
+                
+                const eventKey = eventEntry.dataset.eventKey;
+                const eventName = eventEntry.dataset.eventName;
+                const startDate = eventEntry.dataset.startDate;
+                const endDate = eventEntry.dataset.endDate;
+                
+                if (e.target.dataset.action === 'edit') {
+                    this.editSpecialEvent(eventKey, eventName, startDate, endDate);
+                } else if (e.target.dataset.action === 'delete') {
+                    this.deleteSpecialEvent(eventKey);
+                }
+            }
+        });
+    }
+
+    // Edit special event
+    editSpecialEvent(eventKey, eventName, startDate, endDate) {
+        console.log('Editing special event:', { eventKey, eventName, startDate, endDate });
+        
+        // Populate the edit modal
+        document.getElementById('editEventKey').value = eventKey;
+        document.getElementById('editEventName').value = eventName;
+        document.getElementById('editEventStartDate').value = startDate;
+        document.getElementById('editEventEndDate').value = endDate;
+        
+        // Show the modal
+        document.getElementById('eventEditModal').classList.add('show');
+        
+        // Setup event listeners for the modal
+        this.setupEventEditModalListeners();
+    }
+
+    // Delete special event
+    async deleteSpecialEvent(eventKey) {
+        if (confirm(`Are you sure you want to delete the special event "${eventKey}"? This will also remove all associated rankings.`)) {
+            try {
+                // Delete the event and its rankings
+                await this.rankingManager.deleteSpecialEvent(eventKey);
+                this.uiManager.showSuccess('Special event deleted successfully!');
+                
+                // Refresh the events list
+                this.updateSpecialEventsList();
+                
+                // Refresh the weekly tabs to remove the event tab
+                await this.updateWeeklyTabs();
+                
+            } catch (error) {
+                console.error('Error deleting special event:', error);
+                this.uiManager.showError(`Error deleting special event: ${error.message}`);
+            }
+        }
+    }
+
+    // Setup event edit modal event listeners
+    setupEventEditModalListeners() {
+        const modal = document.getElementById('eventEditModal');
+        const closeBtn = modal.querySelector('.close');
+        const form = document.getElementById('eventEditForm');
+        const deleteBtn = document.getElementById('deleteEventBtn');
+        
+        // Close modal on X click
+        closeBtn.onclick = () => {
+            modal.classList.remove('show');
+        };
+        
+        // Close modal on outside click
+        modal.onclick = (e) => {
+            if (e.target === modal) {
+                modal.classList.remove('show');
+            }
+        };
+        
+        // Handle form submission
+        form.onsubmit = async (e) => {
+            e.preventDefault();
+            await this.updateSpecialEvent();
+        };
+        
+        // Handle delete button
+        deleteBtn.onclick = async () => {
+            const eventKey = document.getElementById('editEventKey').value;
+            await this.deleteSpecialEvent(eventKey);
+            modal.classList.remove('show');
+        };
+    }
+
+    // Update special event
+    async updateSpecialEvent() {
+        const eventKey = document.getElementById('editEventKey').value;
+        const eventName = document.getElementById('editEventName').value.trim();
+        const startDate = document.getElementById('editEventStartDate').value;
+        const endDate = document.getElementById('editEventEndDate').value;
+        
+        if (!eventName || !startDate || !endDate) {
+            this.uiManager.showError('Please fill in all fields');
+            return;
+        }
+        
+        try {
+            // Update the special event
+            await this.rankingManager.updateSpecialEvent(eventKey, {
+                name: eventName,
+                start_date: startDate,
+                end_date: endDate
+            });
+            
+            this.uiManager.showSuccess('Special event updated successfully!');
+            
+            // Close the modal
+            document.getElementById('eventEditModal').classList.remove('show');
+            
+            // Refresh the events list
+            this.updateSpecialEventsList();
+            
+            // Refresh the weekly tabs to update the event tab
+            await this.updateWeeklyTabs();
+            
+        } catch (error) {
+            console.error('Error updating special event:', error);
+            this.uiManager.showError(`Error updating special event: ${error.message}`);
+        }
+    }
+
+    // Update VIP frequency display
+    updateVIPFrequencyDisplay(inputId, playerName) {
+        const frequencyInfoElement = document.getElementById(inputId === 'vipPlayer' ? 'vipFrequencyInfo' : 'editVipFrequencyInfo');
+        const daysAgoBadge = frequencyInfoElement.querySelector('.days-ago');
+        const count30DaysBadge = frequencyInfoElement.querySelector('.count-30-days');
+        
+        if (!playerName || playerName.trim() === '') {
+            frequencyInfoElement.style.display = 'none';
+            return;
+        }
+        
+        const frequencyData = this.leaderVIPManager.getVIPFrequencyInfo(playerName);
+        
+        if (frequencyData.lastSelectedDays === null) {
+            // Player has never been VIP
+            daysAgoBadge.textContent = 'Never VIP';
+            count30DaysBadge.textContent = '0 times (30d)';
+        } else {
+            daysAgoBadge.textContent = `${frequencyData.lastSelectedDays} days ago`;
+            count30DaysBadge.textContent = `${frequencyData.frequency30Days} times (30d)`;
+        }
+        
+        frequencyInfoElement.style.display = 'flex';
+    }
+
+
+
+    updateLeaderDropdowns() {
+        const removeDropdown = document.getElementById('removeLeaderName');
+        // Only show active leaders in dropdown
+        const activeLeaders = this.leaderVIPManager.allianceLeaders.filter(leader => leader.is_active);
+        
+        // Clear existing options
+        removeDropdown.innerHTML = '<option value="">Select leader to remove...</option>';
+        
+        // Add active leaders
+        activeLeaders.forEach(leader => {
+            const option = document.createElement('option');
+            option.value = leader.player_name;
+            option.textContent = leader.player_name;
+            removeDropdown.appendChild(option);
+        });
+        
+        // Update current leaders display
+        this.updateCurrentLeadersList();
+    }
+
+    updateCurrentLeadersList() {
+        const currentLeadersContainer = document.getElementById('currentLeadersList');
+        const leaderCountElement = document.getElementById('leaderCount');
+        
+        // Debug: Log all leaders and their status
+        console.log('All alliance leaders:', this.leaderVIPManager.allianceLeaders);
+        
+        // Only show active leaders
+        const currentLeaders = this.leaderVIPManager.allianceLeaders.filter(leader => leader.is_active);
+        
+        console.log('Active alliance leaders:', currentLeaders);
+        
+        // Update the count in the heading
+        if (leaderCountElement) {
+            leaderCountElement.textContent = currentLeaders.length;
+        }
+        
+        if (currentLeaders.length === 0) {
+            currentLeadersContainer.innerHTML = '<p class="no-leaders">No active alliance leaders found</p>';
+            return;
+        }
+        
+        // Create 2-column layout
+        let html = '<div class="leaders-grid">';
+        
+        currentLeaders.forEach(leader => {
+            html += `
+                <div class="leader-entry">
+                    <div class="leader-name">${this.escapeHTML(leader.player_name)}</div>
+                    <div class="leader-status">Active</div>
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+        currentLeadersContainer.innerHTML = html;
+    }
+
+    escapeHTML(str) {
+        if (typeof str !== 'string') return str;
+        return str.replace(/[&<>"']/g, function(m) {
+            return ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            })[m];
+        });
+    }
+
+    updateRecentVIPsList() {
+        const recentVIPsContainer = document.getElementById('recentVIPsList');
+        const recentVIPs = this.leaderVIPManager.getRecentVIPs(10);
+        
+        if (recentVIPs.length === 0) {
+            recentVIPsContainer.innerHTML = '<p class="no-vips">No VIP selections found</p>';
+            return;
+        }
+        
+        let html = '';
+        recentVIPs.forEach(vip => {
+            const date = this.formatDateForDisplay(vip.date);
+            html += `
+                <div class="vip-entry">
+                    <div class="vip-date">${date}</div>
+                    <div class="vip-details">
+                        <div class="vip-player">${this.escapeHTML(vip.vip_player)}</div>
+                        <div class="vip-conductor">Conductor: ${this.escapeHTML(vip.train_conductor)}</div>
+                        ${vip.notes ? `<div class="vip-notes">${this.escapeHTML(vip.notes)}</div>` : ''}
+                    </div>
+                    <div class="vip-actions">
+                        <button class="edit-vip-btn" data-date="${vip.date}" data-vip="${vip.vip_player}" data-notes="${vip.notes || ''}" data-conductor="${vip.train_conductor}">✏️ Edit</button>
+                    </div>
+                </div>
+                `;
+        });
+        
+        recentVIPsContainer.innerHTML = html;
+        
+        // Add event listeners to edit buttons
+        this.setupVIPEditListeners();
+    }
+
+
 
     updateDataStatus() {
         const dataStatus = document.getElementById('dataStatus');
@@ -587,13 +1438,22 @@ class DailyRankingsApp {
         
         if (dayParam) {
             const dayMapping = {
+                // Abbreviated forms
                 'mon': 'Monday',
                 'tue': 'Tuesday', 
                 'wed': 'Wednesday',
                 'thu': 'Thursday',
                 'fri': 'Friday',
                 'sat': 'Saturday',
-                'sun': 'Sunday'
+                'sun': 'Sunday',
+                // Full day names
+                'monday': 'Monday',
+                'tuesday': 'Tuesday',
+                'wednesday': 'Wednesday',
+                'thursday': 'Thursday',
+                'friday': 'Friday',
+                'saturday': 'Saturday',
+                'sunday': 'Sunday'
             };
             
             const targetDay = dayMapping[dayParam.toLowerCase()];
@@ -817,6 +1677,463 @@ class DailyRankingsApp {
                     this.generateReport();
                 }
             });
+        }
+    }
+
+    showAdminTab() {
+        // Set current date for VIP form
+        const today = new Date();
+        document.getElementById('vipDate').value = this.formatDateForInput(today);
+        
+        // Update leader dropdowns and current leaders list
+        this.updateLeaderDropdowns();
+        
+        // Update recent VIPs list
+        this.updateRecentVIPsList();
+        
+
+        
+        // Setup autocomplete for leader and VIP inputs
+        this.setupAutocomplete();
+        
+        // Setup train conductor rotation management
+        this.setupRotationManagement();
+    }
+
+    // Helper function to format date for input fields (local timezone)
+    formatDateForInput(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    setupRotationManagement() {
+        this.updateRotationOrderList();
+        this.setupRotationEventListeners();
+    }
+
+    updateRotationOrderList() {
+        const rotationContainer = document.getElementById('rotationOrderList');
+        if (!rotationContainer) {
+            console.error('Rotation container not found');
+            return;
+        }
+        
+        console.log('Current train conductor rotation:', this.leaderVIPManager.trainConductorRotation);
+        console.log('All rotation entries with is_active status:');
+        this.leaderVIPManager.trainConductorRotation.forEach((entry, index) => {
+            console.log(`  ${index}: ${entry.player_name} - is_active: ${entry.is_active}`);
+        });
+        
+        // Only show active rotation entries
+        const activeRotation = this.leaderVIPManager.trainConductorRotation.filter(entry => entry.is_active);
+        console.log('Active rotation entries:', activeRotation);
+        
+        if (!activeRotation || activeRotation.length === 0) {
+            rotationContainer.innerHTML = '<p class="no-rotation">No active rotation order set. Add alliance leaders first.</p>';
+            return;
+        }
+        
+        let html = '';
+        activeRotation.forEach((leader, index) => {
+            try {
+                // Calculate the next date this leader will be conductor
+                const nextConductorDate = this.getNextConductorDate(index);
+                // Convert Date object to YYYY-MM-DD string for formatDateForDisplay
+                const dateString = nextConductorDate.toISOString().split('T')[0];
+                const dateDisplay = this.formatDateForDisplay(dateString);
+                
+                html += `
+                    <div class="rotation-item" draggable="true" data-index="${index}" data-leader="${leader.player_name}">
+                        <div class="rotation-order">${index + 1}</div>
+                        <div class="rotation-leader-name">${this.escapeHTML(leader.player_name)}</div>
+                        <div class="rotation-date">${dateDisplay}</div>
+                        <div class="rotation-controls">
+                            <button class="rotation-btn up" ${index === 0 ? 'disabled' : ''} data-action="up" data-index="${index}">↑</button>
+                            <button class="rotation-btn down" ${index === activeRotation.length - 1 ? 'disabled' : ''} data-action="down" data-index="${index}">↓</button>
+                            <button class="rotation-btn remove" data-action="remove" data-index="${index}" data-leader="${leader.player_name}">❌</button>
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                console.error(`Error rendering rotation item for ${leader.player_name}:`, error);
+                // Fallback: render without date
+                html += `
+                    <div class="rotation-item" draggable="true" data-index="${index}" data-leader="${leader.player_name}">
+                        <div class="rotation-order">${index + 1}</div>
+                        <div class="rotation-leader-name">${this.escapeHTML(leader.player_name)}</div>
+                        <div class="rotation-date">Error</div>
+                        <div class="rotation-controls">
+                            <button class="rotation-btn up" ${index === 0 ? 'disabled' : ''} data-action="up" data-index="${index}">↑</button>
+                            <button class="rotation-btn down" ${index === activeRotation.length - 1 ? 'disabled' : ''} data-action="down" data-index="${index}">↓</button>
+                            <button class="rotation-btn remove" data-action="remove" data-index="${index}" data-leader="${leader.player_name}">❌</button>
+                        </div>
+                    </div>
+                `;
+            }
+        });
+        
+        rotationContainer.innerHTML = html;
+        
+        console.log('Rotation HTML rendered:', html);
+        console.log('Rotation container children:', rotationContainer.children.length);
+        
+        // Setup drag and drop after rendering
+        this.setupDragAndDrop();
+    }
+
+    setupRotationEventListeners() {
+        const rotationContainer = document.getElementById('rotationOrderList');
+        if (!rotationContainer) return;
+        
+        // Handle up/down/remove button clicks
+        rotationContainer.addEventListener('click', async (e) => {
+            if (e.target.classList.contains('rotation-btn')) {
+                const action = e.target.getAttribute('data-action');
+                const index = parseInt(e.target.getAttribute('data-index'));
+                
+                if (action === 'up' && index > 0) {
+                    await this.moveRotationItem(index, 'up');
+                } else if (action === 'down' && index < this.leaderVIPManager.trainConductorRotation.length - 1) {
+                    await this.moveRotationItem(index, 'down');
+                } else if (action === 'remove') {
+                    const leaderName = e.target.getAttribute('data-leader');
+                    await this.removeFromRotation(index, leaderName);
+                }
+            }
+        });
+    }
+
+    setupDragAndDrop() {
+        const rotationContainer = document.getElementById('rotationOrderList');
+        if (!rotationContainer) return;
+
+        const items = rotationContainer.querySelectorAll('.rotation-item');
+        
+        items.forEach(item => {
+            item.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/plain', item.dataset.index);
+                item.classList.add('dragging');
+            });
+
+            item.addEventListener('dragend', () => {
+                item.classList.remove('dragging');
+            });
+
+            item.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                const draggingItem = rotationContainer.querySelector('.dragging');
+                if (draggingItem && draggingItem !== item) {
+                    item.classList.add('drag-over');
+                }
+            });
+
+            item.addEventListener('dragleave', () => {
+                item.classList.remove('drag-over');
+            });
+
+            item.addEventListener('drop', async (e) => {
+                e.preventDefault();
+                item.classList.remove('drag-over');
+                
+                const draggedIndex = parseInt(e.dataTransfer.getData('text/plain'));
+                const dropIndex = parseInt(item.dataset.index);
+                
+                if (draggedIndex !== dropIndex) {
+                    await this.reorderRotationByDrag(draggedIndex, dropIndex);
+                }
+            });
+        });
+    }
+
+    async reorderRotationByDrag(draggedIndex, dropIndex) {
+        const rotation = [...this.leaderVIPManager.trainConductorRotation];
+        const draggedItem = rotation[draggedIndex];
+        
+        // Remove the dragged item
+        rotation.splice(draggedIndex, 1);
+        
+        // Insert at the new position
+        rotation.splice(dropIndex, 0, draggedItem);
+        
+        // Update rotation order numbers
+        rotation.forEach((leader, i) => {
+            leader.rotation_order = i + 1;
+        });
+        
+        try {
+            await this.leaderVIPManager.updateTrainConductorRotation(rotation);
+            this.updateRotationOrderList();
+            this.uiManager.showSuccess('Train conductor rotation reordered successfully!');
+        } catch (error) {
+            this.uiManager.showError(`Error reordering rotation: ${error.message}`);
+        }
+    }
+
+    async removeFromRotation(index, leaderName) {
+        if (confirm(`Are you sure you want to remove "${leaderName}" from the train conductor rotation?`)) {
+            try {
+                // Remove from rotation
+                await this.leaderVIPManager.removeFromTrainConductorRotation(index);
+                
+                // Refresh the rotation display
+                this.updateRotationOrderList();
+                
+                // Show success message
+                this.uiManager.showSuccess(`"${leaderName}" removed from train conductor rotation`);
+            } catch (error) {
+                this.uiManager.showError(`Error removing from rotation: ${error.message}`);
+            }
+        }
+    }
+
+    async moveRotationItem(index, direction) {
+        const rotation = [...this.leaderVIPManager.trainConductorRotation];
+        const newIndex = direction === 'up' ? index - 1 : index + 1;
+        
+        // Swap the items
+        [rotation[index], rotation[newIndex]] = [rotation[newIndex], rotation[index]];
+        
+        // Update the rotation order numbers
+        rotation.forEach((leader, i) => {
+            leader.rotation_order = i + 1;
+        });
+        
+        try {
+            await this.leaderVIPManager.updateTrainConductorRotation(rotation);
+            this.updateRotationOrderList();
+            this.uiManager.showSuccess('Train conductor rotation updated successfully!');
+        } catch (error) {
+            this.uiManager.showError(`Error updating rotation: ${error.message}`);
+        }
+    }
+
+    setupAutocomplete() {
+        // Setup autocomplete for old player name input (include all players)
+        const oldPlayerInput = document.getElementById('oldPlayerName');
+        const oldPlayerAutocomplete = document.getElementById('oldPlayerAutocomplete');
+        
+        if (oldPlayerInput && oldPlayerAutocomplete) {
+            this.autocompleteService.setupAutocomplete(
+                oldPlayerInput, 
+                oldPlayerAutocomplete, 
+                (selectedName) => {
+                    oldPlayerInput.value = selectedName;
+                },
+                false // Don't exclude leaders for old player name selection
+            );
+        }
+        
+        // Setup autocomplete for new leader input (include all players)
+        const newLeaderInput = document.getElementById('newLeaderName');
+        const leaderAutocomplete = document.getElementById('leaderAutocomplete');
+        
+        if (newLeaderInput && leaderAutocomplete) {
+            this.autocompleteService.setupAutocomplete(
+                newLeaderInput, 
+                leaderAutocomplete, 
+                (selectedName) => {
+                    newLeaderInput.value = selectedName;
+                },
+                false // Don't exclude leaders for leader selection
+            );
+        }
+        
+        // Setup autocomplete for VIP player input (exclude leaders)
+        const vipPlayerInput = document.getElementById('vipPlayer');
+        const vipAutocomplete = document.getElementById('vipAutocomplete');
+        
+        if (vipPlayerInput && vipAutocomplete) {
+            this.autocompleteService.setupAutocomplete(
+                vipPlayerInput, 
+                vipAutocomplete, 
+                (selectedName) => {
+                    vipPlayerInput.value = selectedName;
+                },
+                true // Exclude leaders from VIP selection
+            );
+        }
+    }
+
+    setupVIPEditListeners() {
+        const editButtons = document.querySelectorAll('.edit-vip-btn');
+        editButtons.forEach(button => {
+            // Remove any existing event listeners to prevent duplicates
+            button.removeEventListener('click', this.handleEditVIPClick);
+            // Add the event listener
+            button.addEventListener('click', this.handleEditVIPClick);
+        });
+    }
+
+    // Handler for edit VIP button clicks (bound to this instance)
+    handleEditVIPClick = (event) => {
+        const button = event.currentTarget;
+        this.openVIPEditModal(button.dataset.date, button.dataset.vip, button.dataset.notes, button.dataset.conductor);
+    }
+
+    openVIPEditModal(date, vipPlayer, notes, conductor) {
+        const modal = document.getElementById('vipEditModal');
+        const editVipDate = document.getElementById('editVipDate');
+        const editVipPlayer = document.getElementById('editVipPlayer');
+        const editVipConductor = document.getElementById('editVipConductor');
+        const editVipNotes = document.getElementById('editVipNotes');
+        
+        // Populate the form
+        editVipDate.value = date;
+        editVipPlayer.value = vipPlayer;
+        editVipConductor.value = conductor || '';
+        editVipNotes.value = notes;
+        
+        // Show frequency info for current VIP player
+        this.updateVIPFrequencyDisplay('editVipPlayer', vipPlayer);
+        
+        // Setup autocomplete for edit form
+        const editVipAutocomplete = document.getElementById('editVipAutocomplete');
+        if (editVipAutocomplete) {
+            this.autocompleteService.setupAutocomplete(
+                editVipPlayer,
+                editVipAutocomplete,
+                (selectedName) => {
+                    editVipPlayer.value = selectedName;
+                },
+                true // Exclude leaders from VIP selection
+            );
+        }
+        
+        // Setup autocomplete for conductor field (alliance leaders only)
+        const editVipConductorAutocomplete = document.getElementById('editVipConductorAutocomplete');
+        if (editVipConductorAutocomplete) {
+            this.autocompleteService.setupAutocomplete(
+                editVipConductor,
+                editVipConductorAutocomplete,
+                (selectedName) => {
+                    editVipConductor.value = selectedName;
+                },
+                false // Include all players for conductor selection
+            );
+        }
+        
+        // Show the modal
+        modal.classList.add('show');
+        
+        // Setup modal event listeners only once
+        if (!this.modalEventListenersSetup) {
+            this.setupModalEventListeners();
+            this.modalEventListenersSetup = true;
+        }
+    }
+
+    setupModalEventListeners() {
+        const modal = document.getElementById('vipEditModal');
+        const closeBtn = modal.querySelector('.close');
+        const editForm = document.getElementById('vipEditForm');
+        const deleteBtn = document.getElementById('deleteVipBtn');
+        
+        // Remove any existing event listeners to prevent duplicates
+        closeBtn.removeEventListener('click', this.handleModalClose);
+        modal.removeEventListener('click', this.handleModalOutsideClick);
+        editForm.removeEventListener('submit', this.handleVIPFormSubmit);
+        deleteBtn.removeEventListener('click', this.handleVIPDelete);
+        
+        // Close modal when clicking X
+        closeBtn.addEventListener('click', this.handleModalClose);
+        
+        // Close modal when clicking outside
+        modal.addEventListener('click', this.handleModalOutsideClick);
+        
+        // Handle form submission
+        editForm.addEventListener('submit', this.handleVIPFormSubmit);
+        
+        // Handle delete button
+        deleteBtn.addEventListener('click', this.handleVIPDelete);
+    }
+
+    // Modal event handlers (bound to this instance)
+    handleModalClose = () => {
+        document.getElementById('vipEditModal').classList.remove('show');
+        // Clear frequency display when modal is closed
+        this.updateVIPFrequencyDisplay('editVipPlayer', '');
+    }
+
+    handleModalOutsideClick = (e) => {
+        if (e.target === e.currentTarget) {
+            e.currentTarget.classList.remove('show');
+            // Clear frequency display when modal is closed
+            this.updateVIPFrequencyDisplay('editVipPlayer', '');
+        }
+    }
+
+    handleVIPFormSubmit = async (e) => {
+        e.preventDefault();
+        await this.updateVIPEntry();
+    }
+
+    handleVIPDelete = async () => {
+        if (confirm('Are you sure you want to delete this VIP selection?')) {
+            await this.deleteVIPEntry();
+        }
+    }
+
+    async updateVIPEntry() {
+        const date = document.getElementById('editVipDate').value;
+        const vipPlayer = document.getElementById('editVipPlayer').value;
+        const conductor = document.getElementById('editVipConductor').value;
+        const notes = document.getElementById('editVipNotes').value;
+        
+        if (!vipPlayer.trim()) {
+            this.uiManager.showError('VIP player name is required');
+            return;
+        }
+        
+        if (!conductor.trim()) {
+            this.uiManager.showError('Train conductor is required');
+            return;
+        }
+        
+        try {
+            // Update the VIP entry with manually selected conductor
+            const vipDate = this.createLocalDate(date);
+            await this.leaderVIPManager.setVIPForDate(vipDate, conductor, vipPlayer, notes);
+            
+            // Close modal and refresh lists
+            document.getElementById('vipEditModal').classList.remove('show');
+            this.updateRecentVIPsList();
+            
+            this.uiManager.showSuccess('VIP entry updated successfully!');
+        } catch (error) {
+            this.uiManager.showError(`Error updating VIP: ${error.message}`);
+        }
+    }
+
+    async deleteVIPEntry() {
+        const date = document.getElementById('editVipDate').value;
+        
+        try {
+            // Delete the VIP entry
+            await this.leaderVIPManager.deleteVIPForDate(this.createLocalDate(date));
+            
+            // Close modal and refresh lists
+            document.getElementById('vipEditModal').classList.remove('show');
+            this.updateRecentVIPsList();
+            
+            this.uiManager.showSuccess('VIP entry deleted successfully!');
+        } catch (error) {
+            this.uiManager.showError(`Error deleting VIP: ${error.message}`);
+        }
+    }
+
+    async syncLocalData() {
+        try {
+            this.uiManager.showSuccess('Starting data sync...');
+            await this.leaderVIPManager.syncLocalDataToDatabase();
+            this.uiManager.showSuccess('Data sync completed successfully!');
+            
+            // Refresh UI to show synced data
+            this.updateLeaderDropdowns();
+            this.updateRecentVIPsList();
+        } catch (error) {
+            this.uiManager.showError(`Error syncing data: ${error.message}`);
         }
     }
 

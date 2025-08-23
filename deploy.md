@@ -39,15 +39,24 @@
 
 2. **Drag the `dist` folder to [Netlify Drop](https://app.netlify.com/drop)**
 
-## 🔧 Environment Variables (Optional)
+## 🔧 Environment Variables (Required for Admin Access)
 
-If you want to use Supabase database functionality:
-
+### **Admin Authentication (Required)**
 1. **Go to your Netlify site settings**
 2. **Navigate to "Environment variables"**
-3. **Add these variables:**
+3. **Add this required variable:**
+   - `VITE_ADMIN_PASSWORD` = Your secure admin password
+
+### **Supabase Database (Optional)**
+If you want to use Supabase database functionality:
+
+1. **Add these variables:**
    - `VITE_SUPABASE_URL` = Your Supabase URL
    - `VITE_SUPABASE_ANON_KEY` = Your Supabase anon key
+
+### **Legacy Admin Code (Optional)**
+For backward compatibility, you can also set:
+- `VITE_ADMIN_CODE` = Your legacy admin code
 
 ## 📝 Notes
 

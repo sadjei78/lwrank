@@ -651,6 +651,40 @@ export class RankingManager {
         return updatedCount > 0;
     }
 
+    // Update player name in special events
+    async updatePlayerNameInSpecialEvents(oldName, newName) {
+        try {
+            // Get all special events
+            const events = await this.getSpecialEvents();
+            let updatedCount = 0;
+            
+            // Update player names in special event rankings
+            for (const event of events) {
+                const eventRankings = await this.getRankingsForSpecialEvent(event.key);
+                let eventUpdated = false;
+                
+                eventRankings.forEach(ranking => {
+                    if (ranking.commander === oldName) {
+                        ranking.commander = newName;
+                        eventUpdated = true;
+                        updatedCount++;
+                    }
+                });
+                
+                // Save updated event rankings if changes were made
+                if (eventUpdated) {
+                    await this.setRankingsForSpecialEvent(event.key, eventRankings);
+                }
+            }
+            
+            console.log(`Updated ${updatedCount} special event records for player name change: ${oldName} → ${newName}`);
+            return updatedCount > 0;
+        } catch (error) {
+            console.error('Error updating player name in special events:', error);
+            return false;
+        }
+    }
+
     // Special Event Data Management
     async getRankingsForSpecialEvent(eventKey) {
         // Get special event data from localStorage
@@ -719,5 +753,81 @@ export class RankingManager {
     shouldIncludeSpecialEvents() {
         const checkbox = document.getElementById('includeSpecialEvents');
         return checkbox ? checkbox.checked : true; // Default to true if checkbox not found
+    }
+
+    // Update special event details
+    async updateSpecialEvent(eventKey, updates) {
+        try {
+            if (this.isOnline) {
+                // Update in database
+                const { error } = await supabase
+                    .from('special_events')
+                    .update({
+                        name: updates.name,
+                        start_date: updates.start_date,
+                        end_date: updates.end_date,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('key', eventKey);
+                
+                if (error) {
+                    console.error('Database error updating special event:', error);
+                    throw new Error(`Database error: ${error.message}`);
+                }
+            }
+            
+            // Update in localStorage as backup
+            const events = JSON.parse(localStorage.getItem('specialEvents') || '[]');
+            const eventIndex = events.findIndex(e => e.key === eventKey);
+            
+            if (eventIndex !== -1) {
+                events[eventIndex] = {
+                    ...events[eventIndex],
+                    ...updates,
+                    updated_at: new Date().toISOString()
+                };
+                localStorage.setItem('specialEvents', JSON.stringify(events));
+            }
+            
+            console.log(`Updated special event: ${eventKey}`);
+            return true;
+            
+        } catch (error) {
+            console.error('Error updating special event:', error);
+            throw error;
+        }
+    }
+
+    // Delete special event and its rankings
+    async deleteSpecialEvent(eventKey) {
+        try {
+            if (this.isOnline) {
+                // Delete from database
+                const { error } = await supabase
+                    .from('special_events')
+                    .delete()
+                    .eq('key', eventKey);
+                
+                if (error) {
+                    console.error('Database error deleting special event:', error);
+                    throw new Error(`Database error: ${error.message}`);
+                }
+            }
+            
+            // Remove from localStorage
+            const events = JSON.parse(localStorage.getItem('specialEvents') || '[]');
+            const filteredEvents = events.filter(e => e.key !== eventKey);
+            localStorage.setItem('specialEvents', JSON.stringify(filteredEvents));
+            
+            // Remove event rankings from localStorage
+            localStorage.removeItem(`event_${eventKey}`);
+            
+            console.log(`Deleted special event: ${eventKey}`);
+            return true;
+            
+        } catch (error) {
+            console.error('Error deleting special event:', error);
+            throw error;
+        }
     }
 }

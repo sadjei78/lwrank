@@ -1,26 +1,38 @@
 export class UIManager {
     constructor() {
         this.activeTab = null;
+        this.leaderVIPManager = null;
+    }
+
+    setLeaderVIPManager(manager) {
+        this.leaderVIPManager = manager;
     }
 
     toggleAdminFeatures(isAdmin) {
         console.log('Toggling admin features:', isAdmin);
-        const adminControls = document.getElementById('adminControls');
+        
+        // Update admin status display
         const adminStatus = document.getElementById('adminStatus');
-        
-        if (adminControls) {
-            adminControls.style.display = isAdmin ? 'flex' : 'none';
-            console.log('Admin controls display set to:', adminControls.style.display);
-        } else {
-            console.error('Admin controls element not found');
-        }
-        
         if (adminStatus) {
             adminStatus.style.display = isAdmin ? 'flex' : 'none';
         }
+        
+        // Update admin tab if it exists
+        const adminTab = document.querySelector('.tab[data-type="admin"]');
+        if (adminTab) {
+            adminTab.style.display = isAdmin ? 'block' : 'none';
+        }
+        
+        // Update admin tab content if it exists
+        const adminTabContent = document.getElementById('adminTab');
+        if (adminTabContent) {
+            adminTabContent.style.display = isAdmin ? 'block' : 'none';
+        }
+        
+        console.log('Admin features toggled:', isAdmin);
     }
 
-    createRankingTable(rankings, displayName, top10Occurrences = {}, bottom20Occurrences = {}, cumulativeScores = {}, isSpecialEvent = false) {
+    createRankingTable(rankings, displayName, top10Occurrences = {}, bottom20Occurrences = {}, cumulativeScores = {}, isSpecialEvent = false, date = null) {
         if (!rankings || rankings.length === 0) {
             return `<div class="no-data">No ranking data available for Daily Rankings - ${displayName}</div>`;
         }
@@ -33,6 +45,7 @@ export class UIManager {
             // For special events, show all rankings
             html = `
                 <h2>Special Event: ${this.escapeHTML(displayName)}</h2>
+                ${this.createTrainConductorVIPDisplay(date)}
                 <div style="margin-bottom: 15px; color: #666; font-style: italic;">
                     Showing all ${sortedRankings.length} rankings
                 </div>
@@ -47,16 +60,22 @@ export class UIManager {
                     <tbody>
             `;
             
-            // Add all rankings for special events
-            sortedRankings.forEach(rank => {
-                html += `
-                    <tr>
-                        <td class="rank-number">#${this.escapeHTML(rank.ranking.toString())}</td>
-                        <td>${this.escapeHTML(rank.commander)}</td>
-                        <td class="points">${this.escapeHTML(this.formatNumber(rank.points))}</td>
-                    </tr>
-                `;
-            });
+                    // Add all rankings for special events
+        sortedRankings.forEach(rank => {
+            const commander = rank.commander;
+            const leaderIndicator = this.leaderVIPManager && this.leaderVIPManager.isAllianceLeader(commander) 
+                ? ' <span class="leader-indicator" title="Alliance Leader">👑</span>' : '';
+            const vipIndicator = this.leaderVIPManager && date && this.leaderVIPManager.isVIPForWeek(commander, new Date(date))
+                ? ' <span class="vip-badge" title="VIP for this week">⭐</span>' : '';
+            
+            html += `
+                <tr>
+                    <td class="rank-number">#${this.escapeHTML(rank.ranking.toString())}</td>
+                    <td>${this.escapeHTML(commander)}${leaderIndicator}${vipIndicator}</td>
+                    <td class="points">${this.escapeHTML(this.formatNumber(rank.points))}</td>
+                </tr>
+            `;
+        });
             
             html += '</tbody></table>';
         } else {
@@ -70,6 +89,7 @@ export class UIManager {
 
             html = `
                 <h2>Daily Rankings - ${this.escapeHTML(displayName)}</h2>
+                ${this.createTrainConductorVIPDisplay(date)}
             <div style="margin-bottom: 15px; color: #666; font-style: italic;">
                 Showing top 10 and bottom 20 ranks (${sortedRankings.length} total entries)
             </div>
@@ -99,11 +119,15 @@ export class UIManager {
                 
                 const top10Indicator = isTop10Multiple ? ` <span class="top10-indicator" title="Appears in top 10 ${isTop10Multiple} times this week">*${isTop10Multiple}</span>` : '';
                 const cumulativeIndicator = isTop5Cumulative ? ` <span class="cumulative-indicator" title="Weekly cumulative score">★${this.formatNumber(cumulativeScore)}</span>` : '';
+                const leaderIndicator = this.leaderVIPManager && this.leaderVIPManager.isAllianceLeader(commander) 
+                    ? ' <span class="leader-indicator" title="Alliance Leader">👑</span>' : '';
+                const vipIndicator = this.leaderVIPManager && date && this.leaderVIPManager.isVIPForWeek(commander, new Date(date))
+                    ? ' <span class="vip-badge" title="VIP for this week">⭐</span>' : '';
                 
             html += `
                     <tr class="${rowClass}">
                     <td class="rank-number">#${this.escapeHTML(rank.ranking.toString())}</td>
-                        <td>${this.escapeHTML(commander)}${top10Indicator}${cumulativeIndicator}</td>
+                        <td>${this.escapeHTML(commander)}${top10Indicator}${cumulativeIndicator}${leaderIndicator}${vipIndicator}</td>
                         <td class="points">${this.escapeHTML(this.formatNumber(rank.points))}</td>
                 </tr>
             `;
@@ -137,11 +161,15 @@ export class UIManager {
                 const top10Indicator = isTop10Multiple ? ` <span class="top10-indicator" title="Appears in top 10 ${isTop10Multiple} times this week">*${isTop10Multiple}</span>` : '';
                 const bottom20Indicator = isBottom20Multiple ? ` <span class="bottom20-indicator" title="Appears in bottom 20 ${isBottom20Multiple} times this week">*${isBottom20Multiple}</span>` : '';
                 const cumulativeIndicator = isTop5Cumulative ? ` <span class="cumulative-indicator" title="Weekly cumulative score">★${this.formatNumber(cumulativeScore)}</span>` : '';
+                const leaderIndicator = this.leaderVIPManager && this.leaderVIPManager.isAllianceLeader(commander) 
+                    ? ' <span class="leader-indicator" title="Alliance Leader">👑</span>' : '';
+                const vipIndicator = this.leaderVIPManager && date && this.leaderVIPManager.isVIPForWeek(commander, new Date(date))
+                    ? ' <span class="vip-badge" title="VIP for this week">⭐</span>' : '';
                 
             html += `
                     <tr class="${rowClass}">
                     <td class="rank-number">#${this.escapeHTML(rank.ranking.toString())}</td>
-                        <td>${this.escapeHTML(commander)}${top10Indicator}${bottom20Indicator}${cumulativeIndicator}</td>
+                        <td>${this.escapeHTML(commander)}${top10Indicator}${bottom20Indicator}${cumulativeIndicator}${leaderIndicator}${vipIndicator}</td>
                         <td class="points">${this.escapeHTML(this.formatNumber(rank.points))}</td>
                 </tr>
             `;
@@ -155,8 +183,10 @@ export class UIManager {
             const hasTop10Indicators = Object.keys(top10Occurrences).length > 0;
             const hasBottom20Indicators = Object.keys(bottom20Occurrences).length > 0;
             const hasCumulativeTop5 = Object.keys(cumulativeScores).length > 0;
+            const hasLeaderIndicators = this.leaderVIPManager && this.leaderVIPManager.allianceLeaders.length > 0;
+            const hasVIPIndicators = this.leaderVIPManager && date && this.leaderVIPManager.getVIPForDate(new Date(date));
             
-            if (hasTop10Indicators || hasBottom20Indicators || hasCumulativeTop5) {
+            if (hasTop10Indicators || hasBottom20Indicators || hasCumulativeTop5 || hasLeaderIndicators || hasVIPIndicators) {
                 html += `
                     <div class="ranking-legend" style="margin-top: 20px; padding: 20px; background: #ffffff; border-radius: 12px; border: 2px solid #e5e7eb; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);">
                         <h4 style="margin: 0 0 15px 0; color: #1f2937; font-size: 16px; font-weight: 600;">Legend</h4>
@@ -190,6 +220,24 @@ export class UIManager {
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <span class="cumulative-indicator">★${this.formatNumber(1500)}</span>
                             <span>Weekly cumulative score indicator</span>
+                        </div>
+                    `;
+                }
+
+                if (hasLeaderIndicators) {
+                    html += `
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span class="leader-indicator">👑</span>
+                            <span style="font-weight: 500;">Alliance Leader</span>
+                        </div>
+                    `;
+                }
+
+                if (hasVIPIndicators) {
+                    html += `
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span class="vip-badge">⭐</span>
+                            <span style="font-weight: 500;">VIP for this week</span>
                         </div>
                     `;
                 }
@@ -391,5 +439,46 @@ export class UIManager {
             overlay.appendChild(modal);
             document.body.appendChild(overlay);
         });
+    }
+
+    // Create train conductor and VIP display for individual day tabs
+    createTrainConductorVIPDisplay(date) {
+        if (!this.leaderVIPManager || !date) {
+            console.log('createTrainConductorVIPDisplay: Missing leaderVIPManager or date', { 
+                hasLeaderVIPManager: !!this.leaderVIPManager, 
+                date: date 
+            });
+            return '';
+        }
+        
+        try {
+            console.log('createTrainConductorVIPDisplay: Processing date', date);
+            const conductor = this.leaderVIPManager.getCurrentTrainConductor(new Date(date));
+            const vip = this.leaderVIPManager.getVIPForDate(new Date(date));
+            
+            console.log('createTrainConductorVIPDisplay: Results', { conductor, vip });
+            
+            if (!conductor) {
+                console.log('createTrainConductorVIPDisplay: No conductor found for date', date);
+                return '';
+            }
+            
+            let html = '<div class="day-tab-conductor-info">';
+            html += `<div class="conductor-badge">🚂 <strong>Train Conductor:</strong> ${this.escapeHTML(conductor)}</div>`;
+            
+            if (vip) {
+                html += `<div class="vip-badge">⭐ <strong>VIP Rider:</strong> ${this.escapeHTML(vip.vip_player)}</div>`;
+            } else {
+                // Show VIP section as empty when no VIP is selected
+                html += `<div class="vip-badge empty">⭐ <strong>VIP Rider:</strong> <em>Not selected yet</em></div>`;
+            }
+            
+            html += '</div>';
+            console.log('createTrainConductorVIPDisplay: Generated HTML', html);
+            return html;
+        } catch (error) {
+            console.error('Error creating train conductor VIP display:', error);
+            return '';
+        }
     }
 }

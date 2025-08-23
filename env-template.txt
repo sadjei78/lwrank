@@ -1,0 +1,10 @@
+# Admin Authentication
+# Set a strong password for admin access
+VITE_ADMIN_PASSWORD=pdx@dm1n!!
+
+# Supabase Configuration (if using database features)
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+
+# Legacy Admin Code (optional, for backward compatibility)
+VITE_ADMIN_CODE=your_legacy_admin_code
