@@ -401,7 +401,11 @@ class DailyRankingsApp {
         if (versionElement) {
             // For now, we'll use a hardcoded version since Vite doesn't expose package.json
             // In a real app, you might use import.meta.env.VITE_APP_VERSION
-            versionElement.textContent = 'v1.1.11';
+            console.log('Updating version to v1.1.12');
+            versionElement.textContent = 'v1.1.12';
+            console.log('Version updated:', versionElement.textContent);
+        } else {
+            console.error('Version element not found!');
         }
     }
 
