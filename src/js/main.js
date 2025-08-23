@@ -244,6 +244,12 @@ class DailyRankingsApp {
             exitAdminBtn.addEventListener('click', () => this.exitAdminMode());
         }
 
+        // Admin banner clickable to return to admin tab
+        const adminBannerClickable = document.getElementById('adminBannerClickable');
+        if (adminBannerClickable) {
+            adminBannerClickable.addEventListener('click', () => this.navigateToAdminTab());
+        }
+
 
 
         // Tab click handlers
@@ -331,6 +337,19 @@ class DailyRankingsApp {
             this.setupAdminLoginListeners();
         } else {
             console.error('Admin login modal not found in DOM');
+        }
+    }
+
+    navigateToAdminTab() {
+        // Find and click the admin tab to navigate to it
+        const adminTab = document.querySelector('.tab[data-type="admin"]');
+        if (adminTab) {
+            adminTab.click();
+            // Scroll to top for better mobile experience
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+            console.error('Admin tab not found');
+            this.uiManager.showError('Admin tab not available');
         }
     }
 
