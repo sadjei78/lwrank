@@ -9,6 +9,7 @@ export class LeaderVIPManager {
     }
 
     async initializeConnection() {
+        console.log('LeaderVIPManager.initializeConnection called');
         try {
             // Test if Supabase is available
             const { data, error } = await supabase.from('alliance_leaders').select('count').limit(1);
@@ -73,13 +74,25 @@ export class LeaderVIPManager {
                 return;
             }
 
+            // Clear existing data before loading new data
+            console.log('Clearing existing data before loading from database');
+            this.allianceLeaders = [];
+            this.trainConductorRotation = [];
+            this.vipSelections = {};
+            
+            // Load new data
             this.allianceLeaders = leaders || [];
             this.trainConductorRotation = rotation || [];
             
             // Convert VIP data to date-keyed object
-            this.vipSelections = {};
             (vipData || []).forEach(vip => {
                 this.vipSelections[vip.date] = vip;
+            });
+            
+            console.log('Data loaded from database:', {
+                leaders: this.allianceLeaders.length,
+                rotation: this.trainConductorRotation.length,
+                vipSelections: Object.keys(this.vipSelections).length
             });
 
             console.log('Loaded leader system data:', {
@@ -177,6 +190,7 @@ export class LeaderVIPManager {
     }
 
     loadFromStorage() {
+        console.log('LeaderVIPManager.loadFromStorage called');
         try {
             const stored = localStorage.getItem('leaderVIPData');
             if (stored) {
@@ -184,6 +198,13 @@ export class LeaderVIPManager {
                 this.allianceLeaders = data.allianceLeaders || [];
                 this.trainConductorRotation = data.trainConductorRotation || [];
                 this.vipSelections = data.vipSelections || {};
+                console.log('Loaded from localStorage:', {
+                    leaders: this.allianceLeaders.length,
+                    rotation: this.trainConductorRotation.length,
+                    vipSelections: Object.keys(this.vipSelections).length
+                });
+            } else {
+                console.log('No data found in localStorage');
             }
             console.log('Loaded leader system from localStorage');
         } catch (error) {
@@ -492,13 +513,18 @@ export class LeaderVIPManager {
     // Get VIP frequency information for a player
     getVIPFrequencyInfo(playerName) {
         console.log('getVIPFrequencyInfo called for player:', playerName);
-        console.log('Current vipSelections:', this.vipSelections);
+        this.logVIPData();
         
+        // Get today's date in YYYY-MM-DD format to avoid timezone issues
         const today = new Date();
+        const todayString = today.toISOString().split('T')[0];
+        
+        // Calculate 30 days ago in YYYY-MM-DD format
         const thirtyDaysAgo = new Date(today);
         thirtyDaysAgo.setDate(today.getDate() - 30);
+        const thirtyDaysAgoString = thirtyDaysAgo.toISOString().split('T')[0];
         
-        console.log('Date range:', { today: today.toISOString(), thirtyDaysAgo: thirtyDaysAgo.toISOString() });
+        console.log('Date range:', { today: todayString, thirtyDaysAgo: thirtyDaysAgoString });
         
         let lastSelectedDays = null;
         let frequency30Days = 0;
@@ -511,18 +537,18 @@ export class LeaderVIPManager {
         console.log('Filtered VIPs for player:', playerVIPs);
         
         if (playerVIPs.length > 0) {
-            // Calculate days since last selection
-            const lastVIPDate = this.parseDateString(playerVIPs[0].date);
-            const diffTime = today.getTime() - lastVIPDate.getTime();
-            lastSelectedDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            // Calculate days since last selection using string comparison
+            const lastVIPDateString = playerVIPs[0].date;
+            const daysDiff = this.calculateDaysDifference(lastVIPDateString, todayString);
+            lastSelectedDays = daysDiff;
             
-            // Count selections in last 30 days
+            // Count selections in last 30 days using string comparison
             frequency30Days = playerVIPs.filter(vip => {
-                const vipDate = this.parseDateString(vip.date);
-                return vipDate >= thirtyDaysAgo;
+                // Direct string comparison for dates (YYYY-MM-DD format)
+                return vip.date >= thirtyDaysAgoString;
             }).length;
             
-            console.log('Calculated frequency:', { lastSelectedDays, frequency30Days, lastVIPDate: lastVIPDate.toISOString() });
+            console.log('Calculated frequency:', { lastSelectedDays, frequency30Days, lastVIPDateString });
         } else {
             console.log('No VIP selections found for player');
         }
@@ -534,6 +560,41 @@ export class LeaderVIPManager {
         
         console.log('Returning frequency data:', result);
         return result;
+    }
+
+    // Helper function to calculate days difference between two date strings (YYYY-MM-DD format)
+    calculateDaysDifference(dateString1, dateString2) {
+        // Convert both dates to Date objects for calculation
+        const [year1, month1, day1] = dateString1.split('-').map(Number);
+        const [year2, month2, day2] = dateString2.split('-').map(Number);
+        
+        const date1 = new Date(year1, month1 - 1, day1);
+        const date2 = new Date(year2, month2 - 1, day2);
+        
+        // Calculate difference in milliseconds and convert to days
+        // date2 is typically "today", date1 is the VIP date
+        // We want positive if VIP date is in the past, negative if in the future
+        const diffTime = date2.getTime() - date1.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        return diffDays;
+    }
+
+    // Clear admin-related data to prevent duplication on re-login
+    clearAdminData() {
+        console.log('Clearing admin data to prevent duplication');
+        this.allianceLeaders = [];
+        this.trainConductorRotation = [];
+        this.vipSelections = {};
+    }
+
+    // Debug method to log current VIP data
+    logVIPData() {
+        console.log('Current VIP data:', {
+            totalSelections: Object.keys(this.vipSelections).length,
+            selections: this.vipSelections,
+            dates: Object.keys(this.vipSelections).sort()
+        });
     }
 
     // Helper function to parse date string to Date object

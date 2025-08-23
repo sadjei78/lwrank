@@ -45,7 +45,9 @@ class DailyRankingsApp {
         }
         
         try {
+            console.log('Initializing leader VIP manager connection...');
             await this.leaderVIPManager.initializeConnection();
+            console.log('Leader VIP manager connection initialized');
         } catch (error) {
             console.warn('Leader VIP manager connection failed:', error);
         }
@@ -176,13 +178,7 @@ class DailyRankingsApp {
             this.addAllianceLeader();
         });
         
-        // Debug button for testing
-        const debugAddLeaderBtn = document.getElementById('debugAddLeaderBtn');
-        if (debugAddLeaderBtn) {
-            debugAddLeaderBtn.addEventListener('click', () => {
-                this.debugAddTestLeader();
-            });
-        }
+
         
         const removeLeaderBtn = document.getElementById('removeLeaderBtn');
         if (removeLeaderBtn) {
@@ -198,6 +194,14 @@ class DailyRankingsApp {
         document.getElementById('setVIPBtn').addEventListener('click', () => {
             this.setVIPForDate();
         });
+
+        // Test VIP frequency button
+        const testVIPFrequencyBtn = document.getElementById('testVIPFrequencyBtn');
+        if (testVIPFrequencyBtn) {
+            testVIPFrequencyBtn.addEventListener('click', () => {
+                this.testVIPFrequency();
+            });
+        }
 
         // VIP player input change listeners for frequency display
         document.getElementById('vipPlayer').addEventListener('input', (e) => {
@@ -311,6 +315,9 @@ class DailyRankingsApp {
             adminTab.remove();
         }
         
+        // Clear admin-related data to prevent duplication on re-login
+        this.leaderVIPManager.clearAdminData();
+        
         // Show success message
         this.uiManager.showSuccess('Admin mode exited successfully');
     }
@@ -380,6 +387,8 @@ class DailyRankingsApp {
             document.getElementById('adminLoginModal').classList.remove('show');
             document.getElementById('adminPassword').value = '';
             this.uiManager.showSuccess('Admin access granted');
+            
+            console.log('Admin authenticated, loading data...');
             
             // Add admin tab
             await this.updateWeeklyTabs();
@@ -1386,25 +1395,7 @@ class DailyRankingsApp {
         }
     }
 
-    // Debug method to manually add a test leader
-    async debugAddTestLeader() {
-        console.log('Debug: Adding test leader...');
-        try {
-            await this.leaderVIPManager.addAllianceLeader('TestLeader');
-            this.uiManager.showSuccess('Test leader added successfully!');
-            
-            // Refresh UI
-            this.updateLeaderDropdowns();
-            this.updateRotationOrderList();
-            
-            console.log('Current data after adding test leader:');
-            console.log('Alliance leaders:', this.leaderVIPManager.allianceLeaders);
-            console.log('Train conductor rotation:', this.leaderVIPManager.trainConductorRotation);
-        } catch (error) {
-            console.error('Error adding test leader:', error);
-            this.uiManager.showError(`Error adding test leader: ${error.message}`);
-        }
-    }
+
 
     // Update special events list in admin tab
     async updateSpecialEventsList() {
@@ -1654,6 +1645,33 @@ class DailyRankingsApp {
             console.error('Error updating special event:', error);
             this.uiManager.showError(`Error updating special event: ${error.message}`);
         }
+    }
+
+    // Test VIP frequency calculation
+    testVIPFrequency() {
+        console.log('=== Testing VIP Frequency ===');
+        
+        // Test with a sample player name
+        const testPlayer = 'TestPlayer';
+        console.log('Testing frequency for player:', testPlayer);
+        
+        // Get current VIP data
+        this.leaderVIPManager.logVIPData();
+        
+        // Test frequency calculation
+        const frequencyData = this.leaderVIPManager.getVIPFrequencyInfo(testPlayer);
+        console.log('Frequency test result:', frequencyData);
+        
+        // Test with actual VIP data
+        const vipSelections = this.leaderVIPManager.vipSelections;
+        if (Object.keys(vipSelections).length > 0) {
+            console.log('Testing with actual VIP data:');
+            Object.entries(vipSelections).forEach(([date, vip]) => {
+                console.log(`Date: ${date}, VIP: ${vip.vip_player}, Conductor: ${vip.train_conductor}`);
+            });
+        }
+        
+        console.log('=== End VIP Frequency Test ===');
     }
 
     // Update VIP frequency display
