@@ -16,16 +16,20 @@ export class AutocompleteService {
     async loadAllPlayerNames() {
         try {
             // Get all rankings data to extract unique player names
-            const allRankings = this.rankingManager.getAllRankings();
+            const allRankings = await this.rankingManager.getAllRankings();
             this.allPlayerNames.clear();
             
-            allRankings.forEach(ranking => {
-                if (ranking.commander) {
-                    this.allPlayerNames.add(ranking.commander);
-                }
-            });
-            
-            console.log(`Loaded ${this.allPlayerNames.size} unique player names for autocomplete from database`);
+            if (allRankings && Array.isArray(allRankings)) {
+                allRankings.forEach(ranking => {
+                    if (ranking.commander) {
+                        this.allPlayerNames.add(ranking.commander);
+                    }
+                });
+                
+                console.log(`Loaded ${this.allPlayerNames.size} unique player names for autocomplete from database`);
+            } else {
+                console.warn('No rankings data available for autocomplete');
+            }
         } catch (error) {
             console.error('Error loading player names for autocomplete:', error);
         }

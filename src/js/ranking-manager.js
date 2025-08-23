@@ -106,7 +106,7 @@ export class RankingManager {
         }
     }
 
-    getAllRankings() {
+    async getAllRankings() {
         // Convert the nested rankingsData object to a flat array
         const allRankings = [];
         

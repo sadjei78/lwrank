@@ -233,11 +233,7 @@ class DailyRankingsApp {
             exitAdminBtn.addEventListener('click', () => this.exitAdminMode());
         }
 
-        // Sync data button
-        const syncDataBtn = document.getElementById('syncDataBtn');
-        if (syncDataBtn) {
-            syncDataBtn.addEventListener('click', () => this.syncLocalData());
-        }
+
 
         // Tab click handlers
         document.getElementById('tabs').addEventListener('click', async (e) => {
@@ -893,6 +889,27 @@ class DailyRankingsApp {
                 this.uiManager.showSuccess(`Successfully processed ${uniqueRankings.length} rankings for ${this.formatDateDisplay(selectedDate)}!`);
             }
             
+            // Get existing player names before adding new ones
+            const existingPlayers = new Set();
+            const allExistingRankings = await this.rankingManager.getAllRankings();
+            allExistingRankings.forEach(ranking => {
+                if (ranking.commander) {
+                    existingPlayers.add(ranking.commander);
+                }
+            });
+            
+            // Find new player names
+            const newPlayers = uniqueRankings
+                .filter(ranking => ranking.commander && !existingPlayers.has(ranking.commander))
+                .map(ranking => ranking.commander);
+            
+            // Show new player names if any
+            if (newPlayers.length > 0) {
+                const newPlayersList = newPlayers.join(', ');
+                this.uiManager.showInfo(`New players added to database: ${newPlayersList}`);
+                console.log('New players found:', newPlayers);
+            }
+            
             // Refresh autocomplete with new player names
             await this.autocompleteService.refreshPlayerNames();
             
@@ -950,6 +967,27 @@ class DailyRankingsApp {
                 
                 const selectedDate = new Date(selectedDateKey);
                 this.uiManager.showSuccess(`Successfully processed ${uniqueRankings.length} rankings for ${this.formatDateDisplay(selectedDate)}!`);
+            }
+            
+            // Get existing player names before adding new ones
+            const existingPlayers = new Set();
+            const allExistingRankings = await this.rankingManager.getAllRankings();
+            allExistingRankings.forEach(ranking => {
+                if (ranking.commander) {
+                    existingPlayers.add(ranking.commander);
+                }
+            });
+            
+            // Find new player names
+            const newPlayers = uniqueRankings
+                .filter(ranking => ranking.commander && !existingPlayers.has(ranking.commander))
+                .map(ranking => ranking.commander);
+            
+            // Show new player names if any
+            if (newPlayers.length > 0) {
+                const newPlayersList = newPlayers.join(', ');
+                this.uiManager.showInfo(`New players added to database: ${newPlayersList}`);
+                console.log('New players found:', newPlayers);
             }
             
             // Refresh autocomplete with new player names
