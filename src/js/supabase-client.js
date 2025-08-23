@@ -19,11 +19,11 @@ try {
     // Fall back to local config
     supabaseUrl = config.supabaseUrl;
     supabaseAnonKey = config.supabaseAnonKey;
-    
+  }
 } catch (error) {
-      // Fall back to local config
-    supabaseUrl = config.supabaseUrl;
-    supabaseAnonKey = config.supabaseAnonKey;
+  // Fall back to local config
+  supabaseUrl = config.supabaseUrl;
+  supabaseAnonKey = config.supabaseAnonKey;
 }
 
 
