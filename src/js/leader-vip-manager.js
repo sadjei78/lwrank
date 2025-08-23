@@ -61,14 +61,10 @@ export class LeaderVIPManager {
                 return;
             }
 
-            // Load VIP selections for the last 30 days
-            const thirtyDaysAgo = new Date();
-            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-            
+            // Load ALL VIP selections for frequency calculations
             const { data: vipData, error: vipError } = await supabase
                 .from('vip_selections')
                 .select('*')
-                .gte('date', thirtyDaysAgo.toISOString().split('T')[0])
                 .order('date', { ascending: false });
 
             if (vipError) {
@@ -91,6 +87,9 @@ export class LeaderVIPManager {
                 rotation: this.trainConductorRotation.length,
                 vipSelections: Object.keys(this.vipSelections).length
             });
+            
+            console.log('VIP selections loaded:', this.vipSelections);
+            console.log('VIP data from database:', vipData);
 
             // Save to localStorage as backup
             this.saveToStorage();
@@ -215,14 +214,20 @@ export class LeaderVIPManager {
         }
 
         try {
+            console.log('Saving leader system to database...');
+            console.log('VIP selections to save:', this.vipSelections);
+            
             // Save VIP selections
             for (const [date, vipData] of Object.entries(this.vipSelections)) {
+                console.log('Saving VIP selection for date:', date, vipData);
                 const { error } = await supabase
                     .from('vip_selections')
                     .upsert(vipData, { onConflict: 'date' });
                 
                 if (error) {
                     console.error('Error saving VIP selection:', error);
+                } else {
+                    console.log('Successfully saved VIP selection for date:', date);
                 }
             }
 
@@ -295,8 +300,11 @@ export class LeaderVIPManager {
 
     // Set VIP for a specific date
     async setVIPForDate(date, trainConductor, vipPlayer, notes = '') {
+        console.log('setVIPForDate called with:', { date, trainConductor, vipPlayer, notes });
+        
         // Format date as YYYY-MM-DD in local timezone to avoid timezone shift
         const dateString = this.formatDateForStorage(date);
+        console.log('Formatted date string:', dateString);
         
         this.vipSelections[dateString] = {
             date: dateString,
@@ -304,6 +312,9 @@ export class LeaderVIPManager {
             vip_player: vipPlayer,
             notes: notes
         };
+
+        console.log('Updated local vipSelections:', this.vipSelections);
+        console.log('Total VIP selections now:', Object.keys(this.vipSelections).length);
 
         await this.saveToDatabase();
         return this.vipSelections[dateString];
@@ -464,19 +475,30 @@ export class LeaderVIPManager {
 
     // Delete VIP for a specific date
     async deleteVIPForDate(date) {
+        console.log('deleteVIPForDate called with date:', date);
         const dateString = this.formatDateForStorage(date);
+        console.log('Formatted date string:', dateString);
         
         if (this.vipSelections[dateString]) {
+            console.log('Deleting VIP selection for date:', dateString);
             delete this.vipSelections[dateString];
+            console.log('Updated local vipSelections:', this.vipSelections);
             await this.saveToDatabase();
+        } else {
+            console.log('No VIP selection found for date:', dateString);
         }
     }
 
     // Get VIP frequency information for a player
     getVIPFrequencyInfo(playerName) {
+        console.log('getVIPFrequencyInfo called for player:', playerName);
+        console.log('Current vipSelections:', this.vipSelections);
+        
         const today = new Date();
         const thirtyDaysAgo = new Date(today);
         thirtyDaysAgo.setDate(today.getDate() - 30);
+        
+        console.log('Date range:', { today: today.toISOString(), thirtyDaysAgo: thirtyDaysAgo.toISOString() });
         
         let lastSelectedDays = null;
         let frequency30Days = 0;
@@ -485,6 +507,8 @@ export class LeaderVIPManager {
         const playerVIPs = Object.values(this.vipSelections)
             .filter(vip => vip.vip_player.toLowerCase() === playerName.toLowerCase())
             .sort((a, b) => this.compareDates(b.date, a.date));
+        
+        console.log('Filtered VIPs for player:', playerVIPs);
         
         if (playerVIPs.length > 0) {
             // Calculate days since last selection
@@ -497,12 +521,19 @@ export class LeaderVIPManager {
                 const vipDate = this.parseDateString(vip.date);
                 return vipDate >= thirtyDaysAgo;
             }).length;
+            
+            console.log('Calculated frequency:', { lastSelectedDays, frequency30Days, lastVIPDate: lastVIPDate.toISOString() });
+        } else {
+            console.log('No VIP selections found for player');
         }
         
-        return {
+        const result = {
             lastSelectedDays,
             frequency30Days
         };
+        
+        console.log('Returning frequency data:', result);
+        return result;
     }
 
     // Helper function to parse date string to Date object

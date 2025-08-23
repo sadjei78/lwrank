@@ -125,9 +125,33 @@
                 <div class="admin-section">
                     <h3>📁 CSV Upload</h3>
                     <div class="csv-upload">
-                        <label for="csvFileUpload">Upload CSV:</label>
-                        <input type="file" id="csvFileUpload" accept=".csv">
-                        <button id="uploadBtn">Upload</button>
+                        <div class="upload-option">
+                            <h4>📄 File Upload</h4>
+                            <label for="csvFileUpload">Upload CSV File:</label>
+                            <input type="file" id="csvFileUpload" accept=".csv">
+                            <button id="uploadBtn" class="upload-btn">Upload File</button>
+                        </div>
+                        
+                        <div class="upload-divider">
+                            <span>OR</span>
+                        </div>
+                        
+                        <div class="upload-option">
+                            <h4>📝 Raw CSV Paste</h4>
+                            <label for="rawCsvInput">Paste CSV Data:</label>
+                            <textarea id="rawCsvInput" placeholder="Paste your CSV data here...&#10;Format: ranking,commander,points&#10;Example:&#10;1,PlayerName,1000&#10;2,AnotherPlayer,950" rows="8" class="form-input"></textarea>
+                            <button id="pasteUploadBtn" class="upload-btn">Upload Pasted Data</button>
+                        </div>
+                        
+                        <div class="csv-help">
+                            <small class="form-help">
+                                <strong>CSV Format:</strong> ranking,commander,points<br>
+                                <strong>Example:</strong><br>
+                                1,PlayerName,1000<br>
+                                2,AnotherPlayer,950<br>
+                                3,ThirdPlayer,900
+                            </small>
+                        </div>
                     </div>
                 </div>
                 

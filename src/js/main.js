@@ -157,6 +157,11 @@ class DailyRankingsApp {
             this.processCSVFile();
         });
 
+        // Process pasted CSV button
+        document.getElementById('pasteUploadBtn').addEventListener('click', () => {
+            this.processPastedCSV();
+        });
+
         // Special event and player management
         document.getElementById('createEventBtn').addEventListener('click', () => {
             this.createSpecialEvent();
@@ -889,6 +894,69 @@ class DailyRankingsApp {
         });
     }
 
+    async processPastedCSV() {
+        const rawCsvInput = document.getElementById('rawCsvInput');
+        const selectedDateKey = this.currentTabDate || this.formatDateKey(this.selectedDate);
+        
+        if (!rawCsvInput.value.trim()) {
+            alert('Please paste CSV data into the text area.');
+            return;
+        }
+
+        try {
+            // Process the pasted CSV data
+            const csvText = rawCsvInput.value.trim();
+            const rankings = this.csvProcessor.processCSVText(csvText);
+            
+            if (rankings.length === 0) {
+                alert('No valid rankings found in pasted CSV data.');
+                return;
+            }
+
+            // Check if this is a special event
+            const isSpecialEvent = selectedDateKey.startsWith('event_');
+            
+            // Show confirmation dialog with sample data
+            const confirmed = await this.showImportConfirmation(rankings, selectedDateKey);
+            
+            if (!confirmed) {
+                return;
+            }
+
+            const uniqueRankings = this.rankingManager.removeDuplicateRankings(rankings);
+            
+            if (isSpecialEvent) {
+                // Handle special event data
+                await this.rankingManager.setRankingsForSpecialEvent(selectedDateKey, uniqueRankings);
+                const eventName = selectedDateKey.split('_').slice(1, -2).join('_');
+                this.uiManager.showSuccess(`Successfully processed ${uniqueRankings.length} rankings for special event: ${eventName}!`);
+            } else {
+                // Handle regular date data
+                await this.rankingManager.setRankingsForDate(selectedDateKey, uniqueRankings);
+                
+                // Refresh data from database to ensure weekly statistics are accurate
+                await this.rankingManager.refreshDataFromDatabase();
+                
+                const selectedDate = new Date(selectedDateKey);
+                this.uiManager.showSuccess(`Successfully processed ${uniqueRankings.length} rankings for ${this.formatDateDisplay(selectedDate)}!`);
+            }
+            
+            // Refresh autocomplete with new player names
+            await this.autocompleteService.refreshPlayerNames();
+            
+            // Refresh the current tab to show new data
+            await this.showTab(selectedDateKey);
+            this.updateDataStatus();
+            
+            // Clear the textarea
+            rawCsvInput.value = '';
+            
+        } catch (error) {
+            console.error('Error processing pasted CSV:', error);
+            alert('Error processing CSV data. Please check the format and try again.');
+        }
+    }
+
     async showImportConfirmation(rankings, dateKey) {
         // Check if this is a special event
         const isSpecialEvent = dateKey.startsWith('event_');
@@ -1114,13 +1182,18 @@ class DailyRankingsApp {
             await this.leaderVIPManager.setVIPForDate(selectedDate, trainConductor, vipPlayer, notes);
             this.uiManager.showSuccess(`Successfully set "${vipPlayer}" as VIP for ${date}`);
             
+            // Show frequency info for the newly set VIP before clearing
+            this.updateVIPFrequencyDisplay('vipPlayer', vipPlayer);
+            
             // Clear form
             document.getElementById('vipDate').value = '';
             document.getElementById('vipPlayer').value = '';
             document.getElementById('vipNotes').value = '';
             
-            // Hide frequency info
-            this.updateVIPFrequencyDisplay('vipPlayer', '');
+            // Hide frequency info after a short delay
+            setTimeout(() => {
+                this.updateVIPFrequencyDisplay('vipPlayer', '');
+            }, 3000);
             
             // Update VIP display
             this.updateRecentVIPsList();
@@ -1585,16 +1658,30 @@ class DailyRankingsApp {
 
     // Update VIP frequency display
     updateVIPFrequencyDisplay(inputId, playerName) {
+        console.log('updateVIPFrequencyDisplay called with:', { inputId, playerName });
+        
         const frequencyInfoElement = document.getElementById(inputId === 'vipPlayer' ? 'vipFrequencyInfo' : 'editVipFrequencyInfo');
+        if (!frequencyInfoElement) {
+            console.error('Frequency info element not found for:', inputId);
+            return;
+        }
+        
         const daysAgoBadge = frequencyInfoElement.querySelector('.days-ago');
         const count30DaysBadge = frequencyInfoElement.querySelector('.count-30-days');
+        
+        if (!daysAgoBadge || !count30DaysBadge) {
+            console.error('Frequency badges not found:', { daysAgoBadge: !!daysAgoBadge, count30DaysBadge: !!count30DaysBadge });
+            return;
+        }
         
         if (!playerName || playerName.trim() === '') {
             frequencyInfoElement.style.display = 'none';
             return;
         }
         
+        console.log('Getting VIP frequency for player:', playerName);
         const frequencyData = this.leaderVIPManager.getVIPFrequencyInfo(playerName);
+        console.log('VIP frequency data:', frequencyData);
         
         if (frequencyData.lastSelectedDays === null) {
             // Player has never been VIP
@@ -1606,6 +1693,7 @@ class DailyRankingsApp {
         }
         
         frequencyInfoElement.style.display = 'flex';
+        console.log('VIP frequency display updated');
     }
 
 

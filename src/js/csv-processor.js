@@ -21,6 +21,14 @@ export class CSVProcessor {
         reader.readAsText(file);
     }
 
+    processCSVText(csvText) {
+        if (!csvText || csvText.trim().length === 0) {
+            throw new Error('CSV text is empty.');
+        }
+        
+        return this.parseCSV(csvText);
+    }
+
     parseCSV(csvContent) {
         const lines = csvContent.split(/\r?\n/).filter(line => line.trim().length > 0);
         const rankings = [];

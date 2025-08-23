@@ -1181,33 +1181,47 @@ header h1 {
 }
 
 .admin-header {
-    text-align: center;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 32px;
+    border-radius: 20px;
     margin-bottom: 32px;
+    text-align: center;
+    box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
 }
 
 .admin-header h2 {
-    font-size: 28px;
+    font-size: 2rem;
     font-weight: 700;
-    color: #111827;
-    margin-bottom: 8px;
+    margin-bottom: 12px;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .admin-header p {
-    color: #6b7280;
-    font-size: 16px;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 18px;
+    margin: 0;
+    font-weight: 500;
 }
 
 .admin-sections {
     display: grid;
     gap: 24px;
-    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
 }
 
 .admin-section {
-    background: #f8fafc;
-    border-radius: 12px;
-    padding: 20px;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border-radius: 16px;
+    padding: 24px;
     border: 1px solid #e5e7eb;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+}
+
+.admin-section:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-1px);
 }
 
 .admin-section h3 {
@@ -1223,19 +1237,104 @@ header h1 {
 .csv-upload {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 20px;
 }
 
-.csv-upload label {
+.upload-option {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 16px;
+}
+
+.upload-option h4 {
+    margin: 0 0 12px 0;
+    color: #374151;
+    font-size: 1rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.upload-option label {
     font-weight: 500;
     color: #374151;
+    margin-bottom: 8px;
+    display: block;
 }
 
-.csv-upload input[type="file"] {
+.upload-option input[type="file"] {
     padding: 8px;
     border: 1px solid #d1d5db;
     border-radius: 6px;
     background: white;
+    margin-bottom: 12px;
+    width: 100%;
+}
+
+.upload-option textarea {
+    resize: vertical;
+    min-height: 120px;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.upload-divider {
+    text-align: center;
+    position: relative;
+    margin: 8px 0;
+}
+
+.upload-divider::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: #d1d5db;
+}
+
+.upload-divider span {
+    background: #f8fafc;
+    padding: 0 16px;
+    color: #6b7280;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.upload-btn {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    align-self: flex-start;
+}
+
+.upload-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.csv-help {
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    border: 1px solid #bae6fd;
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 16px;
+    box-shadow: 0 2px 8px rgba(186, 230, 253, 0.2);
+}
+
+.csv-help strong {
+    color: #0369a1;
+    font-weight: 600;
 }
 
 .event-form, .player-form, .leader-form, .vip-form {
@@ -1270,34 +1369,39 @@ header h1 {
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
-.event-btn, .player-btn, .leader-btn, .vip-btn {
+.event-btn, .player-btn, .leader-btn, .vip-btn, .upload-btn {
     background: linear-gradient(135deg, #667eea, #764ba2);
     color: white;
     border: none;
-    padding: 10px 20px;
-    border-radius: 8px;
+    padding: 12px 24px;
+    border-radius: 10px;
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
     align-self: flex-start;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
 }
 
-.event-btn:hover, .player-btn:hover, .leader-btn:hover, .vip-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+.event-btn:hover, .player-btn:hover, .leader-btn:hover, .vip-btn:hover, .upload-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
 }
 
 .form-help {
-    font-size: 12px;
+    font-size: 13px;
     color: #6b7280;
-    margin-top: 4px;
-    font-style: italic;
+    margin-top: 8px;
+    line-height: 1.4;
+    padding: 8px 12px;
+    background: #f9fafb;
+    border-radius: 6px;
+    border-left: 3px solid #d1d5db;
 }
 
 .recent-vips {
-    margin-top: 20px;
-    padding-top: 20px;
+    margin-top: 24px;
+    padding-top: 24px;
     border-top: 1px solid #e5e7eb;
 }
 
@@ -1306,11 +1410,19 @@ header h1 {
     color: #1f2937;
     font-size: 1.1rem;
     font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .recent-vips-list {
     max-height: 300px;
     overflow-y: auto;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .vip-entry {
@@ -1410,8 +1522,8 @@ header h1 {
 
 /* Current Leaders List */
 .current-leaders {
-    margin-top: 20px;
-    padding-top: 20px;
+    margin-top: 24px;
+    padding-top: 24px;
     border-top: 1px solid #e5e7eb;
 }
 
@@ -1420,11 +1532,19 @@ header h1 {
     color: #1f2937;
     font-size: 1.1rem;
     font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .current-leaders-list {
     max-height: 300px;
     overflow-y: auto;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .leaders-grid {
@@ -1480,14 +1600,31 @@ header h1 {
     padding: 20px;
 }
 
+.current-events {
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.current-events h4 {
+    margin: 0 0 16px 0;
+    color: #1f2937;
+    font-size: 1.1rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
 .current-events-list {
     max-height: 300px;
     overflow-y: auto;
     border: 1px solid #e5e7eb;
-    border-radius: 8px;
+    border-radius: 12px;
     background: white;
-    padding: 12px;
-    margin-top: 12px;
+    padding: 20px;
+    margin-top: 16px;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .event-entry {
@@ -1590,9 +1727,11 @@ header h1 {
 /* Train Conductor Rotation Management */
 .rotation-order-list {
     border: 1px solid #e5e7eb;
-    border-radius: 8px;
+    border-radius: 12px;
     background: white;
-    min-height: 100px;
+    min-height: 120px;
+    padding: 16px;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .rotation-item {
@@ -1705,31 +1844,38 @@ header h1 {
 }
 
 .debug-btn {
-    background: #f59e0b;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
     color: white;
     border: none;
-    padding: 8px 16px;
-    border-radius: 6px;
+    padding: 10px 20px;
+    border-radius: 8px;
     cursor: pointer;
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
 }
 
 .debug-btn:hover {
-    background: #d97706;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(245, 158, 11, 0.4);
 }
 
-.loading-rotation {
+.loading-rotation, .loading-leaders, .loading-vips, .loading-events {
     color: #6b7280;
     text-align: center;
     padding: 20px;
+    font-style: italic;
 }
 
-.no-rotation {
+.no-rotation, .no-leaders, .no-events {
     color: #6b7280;
     font-style: italic;
     text-align: center;
     padding: 20px;
+    background: #f9fafb;
+    border: 1px dashed #d1d5db;
+    border-radius: 8px;
 }
 
 /* Autocomplete Styles */
