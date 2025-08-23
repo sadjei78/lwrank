@@ -40,8 +40,10 @@ class DailyRankingsApp {
         
         // Initialize Supabase connection
         try {
+            console.log('Starting Supabase initialization...');
             const { initializeSupabase } = await import('./supabase-client.js');
             await initializeSupabase();
+            console.log('Supabase initialization completed');
         } catch (error) {
             console.warn('Supabase initialization failed:', error);
         }
@@ -71,7 +73,8 @@ class DailyRankingsApp {
         
         // Update UI after data is loaded
         await this.updateWeeklyTabs();
-        this.uiManager.updateConnectionStatus(this.rankingManager.getConnectionStatus());
+        const connectionStatus = await this.rankingManager.getConnectionStatus();
+        this.uiManager.updateConnectionStatus(connectionStatus);
         
         // Initialize leader system UI
         this.updateLeaderDropdowns();

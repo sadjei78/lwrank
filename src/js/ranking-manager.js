@@ -286,11 +286,33 @@ export class RankingManager {
         await this.saveToDatabase();
     }
 
-    getConnectionStatus() {
-        return {
-            isOnline: this.isOnline,
-            status: this.isOnline ? 'Connected' : 'Offline (Local Storage)'
-        };
+    async getConnectionStatus() {
+        try {
+            // Test actual Supabase connection
+            const { data, error } = await supabase.from('rankings').select('count').limit(1);
+            if (error) {
+                console.log('Connection test failed:', error);
+                this.isOnline = false;
+                return {
+                    isOnline: false,
+                    status: 'Offline (Connection Failed)'
+                };
+            } else {
+                console.log('Connection test successful');
+                this.isOnline = true;
+                return {
+                    isOnline: true,
+                    status: 'Connected'
+                };
+            }
+        } catch (error) {
+            console.log('Connection test error:', error);
+            this.isOnline = false;
+            return {
+                isOnline: false,
+                status: 'Offline (Error)'
+            };
+        }
     }
 
     // New methods for weekly statistics
