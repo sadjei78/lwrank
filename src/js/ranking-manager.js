@@ -288,17 +288,22 @@ export class RankingManager {
 
     async getConnectionStatus() {
         try {
+            // Add a small delay to ensure Supabase is fully initialized
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
             // Test actual Supabase connection
+            console.log('Testing Supabase connection in ranking manager...');
             const { data, error } = await supabase.from('rankings').select('count').limit(1);
+            
             if (error) {
                 console.log('Connection test failed:', error);
                 this.isOnline = false;
                 return {
                     isOnline: false,
-                    status: 'Offline (Connection Failed)'
+                    status: `Offline (${error.message || 'Connection Failed'})`
                 };
             } else {
-                console.log('Connection test successful');
+                console.log('Connection test successful, data:', data);
                 this.isOnline = true;
                 return {
                     isOnline: true,
@@ -310,7 +315,7 @@ export class RankingManager {
             this.isOnline = false;
             return {
                 isOnline: false,
-                status: 'Offline (Error)'
+                status: `Offline (${error.message || 'Error'})`
             };
         }
     }

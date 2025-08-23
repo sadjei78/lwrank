@@ -54,29 +54,16 @@ export async function initializeSupabase() {
     // Create real Supabase client
     console.log('Creating real Supabase client with URL:', supabaseUrl);
     
-    // Use dynamic import without top-level await
-    import('@supabase/supabase-js').then(({ createClient }) => {
+    try {
+      const { createClient } = await import('@supabase/supabase-js');
       supabase = createClient(supabaseUrl, supabaseAnonKey);
       
-      // Test the connection
-      supabase.from('rankings').select('count').limit(1).then(({ data, error }) => {
-        if (error) {
-          console.warn('Supabase connection test failed, using dummy client:', error);
-          // Fall back to dummy client
-          supabase = {
-            from: () => ({
-              select: () => Promise.resolve({ data: null, error: { message: 'Supabase connection failed' } }),
-              insert: () => Promise.resolve({ data: null, error: { message: 'Supabase connection failed' } }),
-              delete: () => Promise.resolve({ data: null, error: { message: 'Supabase connection failed' } }),
-              update: () => Promise.resolve({ data: null, error: { message: 'Supabase connection failed' } }),
-              upsert: () => Promise.resolve({ data: null, error: { message: 'Supabase connection failed' } })
-            })
-          };
-        } else {
-          console.log('Supabase client created successfully');
-        }
-      }).catch(error => {
-        console.error('Supabase connection test failed:', error);
+      // Test the connection with a simple query
+      console.log('Testing Supabase connection...');
+      const { data, error } = await supabase.from('rankings').select('count').limit(1);
+      
+      if (error) {
+        console.warn('Supabase connection test failed, using dummy client:', error);
         // Fall back to dummy client
         supabase = {
           from: () => ({
@@ -87,11 +74,13 @@ export async function initializeSupabase() {
             upsert: () => Promise.resolve({ data: null, error: { message: 'Supabase connection failed' } })
           })
         };
-      });
-    }).catch(error => {
-      console.error('Error importing Supabase client:', error);
+      } else {
+        console.log('Supabase client created successfully and connection test passed');
+      }
+    } catch (importError) {
+      console.error('Error importing Supabase client:', importError);
       // Keep dummy client
-    });
+    }
   } catch (error) {
     console.error('Error creating Supabase client:', error);
     // Keep dummy client
