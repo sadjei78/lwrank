@@ -6,8 +6,19 @@ let supabase;
 console.log('Supabase client loaded - Local development mode');
 
 // Supabase configuration
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// For local development, use fallback values if environment variables aren't available
+let supabaseUrl, supabaseAnonKey;
+
+try {
+  // Try to get from environment variables (works in Vite builds)
+  supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+} catch (error) {
+  // Fallback for local development
+  console.log('Environment variables not available, using local development mode');
+  supabaseUrl = '';
+  supabaseAnonKey = '';
+}
 
 if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.trim() === '' || supabaseAnonKey.trim() === '') {
   console.warn('Supabase configuration missing. Please set up your environment variables.');
@@ -59,7 +70,7 @@ export { supabase };
 // Test connection
 export async function testConnection() {
   if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.trim() === '' || supabaseAnonKey.trim() === '') {
-    console.warn('Supabase not configured, skipping connection test');
+    console.log('Local development mode - Supabase not configured, using offline mode');
     return false;
   }
   
