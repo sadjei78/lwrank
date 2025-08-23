@@ -47,26 +47,98 @@ if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.trim() === '' || supabaseAno
       throw new Error('Invalid URL format');
     }
     
-    // For local development, use dummy client
-    supabase = {
-      from: () => ({
-        select: () => Promise.resolve({ data: null, error: { message: 'Local development mode' } }),
-        insert: () => Promise.resolve({ data: null, error: { message: 'Local development mode' } }),
-        delete: () => Promise.resolve({ data: null, error: { message: 'Local development mode' } }),
-        update: () => Promise.resolve({ data: null, error: { message: 'Local development mode' } }),
-        upsert: () => Promise.resolve({ data: null, error: { message: 'Local development mode' } })
-      })
-    };
+    // Create real Supabase client
+    console.log('Creating real Supabase client with URL:', supabaseUrl);
+    const { createClient } = await import('@supabase/supabase-js');
+    supabase = createClient(supabaseUrl, supabaseAnonKey);
+    
+    // Test the connection
+    const { data, error } = await supabase.from('rankings').select('count').limit(1);
+    if (error) {
+      console.warn('Supabase connection test failed, using dummy client:', error);
+      // Fall back to dummy client
+      supabase = {
+        from: () => ({
+          select: () => Promise.resolve({ data: null, error: { message: 'Supabase connection failed' } }),
+          insert: () => Promise.resolve({ data: null, error: { message: 'Supabase connection failed' } }),
+          delete: () => Promise.resolve({ data: null, error: { message: 'Supabase connection failed' } }),
+          update: () => Promise.resolve({ data: null, error: { message: 'Supabase connection failed' } }),
+          upsert: () => Promise.resolve({ data: null, error: { message: 'Supabase connection failed' } })
+        })
+      };
+    } else {
+      console.log('Supabase client created successfully');
+    }
   } catch (error) {
-    console.error('Invalid Supabase URL:', supabaseUrl, error);
+    console.error('Error creating Supabase client:', error);
     // Fall back to dummy client
     supabase = {
       from: () => ({
-        select: () => Promise.resolve({ data: null, error: { message: 'Invalid Supabase URL' } }),
-        insert: () => Promise.resolve({ data: null, error: { message: 'Invalid Supabase URL' } }),
-        delete: () => Promise.resolve({ data: null, error: { message: 'Invalid Supabase URL' } }),
-        update: () => Promise.resolve({ data: null, error: { message: 'Invalid Supabase URL' } }),
-        upsert: () => Promise.resolve({ data: null, error: { message: 'Invalid Supabase URL' } })
+        select: () => Promise.resolve({ data: null, error: { message: 'Supabase client creation failed' } }),
+        insert: () => Promise.resolve({ data: null, error: { message: 'Supabase client creation failed' } }),
+        delete: () => Promise.resolve({ data: null, error: { message: 'Supabase client creation failed' } }),
+        update: () => Promise.resolve({ data: null, error: { message: 'Supabase client creation failed' } }),
+        upsert: () => Promise.resolve({ data: null, error: { message: 'Supabase client creation failed' } })
+      })
+    };
+  }
+}
+
+// Initialize the Supabase client
+export async function initializeSupabase() {
+  if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.trim() === '' || supabaseAnonKey.trim() === '') {
+    console.warn('Supabase configuration missing. Please set up your environment variables.');
+    // Create a dummy client that will always fail gracefully
+    supabase = {
+      from: () => ({
+        select: () => Promise.resolve({ data: null, error: { message: 'Supabase not configured' } }),
+        insert: () => Promise.resolve({ data: null, error: { message: 'Supabase not configured' } }),
+        delete: () => Promise.resolve({ data: null, error: { message: 'Supabase not configured' } }),
+        update: () => Promise.resolve({ data: null, error: { message: 'Supabase not configured' } })
+      })
+    };
+    return;
+  }
+
+  try {
+    // Validate URL format before creating client
+    const url = new URL(supabaseUrl);
+    if (!url.protocol || !url.hostname) {
+      throw new Error('Invalid URL format');
+    }
+    
+    // Create real Supabase client
+    console.log('Creating real Supabase client with URL:', supabaseUrl);
+    const { createClient } = await import('@supabase/supabase-js');
+    supabase = createClient(supabaseUrl, supabaseAnonKey);
+    
+    // Test the connection
+    const { data, error } = await supabase.from('rankings').select('count').limit(1);
+    if (error) {
+      console.warn('Supabase connection test failed, using dummy client:', error);
+      // Fall back to dummy client
+      supabase = {
+        from: () => ({
+          select: () => Promise.resolve({ data: null, error: { message: 'Supabase connection failed' } }),
+          insert: () => Promise.resolve({ data: null, error: { message: 'Supabase connection failed' } }),
+          delete: () => Promise.resolve({ data: null, error: { message: 'Supabase connection failed' } }),
+          update: () => Promise.resolve({ data: null, error: { message: 'Supabase connection failed' } }),
+          upsert: () => Promise.resolve({ data: null, error: { message: 'Supabase connection failed' } })
+        })
+      };
+    } else {
+      console.log('Supabase client created successfully');
+    }
+  } catch (error) {
+    console.error('Error creating Supabase client:', error);
+    // Fall back to dummy client
+    supabase = {
+      from: () => ({
+        select: () => Promise.resolve({ data: null, error: { message: 'Supabase client creation failed' } }),
+        insert: () => Promise.resolve({ data: null, error: { message: 'Supabase client creation failed' } }),
+        delete: () => Promise.resolve({ data: null, error: { message: 'Supabase client creation failed' } }),
+        update: () => Promise.resolve({ data: null, error: { message: 'Supabase client creation failed' } }),
+        upsert: () => Promise.resolve({ data: null, error: { message: 'Supabase client creation failed' } })
       })
     };
   }
@@ -77,20 +149,20 @@ export { supabase };
 // Test connection
 export async function testConnection() {
   if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.trim() === '' || supabaseAnonKey.trim() === '') {
-    console.log('Local development mode - Supabase not configured, using offline mode');
+    console.log('Supabase not configured, using offline mode');
     return false;
   }
   
   try {
-    // Validate URL format first
-    const url = new URL(supabaseUrl);
-    if (!url.protocol || !url.hostname) {
-      console.error('Invalid Supabase URL format:', supabaseUrl);
+    // Test actual connection to Supabase
+    const { data, error } = await supabase.from('rankings').select('count').limit(1);
+    if (error) {
+      console.error('Supabase connection test failed:', error);
       return false;
     }
     
-    // For local development, return false to indicate offline mode
-    return false;
+    console.log('Supabase connection test successful');
+    return true;
   } catch (error) {
     console.error('Supabase connection failed:', error);
     return false;
