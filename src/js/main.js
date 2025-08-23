@@ -79,26 +79,64 @@ class DailyRankingsApp {
     setupEventListeners() {
         // Week picker change
         document.getElementById('weekPicker').addEventListener('change', (e) => {
-            const weekValue = e.target.value; // Format: YYYY-Www
-            if (weekValue) {
-                const [year, week] = weekValue.split('-W');
-                const date = this.getDateFromWeek(parseInt(year), parseInt(week));
-                this.selectedDate = date;
-                this.updateWeeklyTabs();
+            try {
+                const weekValue = e.target.value; // Format: YYYY-Www
+                if (weekValue) {
+                    const [year, week] = weekValue.split('-W');
+                    const yearInt = parseInt(year);
+                    const weekInt = parseInt(week);
+                    
+                    if (isNaN(yearInt) || isNaN(weekInt)) {
+                        console.error('Invalid week value format:', weekValue);
+                        return;
+                    }
+                    
+                    const date = this.getDateFromWeek(yearInt, weekInt);
+                    if (date && !isNaN(date.getTime())) {
+                        this.selectedDate = date;
+                        this.updateWeeklyTabs();
+                    } else {
+                        console.error('Invalid date returned from getDateFromWeek:', date);
+                        this.setDateToCurrentWeek();
+                    }
+                }
+            } catch (error) {
+                console.error('Error in week picker change:', error);
+                this.setDateToCurrentWeek();
             }
         });
 
         // Previous/Next week buttons
         document.getElementById('prevWeek').addEventListener('click', () => {
-            this.selectedDate.setDate(this.selectedDate.getDate() - 7);
-            this.updateWeekPicker();
-            this.updateWeeklyTabs();
+            try {
+                if (!this.selectedDate || isNaN(this.selectedDate.getTime())) {
+                    console.error('Invalid selectedDate in prevWeek, resetting');
+                    this.setDateToCurrentWeek();
+                    return;
+                }
+                this.selectedDate.setDate(this.selectedDate.getDate() - 7);
+                this.updateWeekPicker();
+                this.updateWeeklyTabs();
+            } catch (error) {
+                console.error('Error in prevWeek:', error);
+                this.setDateToCurrentWeek();
+            }
         });
 
         document.getElementById('nextWeek').addEventListener('click', () => {
-            this.selectedDate.setDate(this.selectedDate.getDate() + 7);
-            this.updateWeekPicker();
-            this.updateWeeklyTabs();
+            try {
+                if (!this.selectedDate || isNaN(this.selectedDate.getTime())) {
+                    console.error('Invalid selectedDate in nextWeek, resetting');
+                    this.setDateToCurrentWeek();
+                    return;
+                }
+                this.selectedDate.setDate(this.selectedDate.getDate() + 7);
+                this.updateWeekPicker();
+                this.updateWeeklyTabs();
+            } catch (error) {
+                console.error('Error in nextWeek:', error);
+                this.setDateToCurrentWeek();
+            }
         });
 
         // Process CSV button
@@ -343,85 +381,194 @@ class DailyRankingsApp {
     }
 
     setDateToCurrentWeek() {
-        const today = new Date();
-        this.selectedDate = today;
-        this.updateWeekPicker();
+        try {
+            const today = new Date();
+            if (isNaN(today.getTime())) {
+                console.error('Error creating today date, using fallback');
+                this.selectedDate = new Date('2024-01-01'); // Fallback date
+            } else {
+                this.selectedDate = today;
+            }
+            this.updateWeekPicker();
+        } catch (error) {
+            console.error('Error in setDateToCurrentWeek:', error);
+            this.selectedDate = new Date('2024-01-01'); // Fallback date
+            this.updateWeekPicker();
+        }
     }
 
     updateWeekPicker() {
-        const weekPicker = document.getElementById('weekPicker');
-        const weekValue = this.getWeekValue(this.selectedDate);
-        weekPicker.value = weekValue;
+        try {
+            const weekPicker = document.getElementById('weekPicker');
+            if (!weekPicker) {
+                console.error('Week picker element not found');
+                return;
+            }
+            
+            if (!this.selectedDate || isNaN(this.selectedDate.getTime())) {
+                console.error('Invalid selectedDate in updateWeekPicker, resetting');
+                this.setDateToCurrentWeek();
+                return;
+            }
+            
+            const weekValue = this.getWeekValue(this.selectedDate);
+            weekPicker.value = weekValue;
+        } catch (error) {
+            console.error('Error in updateWeekPicker:', error);
+            // Try to reset the date
+            this.setDateToCurrentWeek();
+        }
     }
 
     getWeekValue(date) {
-        const year = date.getFullYear();
-        const week = this.getWeekNumber(date);
-        return `${year}-W${week.toString().padStart(2, '0')}`;
+        try {
+            if (!date || isNaN(date.getTime())) {
+                console.error('Invalid date passed to getWeekValue:', date);
+                const today = new Date();
+                return this.getWeekValue(today);
+            }
+            const year = date.getFullYear();
+            const week = this.getWeekNumber(date);
+            return `${year}-W${week.toString().padStart(2, '0')}`;
+        } catch (error) {
+            console.error('Error in getWeekValue:', error, 'date:', date);
+            const today = new Date();
+            return this.getWeekValue(today);
+        }
     }
 
     getWeekNumber(date) {
-        const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-        const dayNum = d.getUTCDay() || 7;
-        d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-        const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-        return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+        try {
+            if (!date || isNaN(date.getTime())) {
+                console.error('Invalid date passed to getWeekNumber:', date);
+                return 1; // Return week 1 as fallback
+            }
+            const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+            const dayNum = d.getUTCDay() || 7;
+            d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+            const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+            return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+        } catch (error) {
+            console.error('Error in getWeekNumber:', error, 'date:', date);
+            return 1; // Return week 1 as fallback
+        }
     }
 
     getDateFromWeek(year, week) {
-        const simple = new Date(year, 0, 1 + (week - 1) * 7);
-        const dow = simple.getDay();
-        const ISOweekStart = simple;
-        if (dow <= 4)
-            ISOweekStart.setDate(simple.getDate() - simple.getDay() + 1);
-        else
-            ISOweekStart.setDate(simple.getDate() + 8 - simple.getDay());
-        return ISOweekStart;
+        try {
+            if (!year || !week || isNaN(year) || isNaN(week)) {
+                console.error('Invalid parameters passed to getDateFromWeek:', { year, week });
+                const today = new Date();
+                return this.getDateFromWeek(today.getFullYear(), this.getWeekNumber(today));
+            }
+            const simple = new Date(year, 0, 1 + (week - 1) * 7);
+            const dow = simple.getDay();
+            const ISOweekStart = simple;
+            if (dow <= 4)
+                ISOweekStart.setDate(simple.getDate() - simple.getDay() + 1);
+            else
+                ISOweekStart.setDate(simple.getDate() + 8 - simple.getDay());
+            return ISOweekStart;
+        } catch (error) {
+            console.error('Error in getDateFromWeek:', error, 'year:', year, 'week:', week);
+            const today = new Date();
+            return this.getDateFromWeek(today.getFullYear(), this.getWeekNumber(today));
+        }
     }
 
     getWeekDates(date) {
-        const week = [];
-        const startOfWeek = new Date(date);
-        
-        // Get Monday of the week (0 = Sunday, 1 = Monday, etc.)
-        const dayOfWeek = startOfWeek.getDay();
-        const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-        startOfWeek.setDate(startOfWeek.getDate() + daysToMonday);
-        
-        // Generate full week (Monday to Sunday)
-        for (let i = 0; i < 7; i++) {
-            const day = new Date(startOfWeek);
-            day.setDate(startOfWeek.getDate() + i);
-            week.push(day);
+        try {
+            const week = [];
+            const startOfWeek = new Date(date);
+            
+            // Validate the date
+            if (isNaN(startOfWeek.getTime())) {
+                console.error('Invalid date passed to getWeekDates:', date);
+                // Return current week as fallback
+                const today = new Date();
+                return this.getWeekDates(today);
+            }
+            
+            // Get Monday of the week (0 = Sunday, 1 = Monday, etc.)
+            const dayOfWeek = startOfWeek.getDay();
+            const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+            startOfWeek.setDate(startOfWeek.getDate() + daysToMonday);
+            
+            // Generate full week (Monday to Sunday)
+            for (let i = 0; i < 7; i++) {
+                const day = new Date(startOfWeek);
+                day.setDate(startOfWeek.getDate() + i);
+                week.push(day);
+            }
+            
+            return week;
+        } catch (error) {
+            console.error('Error in getWeekDates:', error, 'date:', date);
+            // Return current week as fallback
+            const today = new Date();
+            return this.getWeekDates(today);
         }
-        
-        return week;
     }
 
     formatDateKey(date) {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
+        try {
+            if (!date || isNaN(date.getTime())) {
+                console.error('Invalid date passed to formatDateKey:', date);
+                const today = new Date();
+                return this.formatDateKey(today);
+            }
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        } catch (error) {
+            console.error('Error in formatDateKey:', error, 'date:', date);
+            const today = new Date();
+            return this.formatDateKey(today);
+        }
     }
 
     formatDateDisplay(date) {
-        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        
-        const dayName = days[date.getDay()];
-        const month = months[date.getMonth()];
-        const dayNum = date.getDate();
-        
-        return `${dayName} ${month} ${dayNum}`;
+        try {
+            if (!date || isNaN(date.getTime())) {
+                console.error('Invalid date passed to formatDateDisplay:', date);
+                return 'Invalid Date';
+            }
+            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            
+            const dayName = days[date.getDay()];
+            const month = months[date.getMonth()];
+            const dayNum = date.getDate();
+            
+            return `${dayName} ${month} ${dayNum}`;
+        } catch (error) {
+            console.error('Error in formatDateDisplay:', error, 'date:', date);
+            return 'Invalid Date';
+        }
     }
 
     formatSimpleDayName(date) {
-        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-        return days[date.getDay()];
+        try {
+            if (!date || isNaN(date.getTime())) {
+                console.error('Invalid date passed to formatSimpleDayName:', date);
+                return 'Unknown';
+            }
+            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            return days[date.getDay()];
+        } catch (error) {
+            console.error('Error in formatSimpleDayName:', error, 'date:', date);
+            return 'Unknown';
+        }
     }
 
     async updateWeeklyTabs() {
+        // Validate selectedDate before proceeding
+        if (!this.selectedDate || isNaN(this.selectedDate.getTime())) {
+            console.error('Invalid selectedDate, resetting to today:', this.selectedDate);
+            this.selectedDate = new Date();
+        }
+        
         console.log('Updating weekly tabs for date:', this.selectedDate);
         const weekDates = this.getWeekDates(this.selectedDate);
         const tabsContainer = document.getElementById('tabs');
@@ -753,36 +900,61 @@ class DailyRankingsApp {
     }
 
     async createSpecialEvent() {
-        const eventName = document.getElementById('eventName').value.trim();
-        const startDate = document.getElementById('eventStartDate').value;
-        const endDate = document.getElementById('eventEndDate').value;
-        
-        if (!eventName || !startDate || !endDate) {
-            alert('Please fill in all fields for the special event.');
-            return;
-        }
-        
-        if (new Date(startDate) > new Date(endDate)) {
-            alert('Start date must be before end date.');
-            return;
-        }
-        
-        const success = await this.rankingManager.createSpecialEvent(eventName, startDate, endDate);
-        
-        if (success) {
-            this.uiManager.showSuccess(`Special event "${eventName}" created successfully!`);
-            // Clear form
-            document.getElementById('eventName').value = '';
-            document.getElementById('eventStartDate').value = '';
-            document.getElementById('eventEndDate').value = '';
+        try {
+            const eventName = document.getElementById('eventName')?.value?.trim();
+            const startDate = document.getElementById('eventStartDate')?.value;
+            const endDate = document.getElementById('eventEndDate')?.value;
             
-            // Refresh tabs to include new special event
-            await this.updateWeeklyTabs();
+            if (!eventName || !startDate || !endDate) {
+                this.uiManager.showError('Please fill in all fields for the special event.');
+                return;
+            }
             
-            // Refresh the special events list in admin tab
-            this.updateSpecialEventsList();
-        } else {
-            this.uiManager.showError('Failed to create special event. Please try again.');
+            // Validate date format (YYYY-MM-DD)
+            const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+            if (!dateRegex.test(startDate) || !dateRegex.test(endDate)) {
+                this.uiManager.showError('Invalid date format. Please use YYYY-MM-DD format.');
+                return;
+            }
+            
+            // Validate date logic
+            const startDateObj = new Date(startDate);
+            const endDateObj = new Date(endDate);
+            
+            if (isNaN(startDateObj.getTime()) || isNaN(endDateObj.getTime())) {
+                this.uiManager.showError('Invalid date values. Please check your input.');
+                return;
+            }
+            
+            if (startDateObj > endDateObj) {
+                this.uiManager.showError('Start date must be before end date.');
+                return;
+            }
+            
+            const success = await this.rankingManager.createSpecialEvent(eventName, startDate, endDate);
+            
+            if (success) {
+                this.uiManager.showSuccess(`Special event "${eventName}" created successfully!`);
+                // Clear form
+                const eventNameInput = document.getElementById('eventName');
+                const eventStartDateInput = document.getElementById('eventStartDate');
+                const eventEndDateInput = document.getElementById('eventEndDate');
+                
+                if (eventNameInput) eventNameInput.value = '';
+                if (eventStartDateInput) eventStartDateInput.value = '';
+                if (eventEndDateInput) eventEndDateInput.value = '';
+                
+                // Refresh tabs to include new special event
+                await this.updateWeeklyTabs();
+                
+                // Refresh the special events list in admin tab
+                this.updateSpecialEventsList();
+            } else {
+                this.uiManager.showError('Failed to create special event. Please try again.');
+            }
+        } catch (error) {
+            console.error('Error in createSpecialEvent:', error);
+            this.uiManager.showError(`Error creating special event: ${error.message}`);
         }
     }
 
@@ -981,18 +1153,38 @@ class DailyRankingsApp {
 
     // Get week start (Monday) for a given date
     getWeekStart(date) {
-        const d = new Date(date);
-        const day = d.getDay();
-        const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
-        return new Date(d.setDate(diff));
+        try {
+            const d = new Date(date);
+            if (isNaN(d.getTime())) {
+                console.error('Invalid date passed to getWeekStart:', date);
+                return new Date(); // Return today as fallback
+            }
+            const day = d.getDay();
+            const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
+            const result = new Date(d);
+            result.setDate(diff);
+            return result;
+        } catch (error) {
+            console.error('Error in getWeekStart:', error, 'date:', date);
+            return new Date(); // Return today as fallback
+        }
     }
 
     // Get week end (Sunday) for a given date
     getWeekEnd(date) {
-        const weekStart = this.getWeekStart(date);
-        const weekEnd = new Date(weekStart);
-        weekEnd.setDate(weekStart.getDate() + 6);
-        return weekEnd;
+        try {
+            const weekStart = this.getWeekStart(date);
+            if (isNaN(weekStart.getTime())) {
+                console.error('Invalid weekStart from getWeekStart:', weekStart);
+                return new Date(); // Return today as fallback
+            }
+            const weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekStart.getDate() + 6);
+            return weekEnd;
+        } catch (error) {
+            console.error('Error in getWeekEnd:', error, 'date:', date);
+            return new Date(); // Return today as fallback
+        }
     }
 
     // Get the next date a specific rotation index will be conductor
@@ -1002,7 +1194,16 @@ class DailyRankingsApp {
             if (activeRotation.length === 0) return new Date();
             
             const today = new Date();
+            if (isNaN(today.getTime())) {
+                console.error('Error creating today date in getNextConductorDate');
+                return new Date('2024-01-01'); // Fallback date
+            }
+            
             const startDate = new Date('2024-01-01'); // Base date for rotation calculation
+            if (isNaN(startDate.getTime())) {
+                console.error('Error creating start date in getNextConductorDate');
+                return today;
+            }
             
             // Find the next occurrence of this rotation index
             let currentDate = new Date(today);
@@ -1025,57 +1226,77 @@ class DailyRankingsApp {
             return today;
         } catch (error) {
             console.error('Error in getNextConductorDate:', error);
-            return new Date();
+            return new Date('2024-01-01'); // Fallback date
         }
     }
 
     // Update rotation dates to show current/next dates
     updateRotationDates() {
-        // This will be called periodically to update the dates
-        this.updateRotationOrderList();
+        try {
+            // This will be called periodically to update the dates
+            this.updateRotationOrderList();
+        } catch (error) {
+            console.error('Error in updateRotationDates:', error);
+        }
     }
 
     // Set up periodic updates for rotation dates
     setupRotationDateUpdates() {
-        // Update rotation dates every hour to keep them current
-        setInterval(() => {
-            this.updateRotationDates();
-        }, 60 * 60 * 1000); // 1 hour in milliseconds
-        
-        // Also update when the page becomes visible (user returns to tab)
-        document.addEventListener('visibilitychange', () => {
-            if (!document.hidden) {
-                this.updateRotationDates();
-            }
-        });
+        try {
+            // Update rotation dates every hour to keep them current
+            setInterval(() => {
+                try {
+                    this.updateRotationDates();
+                } catch (error) {
+                    console.error('Error in rotation date update interval:', error);
+                }
+            }, 60 * 60 * 1000); // 1 hour in milliseconds
+            
+            // Also update when the page becomes visible (user returns to tab)
+            document.addEventListener('visibilitychange', () => {
+                if (!document.hidden) {
+                    try {
+                        this.updateRotationDates();
+                    } catch (error) {
+                        console.error('Error in rotation date visibility update:', error);
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('Error in setupRotationDateUpdates:', error);
+        }
     }
 
     // Check if we need to create sample data for testing
     async checkAndCreateSampleData() {
-        const hasLeaders = this.leaderVIPManager.allianceLeaders.length > 0;
-        const hasRotation = this.leaderVIPManager.trainConductorRotation.length > 0;
-        
-        console.log('Data check:', { hasLeaders, hasRotation });
-        console.log('Alliance leaders:', this.leaderVIPManager.allianceLeaders);
-        console.log('Train conductor rotation:', this.leaderVIPManager.trainConductorRotation);
-        
-        if (!hasLeaders && !hasRotation) {
-            console.log('No data found, creating sample alliance leaders...');
+        try {
+            const hasLeaders = this.leaderVIPManager.allianceLeaders.length > 0;
+            const hasRotation = this.leaderVIPManager.trainConductorRotation.length > 0;
             
-            // Create some sample alliance leaders for testing
-            const sampleLeaders = ['Alice', 'Bob', 'Charlie', 'Diana', 'Eve'];
+            console.log('Data check:', { hasLeaders, hasRotation });
+            console.log('Alliance leaders:', this.leaderVIPManager.allianceLeaders);
+            console.log('Train conductor rotation:', this.leaderVIPManager.trainConductorRotation);
             
-            for (const leaderName of sampleLeaders) {
-                try {
-                    await this.leaderVIPManager.addAllianceLeader(leaderName);
-                    console.log(`Added sample leader: ${leaderName}`);
-                } catch (error) {
-                    console.log(`Could not add sample leader ${leaderName}:`, error.message);
+            if (!hasLeaders && !hasRotation) {
+                console.log('No data found, creating sample alliance leaders...');
+                
+                // Create some sample alliance leaders for testing
+                const sampleLeaders = ['Alice', 'Bob', 'Charlie', 'Diana', 'Eve'];
+                
+                for (const leaderName of sampleLeaders) {
+                    try {
+                        await this.leaderVIPManager.addAllianceLeader(leaderName);
+                        console.log(`Added sample leader: ${leaderName}`);
+                    } catch (error) {
+                        console.log(`Could not add sample leader ${leaderName}:`, error.message);
+                    }
                 }
+                
+                // Refresh the rotation display
+                this.updateRotationOrderList();
             }
-            
-            // Refresh the rotation display
-            this.updateRotationOrderList();
+        } catch (error) {
+            console.error('Error in checkAndCreateSampleData:', error);
         }
     }
 
@@ -1123,10 +1344,18 @@ class DailyRankingsApp {
             
             let html = '';
             specialEvents.forEach(event => {
-                const startDate = new Date(event.start_date);
-                const endDate = new Date(event.end_date);
-                const startDateStr = startDate.toLocaleDateString();
-                const endDateStr = endDate.toLocaleDateString();
+                try {
+                    const startDate = new Date(event.start_date);
+                    const endDate = new Date(event.end_date);
+                    
+                    // Validate dates
+                    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+                        console.error('Invalid date in special event:', event);
+                        return; // Skip this event
+                    }
+                    
+                    const startDateStr = startDate.toLocaleDateString();
+                    const endDateStr = endDate.toLocaleDateString();
                 
                 html += `
                     <div class="event-entry" data-event-key="${this.escapeHTML(event.key)}" data-event-name="${this.escapeHTML(event.name)}" data-start-date="${event.start_date}" data-end-date="${event.end_date}">
@@ -1141,6 +1370,10 @@ class DailyRankingsApp {
                         </div>
                     </div>
                 `;
+                } catch (error) {
+                    console.error('Error processing special event:', event, error);
+                    // Skip this event and continue with the next one
+                }
             });
             
             eventsListContainer.innerHTML = html;
@@ -1180,25 +1413,49 @@ class DailyRankingsApp {
 
     // Edit special event
     editSpecialEvent(eventKey, eventName, startDate, endDate) {
-        console.log('Editing special event:', { eventKey, eventName, startDate, endDate });
-        
-        // Populate the edit modal
-        document.getElementById('editEventKey').value = eventKey;
-        document.getElementById('editEventName').value = eventName;
-        document.getElementById('editEventStartDate').value = startDate;
-        document.getElementById('editEventEndDate').value = endDate;
-        
-        // Show the modal
-        document.getElementById('eventEditModal').classList.add('show');
-        
-        // Setup event listeners for the modal
-        this.setupEventEditModalListeners();
+        try {
+            console.log('Editing special event:', { eventKey, eventName, startDate, endDate });
+            
+            // Validate parameters
+            if (!eventKey || !eventName || !startDate || !endDate) {
+                console.error('Missing required parameters for editSpecialEvent:', { eventKey, eventName, startDate, endDate });
+                return;
+            }
+            
+            // Populate the edit modal
+            const editEventKey = document.getElementById('editEventKey');
+            const editEventName = document.getElementById('editEventName');
+            const editEventStartDate = document.getElementById('editEventStartDate');
+            const editEventEndDate = document.getElementById('editEventEndDate');
+            
+            if (editEventKey) editEventKey.value = eventKey;
+            if (editEventName) editEventName.value = eventName;
+            if (editEventStartDate) editEventStartDate.value = startDate;
+            if (editEventEndDate) editEventEndDate.value = endDate;
+            
+            // Show the modal
+            const modal = document.getElementById('eventEditModal');
+            if (modal) {
+                modal.classList.add('show');
+                // Setup event listeners for the modal
+                this.setupEventEditModalListeners();
+            } else {
+                console.error('Event edit modal not found');
+            }
+        } catch (error) {
+            console.error('Error in editSpecialEvent:', error);
+        }
     }
 
     // Delete special event
     async deleteSpecialEvent(eventKey) {
-        if (confirm(`Are you sure you want to delete the special event "${eventKey}"? This will also remove all associated rankings.`)) {
-            try {
+        try {
+            if (!eventKey) {
+                console.error('No event key provided for deletion');
+                return;
+            }
+            
+            if (confirm(`Are you sure you want to delete the special event "${eventKey}"? This will also remove all associated rankings.`)) {
                 // Delete the event and its rankings
                 await this.rankingManager.deleteSpecialEvent(eventKey);
                 this.uiManager.showSuccess('Special event deleted successfully!');
@@ -1208,60 +1465,84 @@ class DailyRankingsApp {
                 
                 // Refresh the weekly tabs to remove the event tab
                 await this.updateWeeklyTabs();
-                
-            } catch (error) {
-                console.error('Error deleting special event:', error);
-                this.uiManager.showError(`Error deleting special event: ${error.message}`);
             }
+        } catch (error) {
+            console.error('Error deleting special event:', error);
+            this.uiManager.showError(`Error deleting special event: ${error.message}`);
         }
     }
 
     // Setup event edit modal event listeners
     setupEventEditModalListeners() {
-        const modal = document.getElementById('eventEditModal');
-        const closeBtn = modal.querySelector('.close');
-        const form = document.getElementById('eventEditForm');
-        const deleteBtn = document.getElementById('deleteEventBtn');
-        
-        // Close modal on X click
-        closeBtn.onclick = () => {
-            modal.classList.remove('show');
-        };
-        
-        // Close modal on outside click
-        modal.onclick = (e) => {
-            if (e.target === modal) {
-                modal.classList.remove('show');
+        try {
+            const modal = document.getElementById('eventEditModal');
+            if (!modal) {
+                console.error('Event edit modal not found');
+                return;
             }
-        };
-        
-        // Handle form submission
-        form.onsubmit = async (e) => {
-            e.preventDefault();
-            await this.updateSpecialEvent();
-        };
-        
-        // Handle delete button
-        deleteBtn.onclick = async () => {
-            const eventKey = document.getElementById('editEventKey').value;
-            await this.deleteSpecialEvent(eventKey);
-            modal.classList.remove('show');
-        };
+            
+            const closeBtn = modal.querySelector('.close');
+            const form = document.getElementById('eventEditForm');
+            const deleteBtn = document.getElementById('deleteEventBtn');
+            
+            if (!closeBtn || !form || !deleteBtn) {
+                console.error('Required modal elements not found:', { closeBtn: !!closeBtn, form: !!form, deleteBtn: !!deleteBtn });
+                return;
+            }
+            
+            // Close modal on X click
+            closeBtn.onclick = () => {
+                modal.classList.remove('show');
+            };
+            
+            // Close modal on outside click
+            modal.onclick = (e) => {
+                if (e.target === modal) {
+                    modal.classList.remove('show');
+                }
+            };
+            
+            // Handle form submission
+            form.onsubmit = async (e) => {
+                e.preventDefault();
+                await this.updateSpecialEvent();
+            };
+            
+            // Handle delete button
+            deleteBtn.onclick = async () => {
+                const eventKey = document.getElementById('editEventKey')?.value;
+                if (eventKey) {
+                    await this.deleteSpecialEvent(eventKey);
+                    modal.classList.remove('show');
+                } else {
+                    console.error('No event key found for deletion');
+                }
+            };
+        } catch (error) {
+            console.error('Error in setupEventEditModalListeners:', error);
+        }
     }
 
     // Update special event
     async updateSpecialEvent() {
-        const eventKey = document.getElementById('editEventKey').value;
-        const eventName = document.getElementById('editEventName').value.trim();
-        const startDate = document.getElementById('editEventStartDate').value;
-        const endDate = document.getElementById('editEventEndDate').value;
-        
-        if (!eventName || !startDate || !endDate) {
-            this.uiManager.showError('Please fill in all fields');
-            return;
-        }
-        
         try {
+            const eventKey = document.getElementById('editEventKey')?.value;
+            const eventName = document.getElementById('editEventName')?.value?.trim();
+            const startDate = document.getElementById('editEventStartDate')?.value;
+            const endDate = document.getElementById('editEventEndDate')?.value;
+            
+            if (!eventKey || !eventName || !startDate || !endDate) {
+                this.uiManager.showError('Please fill in all fields');
+                return;
+            }
+            
+            // Validate date format (YYYY-MM-DD)
+            const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+            if (!dateRegex.test(startDate) || !dateRegex.test(endDate)) {
+                this.uiManager.showError('Invalid date format. Please use YYYY-MM-DD format.');
+                return;
+            }
+            
             // Update the special event
             await this.rankingManager.updateSpecialEvent(eventKey, {
                 name: eventName,
@@ -1272,7 +1553,10 @@ class DailyRankingsApp {
             this.uiManager.showSuccess('Special event updated successfully!');
             
             // Close the modal
-            document.getElementById('eventEditModal').classList.remove('show');
+            const modal = document.getElementById('eventEditModal');
+            if (modal) {
+                modal.classList.remove('show');
+            }
             
             // Refresh the events list
             this.updateSpecialEventsList();
@@ -1740,6 +2024,13 @@ class DailyRankingsApp {
             try {
                 // Calculate the next date this leader will be conductor
                 const nextConductorDate = this.getNextConductorDate(index);
+                
+                // Validate the returned date
+                if (!nextConductorDate || isNaN(nextConductorDate.getTime())) {
+                    console.error(`Invalid date returned from getNextConductorDate for index ${index}:`, nextConductorDate);
+                    throw new Error('Invalid conductor date');
+                }
+                
                 // Convert Date object to YYYY-MM-DD string for formatDateForDisplay
                 const dateString = nextConductorDate.toISOString().split('T')[0];
                 const dateDisplay = this.formatDateForDisplay(dateString);
