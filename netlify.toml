@@ -5,8 +5,8 @@
 [build.environment]
   NODE_VERSION = "18"
   VITE_ADMIN_PASSWORD = "pdx@dm1n!!"
-  VITE_SUPABASE_URL = "your_supabase_url_here"
-  VITE_SUPABASE_ANON_KEY = "your_supabase_anon_key_here"
+  VITE_SUPABASE_URL = "https://hsbsnjqzfzbrdzyyninp.supabase.co"
+  VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhzYnNuanF6ZnpicmR6eXluaW5wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQzMjM2ODgsImV4cCI6MjA2OTg5OTY4OH0.nTfqw6gkln5rkqRDffuDj_HGY4lfPZhQXhYfdt6lxSg"
 
 [[redirects]]
   from = "/*"
