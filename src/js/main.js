@@ -38,11 +38,24 @@ class DailyRankingsApp {
         this.uiManager.toggleAdminFeatures(isAdmin);
         
         // Wait for data to load from database
-        await this.rankingManager.initializeConnection();
-        await this.leaderVIPManager.initializeConnection();
+        try {
+            await this.rankingManager.initializeConnection();
+        } catch (error) {
+            console.warn('Ranking manager connection failed:', error);
+        }
+        
+        try {
+            await this.leaderVIPManager.initializeConnection();
+        } catch (error) {
+            console.warn('Leader VIP manager connection failed:', error);
+        }
         
         // Initialize autocomplete service
-        await this.autocompleteService.initialize();
+        try {
+            await this.autocompleteService.initialize();
+        } catch (error) {
+            console.warn('Autocomplete service initialization failed:', error);
+        }
         
         // Set initial date to current week
         this.setDateToCurrentWeek();

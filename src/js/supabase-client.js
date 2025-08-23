@@ -18,7 +18,26 @@ if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.trim() === '' || supabaseAno
     })
   };
 } else {
-  supabase = createClient(supabaseUrl, supabaseAnonKey);
+  try {
+    // Validate URL format before creating client
+    const url = new URL(supabaseUrl);
+    if (!url.protocol || !url.hostname) {
+      throw new Error('Invalid URL format');
+    }
+    supabase = createClient(supabaseUrl, supabaseAnonKey);
+    console.log('Supabase client created successfully');
+  } catch (error) {
+    console.error('Invalid Supabase URL:', supabaseUrl, error);
+    // Fall back to dummy client
+    supabase = {
+      from: () => ({
+        select: () => Promise.resolve({ data: null, error: { message: 'Invalid Supabase URL' } }),
+        insert: () => Promise.resolve({ data: null, error: { message: 'Invalid Supabase URL' } }),
+        delete: () => Promise.resolve({ data: null, error: { message: 'Invalid Supabase URL' } }),
+        update: () => Promise.resolve({ data: null, error: { message: 'Invalid Supabase URL' } })
+      })
+    };
+  }
 }
 
 export { supabase };
@@ -31,6 +50,13 @@ export async function testConnection() {
   }
   
   try {
+    // Validate URL format first
+    const url = new URL(supabaseUrl);
+    if (!url.protocol || !url.hostname) {
+      console.error('Invalid Supabase URL format:', supabaseUrl);
+      return false;
+    }
+    
     const { data, error } = await supabase.from('rankings').select('count').limit(1);
     if (error) {
       console.error('Supabase connection error:', error);
