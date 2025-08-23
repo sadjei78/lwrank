@@ -1,10 +1,13 @@
-import { createClient } from '@supabase/supabase-js';
+// For local development, use a dummy client
+// In production, this should be bundled with the build process
+// Version: 1.1.5 - Local dev mode
+let supabase;
+
+console.log('Supabase client loaded - Local development mode');
 
 // Supabase configuration
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-let supabase;
 
 if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.trim() === '' || supabaseAnonKey.trim() === '') {
   console.warn('Supabase configuration missing. Please set up your environment variables.');
@@ -24,8 +27,18 @@ if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.trim() === '' || supabaseAno
     if (!url.protocol || !url.hostname) {
       throw new Error('Invalid URL format');
     }
-    supabase = createClient(supabaseUrl, supabaseAnonKey);
-    console.log('Supabase client created successfully');
+    
+    // For local development, use dummy client
+    console.log('Local development mode - using dummy Supabase client');
+    supabase = {
+      from: () => ({
+        select: () => Promise.resolve({ data: null, error: { message: 'Local development mode' } }),
+        insert: () => Promise.resolve({ data: null, error: { message: 'Local development mode' } }),
+        delete: () => Promise.resolve({ data: null, error: { message: 'Local development mode' } }),
+        update: () => Promise.resolve({ data: null, error: { message: 'Local development mode' } }),
+        upsert: () => Promise.resolve({ data: null, error: { message: 'Local development mode' } })
+      })
+    };
   } catch (error) {
     console.error('Invalid Supabase URL:', supabaseUrl, error);
     // Fall back to dummy client
@@ -34,7 +47,8 @@ if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.trim() === '' || supabaseAno
         select: () => Promise.resolve({ data: null, error: { message: 'Invalid Supabase URL' } }),
         insert: () => Promise.resolve({ data: null, error: { message: 'Invalid Supabase URL' } }),
         delete: () => Promise.resolve({ data: null, error: { message: 'Invalid Supabase URL' } }),
-        update: () => Promise.resolve({ data: null, error: { message: 'Invalid Supabase URL' } })
+        update: () => Promise.resolve({ data: null, error: { message: 'Invalid Supabase URL' } }),
+        upsert: () => Promise.resolve({ data: null, error: { message: 'Invalid Supabase URL' } })
       })
     };
   }
@@ -57,13 +71,9 @@ export async function testConnection() {
       return false;
     }
     
-    const { data, error } = await supabase.from('rankings').select('count').limit(1);
-    if (error) {
-      console.error('Supabase connection error:', error);
-      return false;
-    }
-    console.log('Supabase connected successfully');
-    return true;
+    // For local development, return false to indicate offline mode
+    console.log('Local development mode - Supabase offline');
+    return false;
   } catch (error) {
     console.error('Supabase connection failed:', error);
     return false;

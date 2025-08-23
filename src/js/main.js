@@ -1389,6 +1389,21 @@ class DailyRankingsApp {
                 
                 // Refresh the rotation display
                 this.updateRotationOrderList();
+                
+                // Create some sample VIP data for testing
+                console.log('Creating sample VIP data...');
+                const today = new Date();
+                const yesterday = new Date(today);
+                yesterday.setDate(today.getDate() - 1);
+                const twoDaysAgo = new Date(today);
+                twoDaysAgo.setDate(today.getDate() - 2);
+                
+                // Add sample VIP selections
+                await this.leaderVIPManager.setVIPForDate(today, 'Alice', 'TestPlayer1', 'Sample VIP for today');
+                await this.leaderVIPManager.setVIPForDate(yesterday, 'Bob', 'TestPlayer2', 'Sample VIP for yesterday');
+                await this.leaderVIPManager.setVIPForDate(twoDaysAgo, 'Alice', 'TestPlayer1', 'Sample VIP for 2 days ago');
+                
+                console.log('Sample VIP data created');
             }
         } catch (error) {
             console.error('Error in checkAndCreateSampleData:', error);
