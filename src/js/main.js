@@ -38,6 +38,14 @@ class DailyRankingsApp {
         console.log('Admin mode:', isAdmin);
         this.uiManager.toggleAdminFeatures(isAdmin);
         
+        // Initialize Supabase connection
+        try {
+            const { initializeSupabase } = await import('./supabase-client.js');
+            await initializeSupabase();
+        } catch (error) {
+            console.warn('Supabase initialization failed:', error);
+        }
+        
         // Wait for data to load from database
         try {
             await this.rankingManager.initializeConnection();
