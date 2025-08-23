@@ -3,6 +3,7 @@ import { CSVProcessor } from './csv-processor.js';
 import { UIManager } from './ui-manager.js';
 import { LeaderVIPManager } from './leader-vip-manager.js';
 import { AutocompleteService } from './autocomplete-service.js';
+import { config } from './config.js';
 
 class DailyRankingsApp {
     constructor() {
@@ -45,9 +46,7 @@ class DailyRankingsApp {
         }
         
         try {
-            console.log('Initializing leader VIP manager connection...');
             await this.leaderVIPManager.initializeConnection();
-            console.log('Leader VIP manager connection initialized');
         } catch (error) {
             console.warn('Leader VIP manager connection failed:', error);
         }
@@ -195,13 +194,7 @@ class DailyRankingsApp {
             this.setVIPForDate();
         });
 
-        // Test VIP frequency button
-        const testVIPFrequencyBtn = document.getElementById('testVIPFrequencyBtn');
-        if (testVIPFrequencyBtn) {
-            testVIPFrequencyBtn.addEventListener('click', () => {
-                this.testVIPFrequency();
-            });
-        }
+
 
         // VIP player input change listeners for frequency display
         document.getElementById('vipPlayer').addEventListener('input', (e) => {
@@ -366,7 +359,14 @@ class DailyRankingsApp {
 
     async authenticateAdmin() {
         const password = document.getElementById('adminPassword').value;
-        const expectedPassword = import.meta.env.VITE_ADMIN_PASSWORD;
+        
+        // Try environment variable first, fall back to local config
+        let expectedPassword;
+        try {
+            expectedPassword = import.meta.env.VITE_ADMIN_PASSWORD;
+        } catch (error) {
+            expectedPassword = config.adminPassword;
+        }
         
         if (!expectedPassword) {
             // Fallback to legacy admin code system
@@ -388,8 +388,6 @@ class DailyRankingsApp {
             document.getElementById('adminPassword').value = '';
             this.uiManager.showSuccess('Admin access granted');
             
-            console.log('Admin authenticated, loading data...');
-            
             // Add admin tab
             await this.updateWeeklyTabs();
         } else {
@@ -403,7 +401,7 @@ class DailyRankingsApp {
         if (versionElement) {
             // For now, we'll use a hardcoded version since Vite doesn't expose package.json
             // In a real app, you might use import.meta.env.VITE_APP_VERSION
-            versionElement.textContent = 'v1.1.0';
+            versionElement.textContent = 'v1.1.8';
         }
     }
 
@@ -1390,20 +1388,7 @@ class DailyRankingsApp {
                 // Refresh the rotation display
                 this.updateRotationOrderList();
                 
-                // Create some sample VIP data for testing
-                console.log('Creating sample VIP data...');
-                const today = new Date();
-                const yesterday = new Date(today);
-                yesterday.setDate(today.getDate() - 1);
-                const twoDaysAgo = new Date(today);
-                twoDaysAgo.setDate(today.getDate() - 2);
-                
-                // Add sample VIP selections
-                await this.leaderVIPManager.setVIPForDate(today, 'Alice', 'TestPlayer1', 'Sample VIP for today');
-                await this.leaderVIPManager.setVIPForDate(yesterday, 'Bob', 'TestPlayer2', 'Sample VIP for yesterday');
-                await this.leaderVIPManager.setVIPForDate(twoDaysAgo, 'Alice', 'TestPlayer1', 'Sample VIP for 2 days ago');
-                
-                console.log('Sample VIP data created');
+
             }
         } catch (error) {
             console.error('Error in checkAndCreateSampleData:', error);
@@ -1662,40 +1647,12 @@ class DailyRankingsApp {
         }
     }
 
-    // Test VIP frequency calculation
-    testVIPFrequency() {
-        console.log('=== Testing VIP Frequency ===');
-        
-        // Test with a sample player name
-        const testPlayer = 'TestPlayer';
-        console.log('Testing frequency for player:', testPlayer);
-        
-        // Get current VIP data
-        this.leaderVIPManager.logVIPData();
-        
-        // Test frequency calculation
-        const frequencyData = this.leaderVIPManager.getVIPFrequencyInfo(testPlayer);
-        console.log('Frequency test result:', frequencyData);
-        
-        // Test with actual VIP data
-        const vipSelections = this.leaderVIPManager.vipSelections;
-        if (Object.keys(vipSelections).length > 0) {
-            console.log('Testing with actual VIP data:');
-            Object.entries(vipSelections).forEach(([date, vip]) => {
-                console.log(`Date: ${date}, VIP: ${vip.vip_player}, Conductor: ${vip.train_conductor}`);
-            });
-        }
-        
-        console.log('=== End VIP Frequency Test ===');
-    }
+
 
     // Update VIP frequency display
     updateVIPFrequencyDisplay(inputId, playerName) {
-        console.log('updateVIPFrequencyDisplay called with:', { inputId, playerName });
-        
         const frequencyInfoElement = document.getElementById(inputId === 'vipPlayer' ? 'vipFrequencyInfo' : 'editVipFrequencyInfo');
         if (!frequencyInfoElement) {
-            console.error('Frequency info element not found for:', inputId);
             return;
         }
         
@@ -1703,7 +1660,6 @@ class DailyRankingsApp {
         const count30DaysBadge = frequencyInfoElement.querySelector('.count-30-days');
         
         if (!daysAgoBadge || !count30DaysBadge) {
-            console.error('Frequency badges not found:', { daysAgoBadge: !!daysAgoBadge, count30DaysBadge: !!count30DaysBadge });
             return;
         }
         
@@ -1712,9 +1668,7 @@ class DailyRankingsApp {
             return;
         }
         
-        console.log('Getting VIP frequency for player:', playerName);
         const frequencyData = this.leaderVIPManager.getVIPFrequencyInfo(playerName);
-        console.log('VIP frequency data:', frequencyData);
         
         if (frequencyData.lastSelectedDays === null) {
             // Player has never been VIP
@@ -1726,7 +1680,6 @@ class DailyRankingsApp {
         }
         
         frequencyInfoElement.style.display = 'flex';
-        console.log('VIP frequency display updated');
     }
 
 

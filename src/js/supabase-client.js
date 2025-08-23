@@ -3,18 +3,30 @@
 // Version: 1.1.5 - Local dev mode
 let supabase;
 
-console.log('Supabase client loaded - Local development mode');
+// Import local config for development
+import { config } from './config.js';
 
 // Supabase configuration
-// Get from environment variables (works in Vite builds and local development)
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Try environment variables first (production), fall back to local config (development)
+let supabaseUrl, supabaseAnonKey;
 
-console.log('Environment variables loaded:', {
-  hasUrl: !!supabaseUrl,
-  hasKey: !!supabaseAnonKey,
-  urlLength: supabaseUrl ? supabaseUrl.length : 0
-});
+try {
+  // Try to get from environment variables (works in Vite builds)
+  supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  
+  if (!supabaseUrl || !supabaseAnonKey) {
+    // Fall back to local config
+    supabaseUrl = config.supabaseUrl;
+    supabaseAnonKey = config.supabaseAnonKey;
+    
+} catch (error) {
+      // Fall back to local config
+    supabaseUrl = config.supabaseUrl;
+    supabaseAnonKey = config.supabaseAnonKey;
+}
+
+
 
 if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.trim() === '' || supabaseAnonKey.trim() === '') {
   console.warn('Supabase configuration missing. Please set up your environment variables.');
@@ -36,7 +48,6 @@ if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.trim() === '' || supabaseAno
     }
     
     // For local development, use dummy client
-    console.log('Local development mode - using dummy Supabase client');
     supabase = {
       from: () => ({
         select: () => Promise.resolve({ data: null, error: { message: 'Local development mode' } }),
@@ -79,7 +90,6 @@ export async function testConnection() {
     }
     
     // For local development, return false to indicate offline mode
-    console.log('Local development mode - Supabase offline');
     return false;
   } catch (error) {
     console.error('Supabase connection failed:', error);

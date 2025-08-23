@@ -308,23 +308,7 @@ header h1 {
     box-shadow: 0 8px 24px rgba(102, 126, 234, 0.35);
 }
 
-.test-btn {
-    background: linear-gradient(135deg, #10b981, #059669);
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 12px;
-    font-weight: 600;
-    transition: all 0.2s ease;
-    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
-}
 
-.test-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(16, 185, 129, 0.4);
-}
 
 .upload-btn:disabled {
     background: #9ca3af;
