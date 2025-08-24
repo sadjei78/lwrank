@@ -1107,6 +1107,63 @@ header h1 {
     padding: 0 20px;
 }
 
+/* Admin Section Collapsibles */
+.admin-section.collapsible {
+    margin: 16px 0;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    overflow: hidden;
+    background: white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.admin-section.collapsible .collapsible-header {
+    width: 100%;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border: none;
+    text-align: left;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 16px;
+    font-weight: 600;
+    color: #374151;
+    transition: all 0.2s ease;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.admin-section.collapsible .collapsible-header:hover {
+    background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+    color: #1e293b;
+}
+
+.admin-section.collapsible .collapsible-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.admin-section.collapsible .collapsible-icon {
+    font-size: 12px;
+    transition: transform 0.2s ease;
+    color: #64748b;
+}
+
+.admin-section.collapsible .collapsible-content {
+    padding: 20px;
+    background: white;
+    max-height: 1000px;
+    overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease;
+}
+
+.admin-section.collapsible .collapsible-content.collapsed {
+    max-height: 0;
+    padding: 0 20px;
+}
+
 /* Data Analysis Summary */
 .data-analysis {
     margin: 24px 0;

@@ -243,49 +243,59 @@
                 </div>
 
                 <!-- Alliance Leader Management Section -->
-                <div class="admin-section">
-                    <h3>👑 Alliance Leader Management</h3>
-                    <div class="leader-form">
-                        <div class="form-group">
-                            <label for="newLeaderName">New Alliance Leader:</label>
-                            <div class="autocomplete-container">
-                                <input type="text" id="newLeaderName" placeholder="Enter leader name" class="form-input">
-                                <div id="leaderAutocomplete" class="autocomplete-dropdown"></div>
-                            </div>
-                            <button id="addLeaderBtn" class="leader-btn">Add Leader</button>
-                        </div>
-                        <div class="form-group">
-                            <label for="removeLeaderName">Remove Alliance Leader:</label>
-                            <select id="removeLeaderName" class="form-input">
-                                <option value="">Select leader to remove...</option>
-                            </select>
-                            <button id="removeLeaderBtn" class="leader-btn">Remove Leader</button>
-                        </div>
+                <div class="admin-section collapsible">
+                    <div class="collapsible-header" data-target="allianceLeaderContent">
+                        <h3>👑 Alliance Leader Management</h3>
+                        <span class="collapsible-icon">▼</span>
                     </div>
-                    
-                    <div class="current-leaders">
-                        <h4>Current Alliance Leaders (<span id="leaderCount">0</span>)</h4>
-                        <div id="currentLeadersList" class="current-leaders-list">
-                            <p class="loading-leaders">Loading current leaders...</p>
+                    <div id="allianceLeaderContent" class="collapsible-content collapsed">
+                        <div class="leader-form">
+                            <div class="form-group">
+                                <label for="newLeaderName">New Alliance Leader:</label>
+                                <div class="autocomplete-container">
+                                    <input type="text" id="newLeaderName" placeholder="Enter leader name" class="form-input">
+                                    <div id="leaderAutocomplete" class="autocomplete-dropdown"></div>
+                                </div>
+                                <button id="addLeaderBtn" class="leader-btn">Add Leader</button>
+                            </div>
+                            <div class="form-group">
+                                <label for="removeLeaderName">Remove Alliance Leader:</label>
+                                <select id="removeLeaderName" class="form-input">
+                                    <option value="">Select leader to remove...</option>
+                                </select>
+                                <button id="removeLeaderBtn" class="leader-btn">Remove Leader</button>
+                            </div>
+                        </div>
+                        
+                        <div class="current-leaders">
+                            <h4>Current Alliance Leaders (<span id="leaderCount">0</span>)</h4>
+                            <div id="currentLeadersList" class="current-leaders-list">
+                                <p class="loading-leaders">Loading current leaders...</p>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Train Conductor Rotation Management Section -->
-                <div class="admin-section">
-                    <h3>🚂 Train Conductor Rotation</h3>
-                    <div class="rotation-form">
-                        <div class="form-group">
-                            <label>Rotation Order (drag to reorder):</label>
-                            <div id="rotationOrderList" class="rotation-order-list">
-                                <p class="loading-rotation">Loading rotation order...</p>
+                <div class="admin-section collapsible">
+                    <div class="collapsible-header" data-target="trainRotationContent">
+                        <h3>🚂 Train Conductor Rotation</h3>
+                        <span class="collapsible-icon">▼</span>
+                    </div>
+                    <div id="trainRotationContent" class="collapsible-content collapsed">
+                        <div class="rotation-form">
+                            <div class="form-group">
+                                <label>Rotation Order (drag to reorder):</label>
+                                <div id="rotationOrderList" class="rotation-order-list">
+                                    <p class="loading-rotation">Loading rotation order...</p>
+                                </div>
                             </div>
-                        </div>
-                        <div class="rotation-help">
-                            <small class="form-help">
-                                The train conductor rotates daily based on this order. 
-                                Drag leaders to reorder them, use the buttons to move them up/down, or click the ❌ button to remove them from rotation.
-                            </small>
+                            <div class="rotation-help">
+                                <small class="form-help">
+                                    The train conductor rotates daily based on this order. 
+                                    Drag leaders to reorder them, use the buttons to move them up/down, or click the ❌ button to remove them from rotation.
+                                </small>
+                            </div>
                         </div>
                     </div>
                 </div>

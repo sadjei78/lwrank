@@ -2145,13 +2145,14 @@ class DailyRankingsApp {
         // Update recent VIPs list
         this.updateRecentVIPsList();
         
-
-        
         // Setup autocomplete for leader and VIP inputs
         this.setupAutocomplete();
         
         // Setup train conductor rotation management
         this.setupRotationManagement();
+        
+        // Setup collapsible sections for admin panel
+        this.setupCollapsibleSections();
     }
 
     // Helper function to format date for input fields (local timezone)
