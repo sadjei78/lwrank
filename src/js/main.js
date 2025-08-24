@@ -207,14 +207,8 @@ class DailyRankingsApp {
 
 
 
-        // VIP player input change listeners for frequency display
-        document.getElementById('vipPlayer').addEventListener('input', (e) => {
-            this.updateVIPFrequencyDisplay('vipPlayer', e.target.value);
-        });
-
-        document.getElementById('editVipPlayer').addEventListener('input', (e) => {
-            this.updateVIPFrequencyDisplay('editVipPlayer', e.target.value);
-        });
+        // VIP player input change listeners for frequency display - will be set up when admin tab loads
+        // These are set up in showAdminTab() to ensure DOM elements exist
 
 
         
@@ -1280,6 +1274,36 @@ class DailyRankingsApp {
         }
     }
 
+    setupVIPFrequencyListeners() {
+        console.log('Setting up VIP frequency listeners...');
+        
+        // VIP Player input change listener
+        const vipPlayerInput = document.getElementById('vipPlayer');
+        if (vipPlayerInput) {
+            console.log('VIP Player input found, adding listener');
+            vipPlayerInput.addEventListener('input', (e) => {
+                console.log('VIP Player input changed:', e.target.value);
+                this.updateVIPFrequencyDisplay('vipPlayer', e.target.value);
+            });
+        } else {
+            console.error('VIP Player input not found');
+        }
+        
+        // Edit VIP Player input change listener
+        const editVipPlayerInput = document.getElementById('editVipPlayer');
+        if (editVipPlayerInput) {
+            console.log('Edit VIP Player input found, adding listener');
+            editVipPlayerInput.addEventListener('input', (e) => {
+                console.log('Edit VIP Player input changed:', e.target.value);
+                this.updateVIPFrequencyDisplay('editVipPlayer', e.target.value);
+            });
+        } else {
+            console.error('Edit VIP Player input not found');
+        }
+        
+        console.log('VIP frequency listeners setup complete');
+    }
+
     async addAllianceLeader() {
         const leaderName = document.getElementById('newLeaderName').value.trim();
         
@@ -1826,8 +1850,11 @@ class DailyRankingsApp {
 
     // Update VIP frequency display
     updateVIPFrequencyDisplay(inputId, playerName) {
+        console.log(`updateVIPFrequencyDisplay called for ${inputId} with player: "${playerName}"`);
+        
         const frequencyInfoElement = document.getElementById(inputId === 'vipPlayer' ? 'vipFrequencyInfo' : 'editVipFrequencyInfo');
         if (!frequencyInfoElement) {
+            console.error(`Frequency info element not found for ${inputId}`);
             return;
         }
         
@@ -1835,26 +1862,33 @@ class DailyRankingsApp {
         const count30DaysBadge = frequencyInfoElement.querySelector('.count-30-days');
         
         if (!daysAgoBadge || !count30DaysBadge) {
+            console.error(`Badge elements not found for ${inputId}`);
             return;
         }
         
         if (!playerName || playerName.trim() === '') {
+            console.log(`Hiding frequency info for ${inputId} - no player name`);
             frequencyInfoElement.style.display = 'none';
             return;
         }
         
+        console.log(`Getting VIP frequency info for: ${playerName}`);
         const frequencyData = this.leaderVIPManager.getVIPFrequencyInfo(playerName);
+        console.log('Frequency data:', frequencyData);
         
         if (frequencyData.lastSelectedDays === null) {
             // Player has never been VIP
+            console.log(`Player ${playerName} has never been VIP`);
             daysAgoBadge.textContent = 'Never VIP';
             count30DaysBadge.textContent = '0 times (30d)';
         } else {
+            console.log(`Player ${playerName} was VIP ${frequencyData.lastSelectedDays} days ago, ${frequencyData.frequency30Days} times in 30d`);
             daysAgoBadge.textContent = `${frequencyData.lastSelectedDays} days ago`;
             count30DaysBadge.textContent = `${frequencyData.frequency30Days} times (30d)`;
         }
         
         frequencyInfoElement.style.display = 'flex';
+        console.log(`Frequency info displayed for ${inputId}`);
     }
 
 
@@ -2247,6 +2281,9 @@ class DailyRankingsApp {
         setTimeout(() => {
             this.setupCollapsibleSections();
         }, 100);
+
+        // Setup VIP frequency display event listeners
+        this.setupVIPFrequencyListeners();
     }
 
     // Helper function to format date for input fields (local timezone)
