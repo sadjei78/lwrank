@@ -99,6 +99,9 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
+        console.log('🚀 LWRank v1.1.13 loaded successfully!');
+        console.log('📝 VIP frequency real-time updates are now active');
+        console.log('🔍 Check browser console for VIP frequency debugging');
     }
 
     setupEventListeners() {
@@ -462,18 +465,18 @@ class DailyRankingsApp {
         }
     }
 
-    updateVersionNumber() {
-        const versionElement = document.getElementById('versionNumber');
-        if (versionElement) {
-            // For now, we'll use a hardcoded version since Vite doesn't expose package.json
-            // In a real app, you might use import.meta.env.VITE_APP_VERSION
-            console.log('Updating version to v1.1.12');
-            versionElement.textContent = 'v1.1.12';
-            console.log('Version updated:', versionElement.textContent);
-        } else {
-            console.error('Version element not found!');
+            updateVersionNumber() {
+            const versionElement = document.getElementById('versionNumber');
+            if (versionElement) {
+                // For now, we'll use a hardcoded version since Vite doesn't expose package.json
+                // In a real app, you might use import.meta.env.VITE_APP_VERSION
+                console.log('Updating version to v1.1.13');
+                versionElement.textContent = 'v1.1.13';
+                console.log('Version updated:', versionElement.textContent);
+            } else {
+                console.error('Version element not found!');
+            }
         }
-    }
 
     setDateToCurrentWeek() {
         try {
