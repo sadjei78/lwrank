@@ -341,15 +341,21 @@ class DailyRankingsApp {
     }
 
     navigateToAdminTab() {
-        // Find and click the admin tab to navigate to it
+        // First, ensure admin tab exists by calling updateWeeklyTabs if needed
+        if (!document.querySelector('.tab[data-type="admin"]')) {
+            console.log('Admin tab not found, refreshing tabs...');
+            this.updateWeeklyTabs();
+        }
+        
+        // Now try to find the admin tab again
         const adminTab = document.querySelector('.tab[data-type="admin"]');
         if (adminTab) {
             adminTab.click();
             // Scroll to top for better mobile experience
             window.scrollTo({ top: 0, behavior: 'smooth' });
         } else {
-            console.error('Admin tab not found');
-            this.uiManager.showError('Admin tab not available');
+            console.error('Admin tab still not found after refresh');
+            this.uiManager.showError('Admin tab not available. Please try refreshing the page.');
         }
     }
 
@@ -712,7 +718,9 @@ class DailyRankingsApp {
         tabsContainer.appendChild(reportsTab);
         
         // Add Admin tab (only show if admin mode is active)
+        console.log('Checking admin status:', this.isAdmin(), 'adminAuthenticated:', this.adminAuthenticated);
         if (this.isAdmin()) {
+            console.log('Creating admin tab...');
             const adminTab = document.createElement('button');
             adminTab.className = 'tab admin-tab';
             adminTab.textContent = '🔐 Admin';
@@ -723,6 +731,9 @@ class DailyRankingsApp {
             adminTab.addEventListener('click', () => {
                 this.showTab('admin');
             });
+            console.log('Admin tab created successfully');
+        } else {
+            console.log('Admin tab not created - not in admin mode');
         }
         
         // Show first tab by default
