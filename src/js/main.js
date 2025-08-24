@@ -272,21 +272,41 @@ class DailyRankingsApp {
 
     setupCollapsibleSections() {
         const collapsibleHeaders = document.querySelectorAll('.collapsible-header');
+        console.log('Setting up collapsible sections, found:', collapsibleHeaders.length, 'headers');
         
-        collapsibleHeaders.forEach(header => {
-            header.addEventListener('click', () => {
-                const targetId = header.getAttribute('data-target');
-                const content = document.getElementById(targetId);
-                const icon = header.querySelector('.collapsible-icon');
+        collapsibleHeaders.forEach((header, index) => {
+            console.log(`Setting up collapsible header ${index}:`, header.textContent);
+            
+            // Remove any existing event listeners to prevent duplicates
+            const newHeader = header.cloneNode(true);
+            header.parentNode.replaceChild(newHeader, header);
+            
+            newHeader.addEventListener('click', (e) => {
+                e.preventDefault();
+                console.log('Collapsible header clicked:', newHeader.textContent);
                 
-                if (content.classList.contains('collapsed')) {
-                    // Expand
-                    content.classList.remove('collapsed');
-                    header.classList.remove('collapsed');
+                const targetId = newHeader.getAttribute('data-target');
+                const content = document.getElementById(targetId);
+                const icon = newHeader.querySelector('.collapsible-icon');
+                
+                console.log('Target ID:', targetId, 'Content found:', !!content, 'Icon found:', !!icon);
+                
+                if (content && icon) {
+                    if (content.classList.contains('collapsed')) {
+                        // Expand
+                        console.log('Expanding section:', targetId);
+                        content.classList.remove('collapsed');
+                        newHeader.classList.remove('collapsed');
+                        icon.style.transform = 'rotate(0deg)';
+                    } else {
+                        // Collapse
+                        console.log('Collapsing section:', targetId);
+                        content.classList.add('collapsed');
+                        newHeader.classList.add('collapsed');
+                        icon.style.transform = 'rotate(-90deg)';
+                    }
                 } else {
-                    // Collapse
-                    content.classList.add('collapsed');
-                    header.classList.add('collapsed');
+                    console.error('Missing content or icon for:', targetId);
                 }
             });
         });
@@ -2151,8 +2171,10 @@ class DailyRankingsApp {
         // Setup train conductor rotation management
         this.setupRotationManagement();
         
-        // Setup collapsible sections for admin panel
-        this.setupCollapsibleSections();
+        // Setup collapsible sections for admin panel with a small delay to ensure DOM is ready
+        setTimeout(() => {
+            this.setupCollapsibleSections();
+        }, 100);
     }
 
     // Helper function to format date for input fields (local timezone)
