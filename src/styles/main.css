@@ -419,6 +419,65 @@ header h1 {
     background: #047857;
 }
 
+/* New Names Check Section */
+.new-names-check {
+    margin-top: 24px;
+    padding: 20px;
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    border-radius: 12px;
+    border: 1px solid #f59e0b;
+}
+
+.new-names-check h4 {
+    margin: 0 0 12px 0;
+    color: #92400e;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.check-names-btn {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+}
+
+.check-names-btn:hover {
+    background: linear-gradient(135deg, #d97706, #b45309);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+}
+
+.new-names-results {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.new-names-results label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #92400e;
+}
+
+.new-names-results select {
+    width: 100%;
+    margin-bottom: 8px;
+}
+
+.new-names-results .form-help {
+    color: #92400e;
+    font-size: 12px;
+    font-style: italic;
+}
+
 /* Player Management */
 .player-management {
     margin-top: 20px;

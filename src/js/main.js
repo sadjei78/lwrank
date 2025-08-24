@@ -250,6 +250,26 @@ class DailyRankingsApp {
             adminBannerClickable.addEventListener('click', () => this.navigateToAdminTab());
         }
 
+        // Check for new names button
+        const checkNewNamesBtn = document.getElementById('checkNewNamesBtn');
+        if (checkNewNamesBtn) {
+            checkNewNamesBtn.addEventListener('click', async () => {
+                await this.checkForNewNames();
+            });
+        }
+
+        // Single instance players dropdown change
+        const singleInstancePlayers = document.getElementById('singleInstancePlayers');
+        if (singleInstancePlayers) {
+            singleInstancePlayers.addEventListener('change', (e) => {
+                const selectedName = e.target.value;
+                if (selectedName) {
+                    document.getElementById('oldPlayerName').value = selectedName;
+                    this.uiManager.showInfo(`Populated "Old Player Name" with: ${selectedName}`);
+                }
+            });
+        }
+
 
 
         // Tab click handlers
@@ -1206,6 +1226,58 @@ class DailyRankingsApp {
         // 4. Refresh all data to ensure consistency
         await this.leaderVIPManager.loadFromDatabase();
         await this.rankingManager.loadFromDatabase();
+    }
+
+    async checkForNewNames() {
+        try {
+            console.log('Checking for players with single instances...');
+            
+            // Get all rankings from database
+            const allRankings = await this.rankingManager.getAllRankings();
+            
+            // Count occurrences of each player name
+            const playerCounts = {};
+            allRankings.forEach(ranking => {
+                if (ranking.commander) {
+                    playerCounts[ranking.commander] = (playerCounts[ranking.commander] || 0) + 1;
+                }
+            });
+            
+            // Find players with only 1 instance
+            const singleInstancePlayers = Object.entries(playerCounts)
+                .filter(([name, count]) => count === 1)
+                .map(([name, count]) => ({ name, count }))
+                .sort((a, b) => a.name.localeCompare(b.name));
+            
+            console.log('Single instance players found:', singleInstancePlayers);
+            
+            // Update the UI
+            const resultsDiv = document.getElementById('newNamesResults');
+            const selectElement = document.getElementById('singleInstancePlayers');
+            
+            if (singleInstancePlayers.length === 0) {
+                resultsDiv.style.display = 'block';
+                selectElement.innerHTML = '<option value="">No players with single instances found</option>';
+                this.uiManager.showInfo('No players with single instances found. All players appear multiple times.');
+            } else {
+                resultsDiv.style.display = 'block';
+                
+                // Clear existing options and add new ones
+                selectElement.innerHTML = '<option value="">Select a player to populate Old Player Name...</option>';
+                singleInstancePlayers.forEach(player => {
+                    const option = document.createElement('option');
+                    option.value = player.name;
+                    option.textContent = `${player.name} (1 instance)`;
+                    selectElement.appendChild(option);
+                });
+                
+                this.uiManager.showSuccess(`Found ${singleInstancePlayers.length} players with single instances. Select a name to populate the Old Player Name field.`);
+            }
+            
+        } catch (error) {
+            console.error('Error checking for new names:', error);
+            this.uiManager.showError('Failed to check for new names. Please try again.');
+        }
     }
 
     async addAllianceLeader() {

@@ -239,6 +239,20 @@
                             <input type="text" id="newPlayerName" placeholder="Enter new name" class="form-input">
                         </div>
                         <button id="updatePlayerBtn" class="player-btn">Update Player Name</button>
+                        
+                        <div class="new-names-check">
+                            <h4>🔍 Check for Potential Typos</h4>
+                            <p class="form-help">Find players with only 1 instance (potential typos or name variations)</p>
+                            <button id="checkNewNamesBtn" class="check-names-btn">Check for New Names</button>
+                            
+                            <div id="newNamesResults" class="new-names-results" style="display: none;">
+                                <label for="singleInstancePlayers">Players with 1 instance:</label>
+                                <select id="singleInstancePlayers" class="form-input">
+                                    <option value="">Select a player to populate Old Player Name...</option>
+                                </select>
+                                <small class="form-help">Click on a name to populate the "Old Player Name" field above</small>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
