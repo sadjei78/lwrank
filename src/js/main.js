@@ -76,15 +76,8 @@ class DailyRankingsApp {
         const connectionStatus = await this.rankingManager.getConnectionStatus();
         this.uiManager.updateConnectionStatus(connectionStatus);
         
-        // Initialize leader system UI
-        this.updateLeaderDropdowns();
-        this.updateRecentVIPsList();
-        
-        // Initialize rotation management after data is loaded
-        this.updateRotationOrderList();
-        
-        // Initialize special events list
-        this.updateSpecialEventsList();
+        // Admin functionality will be initialized when admin content loads
+        // (Leader dropdowns, VIP lists, rotation management, special events)
         
         // Check if we need to create sample data
         await this.checkAndCreateSampleData();
@@ -1067,9 +1060,19 @@ class DailyRankingsApp {
 
     async createSpecialEvent() {
         try {
-            const eventName = document.getElementById('eventName')?.value?.trim();
-            const startDate = document.getElementById('eventStartDate')?.value;
-            const endDate = document.getElementById('eventEndDate')?.value;
+            const eventNameInput = document.getElementById('eventName');
+            const startDateInput = document.getElementById('eventStartDate');
+            const endDateInput = document.getElementById('eventEndDate');
+            
+            if (!eventNameInput || !startDateInput || !endDateInput) {
+                console.error('Special event form elements not found - admin content not loaded');
+                this.uiManager.showError('Admin interface not ready. Please try again.');
+                return;
+            }
+            
+            const eventName = eventNameInput.value.trim();
+            const startDate = startDateInput.value;
+            const endDate = endDateInput.value;
             
             if (!eventName || !startDate || !endDate) {
                 this.uiManager.showError('Please fill in all fields for the special event.');
@@ -1102,13 +1105,9 @@ class DailyRankingsApp {
             if (success) {
                 this.uiManager.showSuccess(`Special event "${eventName}" created successfully!`);
                 // Clear form
-                const eventNameInput = document.getElementById('eventName');
-                const eventStartDateInput = document.getElementById('eventStartDate');
-                const eventEndDateInput = document.getElementById('eventEndDate');
-                
-                if (eventNameInput) eventNameInput.value = '';
-                if (eventStartDateInput) eventStartDateInput.value = '';
-                if (eventEndDateInput) eventEndDateInput.value = '';
+                eventNameInput.value = '';
+                startDateInput.value = '';
+                endDateInput.value = '';
                 
                 // Refresh tabs to include new special event
                 await this.updateWeeklyTabs();
@@ -1125,8 +1124,17 @@ class DailyRankingsApp {
     }
 
     async updatePlayerName() {
-        const oldName = document.getElementById('oldPlayerName').value.trim();
-        const newName = document.getElementById('newPlayerName').value.trim();
+        const oldNameInput = document.getElementById('oldPlayerName');
+        const newNameInput = document.getElementById('newPlayerName');
+        
+        if (!oldNameInput || !newNameInput) {
+            console.error('Player name form elements not found - admin content not loaded');
+            this.uiManager.showError('Admin interface not ready. Please try again.');
+            return;
+        }
+        
+        const oldName = oldNameInput.value.trim();
+        const newName = newNameInput.value.trim();
         
         if (!oldName || !newName) {
             this.uiManager.showError('Please enter both old and new player names.');
@@ -1151,8 +1159,8 @@ class DailyRankingsApp {
             this.uiManager.showSuccess(`Successfully updated player name from "${oldName}" to "${newName}" across all tables.`);
             
             // Clear form
-            document.getElementById('oldPlayerName').value = '';
-            document.getElementById('newPlayerName').value = '';
+            oldNameInput.value = '';
+            newNameInput.value = '';
             
             // Refresh all UI components
             this.updateLeaderDropdowns();
@@ -1478,6 +1486,12 @@ class DailyRankingsApp {
         // Set up admin-specific event listeners now that the DOM elements exist
         this.setupAdminEventListeners();
         
+        // Initialize admin functionality now that elements exist
+        this.updateLeaderDropdowns();
+        this.updateRecentVIPsList();
+        this.updateRotationOrderList();
+        this.updateSpecialEventsList();
+        
         console.log('Secure admin content loaded successfully');
     }
 
@@ -1666,7 +1680,14 @@ class DailyRankingsApp {
     }
 
     async addAllianceLeader() {
-        const leaderName = document.getElementById('newLeaderName').value.trim();
+        const newLeaderInput = document.getElementById('newLeaderName');
+        if (!newLeaderInput) {
+            console.error('New leader input not found - admin content not loaded');
+            this.uiManager.showError('Admin interface not ready. Please try again.');
+            return;
+        }
+        
+        const leaderName = newLeaderInput.value.trim();
         
         if (!leaderName) {
             this.uiManager.showError('Please enter a leader name');
@@ -1678,7 +1699,7 @@ class DailyRankingsApp {
             this.uiManager.showSuccess(`Successfully added "${leaderName}" as an alliance leader`);
             
             // Clear form
-            document.getElementById('newLeaderName').value = '';
+            newLeaderInput.value = '';
             
             // Update leader dropdowns
             this.updateLeaderDropdowns();
@@ -1692,7 +1713,14 @@ class DailyRankingsApp {
 
     async removeAllianceLeader() {
         console.log('removeAllianceLeader method called');
-        const leaderName = document.getElementById('removeLeaderName').value;
+        const removeLeaderSelect = document.getElementById('removeLeaderName');
+        if (!removeLeaderSelect) {
+            console.error('Remove leader select not found - admin content not loaded');
+            this.uiManager.showError('Admin interface not ready. Please try again.');
+            return;
+        }
+        
+        const leaderName = removeLeaderSelect.value;
         console.log('Selected leader name:', leaderName);
         
         if (!leaderName) {
@@ -1727,9 +1755,19 @@ class DailyRankingsApp {
     }
 
     async setVIPForDate() {
-        const date = document.getElementById('vipDate').value;
-        const vipPlayer = document.getElementById('vipPlayer').value.trim();
-        const notes = document.getElementById('vipNotes').value.trim();
+        const vipDateInput = document.getElementById('vipDate');
+        const vipPlayerInput = document.getElementById('vipPlayer');
+        const vipNotesInput = document.getElementById('vipNotes');
+        
+        if (!vipDateInput || !vipPlayerInput || !vipNotesInput) {
+            console.error('VIP form elements not found - admin content not loaded');
+            this.uiManager.showError('Admin interface not ready. Please try again.');
+            return;
+        }
+        
+        const date = vipDateInput.value;
+        const vipPlayer = vipPlayerInput.value.trim();
+        const notes = vipNotesInput.value.trim();
         
         if (!date || !vipPlayer) {
             this.uiManager.showError('Please enter both date and VIP player name');
@@ -1753,9 +1791,9 @@ class DailyRankingsApp {
             this.updateVIPFrequencyDisplay('vipPlayer', vipPlayer);
             
             // Clear form
-            document.getElementById('vipDate').value = '';
-            document.getElementById('vipPlayer').value = '';
-            document.getElementById('vipNotes').value = '';
+            vipDateInput.value = '';
+            vipPlayerInput.value = '';
+            vipNotesInput.value = '';
             
             // Hide frequency info after a short delay
             setTimeout(() => {
@@ -2256,6 +2294,11 @@ class DailyRankingsApp {
 
     updateLeaderDropdowns() {
         const removeDropdown = document.getElementById('removeLeaderName');
+        if (!removeDropdown) {
+            console.log('Remove leader dropdown not found - admin content not loaded yet');
+            return;
+        }
+        
         // Only show active leaders in dropdown
         const activeLeaders = this.leaderVIPManager.allianceLeaders.filter(leader => leader.is_active);
         
@@ -2278,6 +2321,11 @@ class DailyRankingsApp {
         const currentLeadersContainer = document.getElementById('currentLeadersList');
         const leaderCountElement = document.getElementById('leaderCount');
         
+        if (!currentLeadersContainer || !leaderCountElement) {
+            console.log('Leader display elements not found - admin content not loaded yet');
+            return;
+        }
+        
         // Debug: Log all leaders and their status
         console.log('All alliance leaders:', this.leaderVIPManager.allianceLeaders);
         
@@ -2287,9 +2335,7 @@ class DailyRankingsApp {
         console.log('Active alliance leaders:', currentLeaders);
         
         // Update the count in the heading
-        if (leaderCountElement) {
-            leaderCountElement.textContent = currentLeaders.length;
-        }
+        leaderCountElement.textContent = currentLeaders.length;
         
         if (currentLeaders.length === 0) {
             currentLeadersContainer.innerHTML = '<p class="no-leaders">No active alliance leaders found</p>';
@@ -2327,6 +2373,11 @@ class DailyRankingsApp {
 
     updateRecentVIPsList() {
         const recentVIPsContainer = document.getElementById('recentVIPsList');
+        if (!recentVIPsContainer) {
+            console.log('Recent VIPs container not found - admin content not loaded yet');
+            return;
+        }
+        
         const recentVIPs = this.leaderVIPManager.getRecentVIPs(10);
         
         if (recentVIPs.length === 0) {
