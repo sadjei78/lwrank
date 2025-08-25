@@ -167,30 +167,13 @@ class DailyRankingsApp {
             }
         });
 
-        // Process CSV button
-        document.getElementById('uploadBtn').addEventListener('click', () => {
-            this.processCSVFile();
-        });
-
-        // Process pasted CSV button
-        document.getElementById('pasteUploadBtn').addEventListener('click', () => {
-            this.processPastedCSV();
-        });
+        // Admin-specific event listeners will be set up when admin content loads
 
         // Admin-specific event listeners will be set up when admin content loads
         
 
         
-        const removeLeaderBtn = document.getElementById('removeLeaderBtn');
-        if (removeLeaderBtn) {
-            console.log('Remove leader button found, adding event listener');
-            removeLeaderBtn.addEventListener('click', () => {
-                console.log('Remove leader button clicked');
-                this.removeAllianceLeader();
-            });
-        } else {
-            console.error('Remove leader button not found in DOM');
-        }
+
         
         // Admin-specific event listeners will be set up when admin content loads
 
@@ -793,7 +776,11 @@ class DailyRankingsApp {
                 adminTab.classList.add('active');
             }
             
-            // Initialize admin functionality
+            // Initialize admin functionality - ensure admin content is loaded first
+            if (!document.querySelector('#adminTab .admin-sections')) {
+                // Admin content not loaded yet, load it first
+                this.loadAdminContent();
+            }
             this.showAdminTab();
             return;
         } else {
@@ -2635,9 +2622,25 @@ class DailyRankingsApp {
     }
 
     showAdminTab() {
+        // Ensure admin content is loaded before proceeding
+        if (!document.querySelector('#adminTab .admin-sections')) {
+            console.log('Admin content not loaded, loading now...');
+            this.loadAdminContent();
+            // Give a small delay for content to load
+            setTimeout(() => {
+                this.showAdminTab();
+            }, 100);
+            return;
+        }
+        
+        console.log('Admin tab shown, setting up functionality...');
+        
         // Set current date for VIP form
         const today = new Date();
-        document.getElementById('vipDate').value = this.formatDateForInput(today);
+        const vipDateInput = document.getElementById('vipDate');
+        if (vipDateInput) {
+            vipDateInput.value = this.formatDateForInput(today);
+        }
         
         // Update leader dropdowns and current leaders list
         this.updateLeaderDropdowns();
