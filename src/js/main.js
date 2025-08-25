@@ -204,9 +204,7 @@ class DailyRankingsApp {
             console.error('Remove leader button not found in DOM');
         }
         
-        document.getElementById('setVIPBtn').addEventListener('click', () => {
-            this.setVIPForDate();
-        });
+        // Admin-specific event listeners will be set up when admin content loads
 
 
 
@@ -247,25 +245,7 @@ class DailyRankingsApp {
             adminBannerClickable.addEventListener('click', () => this.navigateToAdminTab());
         }
 
-        // Check for new names button
-        const checkNewNamesBtn = document.getElementById('checkNewNamesBtn');
-        if (checkNewNamesBtn) {
-            checkNewNamesBtn.addEventListener('click', async () => {
-                await this.checkForNewNames();
-            });
-        }
-
-        // Single instance players dropdown change
-        const singleInstancePlayers = document.getElementById('singleInstancePlayers');
-        if (singleInstancePlayers) {
-            singleInstancePlayers.addEventListener('change', (e) => {
-                const selectedName = e.target.value;
-                if (selectedName) {
-                    document.getElementById('oldPlayerName').value = selectedName;
-                    this.uiManager.showInfo(`Populated "Old Player Name" with: ${selectedName}`);
-                }
-            });
-        }
+        // Admin-specific event listeners will be set up when admin content loads
 
 
 
@@ -1520,6 +1500,9 @@ class DailyRankingsApp {
         // Add modals for editing
         this.addAdminModals();
         
+        // Set up admin-specific event listeners now that the DOM elements exist
+        this.setupAdminEventListeners();
+        
         console.log('Secure admin content loaded successfully');
     }
 
@@ -1605,6 +1588,106 @@ class DailyRankingsApp {
             </div>
         `;
         document.body.appendChild(vipEditModal);
+    }
+
+    setupAdminEventListeners() {
+        console.log('Setting up admin event listeners...');
+        
+        // Set VIP button
+        const setVIPBtn = document.getElementById('setVIPBtn');
+        if (setVIPBtn) {
+            setVIPBtn.addEventListener('click', () => {
+                this.setVIPForDate();
+            });
+        } else {
+            console.error('Set VIP button not found');
+        }
+        
+        // Check for new names button
+        const checkNewNamesBtn = document.getElementById('checkNewNamesBtn');
+        if (checkNewNamesBtn) {
+            checkNewNamesBtn.addEventListener('click', async () => {
+                await this.checkForNewNames();
+            });
+        } else {
+            console.error('Check new names button not found');
+        }
+
+        // Single instance players dropdown change
+        const singleInstancePlayers = document.getElementById('singleInstancePlayers');
+        if (singleInstancePlayers) {
+            singleInstancePlayers.addEventListener('change', (e) => {
+                const selectedName = e.target.value;
+                if (selectedName) {
+                    document.getElementById('oldPlayerName').value = selectedName;
+                    this.uiManager.showInfo(`Populated "Old Player Name" with: ${selectedName}`);
+                }
+            });
+        } else {
+            console.error('Single instance players dropdown not found');
+        }
+        
+        // CSV upload button
+        const uploadBtn = document.getElementById('uploadBtn');
+        if (uploadBtn) {
+            uploadBtn.addEventListener('click', () => {
+                this.handleCSVUpload();
+            });
+        } else {
+            console.error('Upload button not found');
+        }
+        
+        // Paste CSV upload button
+        const pasteUploadBtn = document.getElementById('pasteUploadBtn');
+        if (pasteUploadBtn) {
+            pasteUploadBtn.addEventListener('click', () => {
+                this.handlePasteCSVUpload();
+            });
+        } else {
+            console.error('Paste upload button not found');
+        }
+        
+        // Create event button
+        const createEventBtn = document.getElementById('createEventBtn');
+        if (createEventBtn) {
+            createEventBtn.addEventListener('click', () => {
+                this.createSpecialEvent();
+            });
+        } else {
+            console.error('Create event button not found');
+        }
+        
+        // Update player button
+        const updatePlayerBtn = document.getElementById('updatePlayerBtn');
+        if (updatePlayerBtn) {
+            updatePlayerBtn.addEventListener('click', () => {
+                this.updatePlayerName();
+            });
+        } else {
+            console.error('Update player button not found');
+        }
+        
+        // Add leader button
+        const addLeaderBtn = document.getElementById('addLeaderBtn');
+        if (addLeaderBtn) {
+            addLeaderBtn.addEventListener('click', () => {
+                this.addAllianceLeader();
+            });
+        } else {
+            console.error('Add leader button not found');
+        }
+        
+        // Remove leader button
+        const removeLeaderBtn = document.getElementById('removeLeaderBtn');
+        if (removeLeaderBtn) {
+            removeLeaderBtn.addEventListener('click', () => {
+                this.removeAllianceLeader();
+            });
+        } else {
+            console.error('Remove leader button not found');
+        }
+        
+        console.log('Admin event listeners setup complete');
     }
 
     async addAllianceLeader() {
