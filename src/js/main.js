@@ -92,7 +92,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.16 loaded successfully!');
+        console.log('🚀 LWRank v1.1.17 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -235,6 +235,11 @@ class DailyRankingsApp {
         const collapsibleHeaders = document.querySelectorAll('.collapsible-header');
         console.log('Setting up collapsible sections, found:', collapsibleHeaders.length, 'headers');
         
+        if (collapsibleHeaders.length === 0) {
+            console.warn('No collapsible headers found - admin content may not be loaded yet');
+            return;
+        }
+        
         collapsibleHeaders.forEach((header, index) => {
             console.log(`Setting up collapsible header ${index}:`, header.textContent);
             
@@ -242,9 +247,10 @@ class DailyRankingsApp {
             const newHeader = header.cloneNode(true);
             header.parentNode.replaceChild(newHeader, header);
             
-            newHeader.addEventListener('click', (e) => {
+            // Function to handle the expand/collapse logic
+            const handleToggle = (e) => {
                 e.preventDefault();
-                console.log('Collapsible header clicked:', newHeader.textContent);
+                console.log('Collapsible header activated:', newHeader.textContent, 'Event type:', e.type);
                 
                 const targetId = newHeader.getAttribute('data-target');
                 const content = document.getElementById(targetId);
@@ -269,38 +275,25 @@ class DailyRankingsApp {
                 } else {
                     console.error('Missing content or icon for:', targetId);
                 }
+            };
+            
+            // Add click handler
+            newHeader.addEventListener('click', handleToggle);
+            
+            // Add touch handler for mobile devices
+            newHeader.addEventListener('touchstart', (e) => {
+                console.log('Touch event detected on collapsible header');
+                handleToggle(e);
             });
             
-            // Add touch support for mobile devices
-            newHeader.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                console.log('Collapsible header touched:', newHeader.textContent);
-                
-                const targetId = newHeader.getAttribute('data-target');
-                const content = document.getElementById(targetId);
-                const icon = newHeader.querySelector('.collapsible-icon');
-                
-                console.log('Target ID:', targetId, 'Content found:', !!content, 'Icon found:', !!icon);
-                
-                if (content && icon) {
-                    if (content.classList.contains('collapsed')) {
-                        // Expand
-                        console.log('Expanding section:', targetId);
-                        content.classList.remove('collapsed');
-                        newHeader.classList.remove('collapsed');
-                        icon.style.transform = 'rotate(0deg)';
-                    } else {
-                        // Collapse
-                        console.log('Collapsing section:', targetId);
-                        content.classList.add('collapsed');
-                        newHeader.classList.add('collapsed');
-                        icon.style.transform = 'rotate(-90deg)';
-                    }
-                } else {
-                    console.error('Missing content or icon for:', targetId);
-                }
+            // Add touchend handler as backup for mobile
+            newHeader.addEventListener('touchend', (e) => {
+                console.log('Touch end event detected on collapsible header');
+                // Don't prevent default here to allow normal touch behavior
             });
         });
+        
+        console.log('Collapsible sections setup completed');
     }
 
     isAdmin() {
@@ -445,7 +438,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.16';
+                versionElement.textContent = 'v1.1.17';
             }
         }
 
@@ -1507,16 +1500,22 @@ class DailyRankingsApp {
         // Add modals for editing
         this.addAdminModals();
         
-        // Set up admin-specific event listeners now that the DOM elements exist
+        // Setup admin event listeners
         this.setupAdminEventListeners();
         
-        // Initialize admin functionality now that elements exist
+        // Initialize admin data displays
         this.updateLeaderDropdowns();
         this.updateRecentVIPsList();
         this.updateRotationOrderList();
         this.updateSpecialEventsList();
         
-        console.log('Secure admin content loaded successfully');
+        // Setup autocomplete for leader and VIP inputs
+        this.setupAutocomplete();
+        
+        // Setup collapsible sections immediately after content is loaded
+        this.setupCollapsibleSections();
+        
+        console.log('Admin content loaded and initialized successfully');
     }
 
     addAdminModals() {
@@ -2723,16 +2722,10 @@ class DailyRankingsApp {
         // Update recent VIPs list
         this.updateRecentVIPsList();
         
-        // Setup autocomplete for leader and VIP inputs
-        this.setupAutocomplete();
-        
         // Setup train conductor rotation management
         this.setupRotationManagement();
         
-        // Setup collapsible sections for admin panel with a small delay to ensure DOM is ready
-        setTimeout(() => {
-            this.setupCollapsibleSections();
-        }, 100);
+
 
         // Setup VIP frequency display event listeners
         this.setupVIPFrequencyListeners();
@@ -2955,50 +2948,100 @@ class DailyRankingsApp {
     }
 
     setupAutocomplete() {
-        // Setup autocomplete for old player name input (include all players)
-        const oldPlayerInput = document.getElementById('oldPlayerName');
-        const oldPlayerAutocomplete = document.getElementById('oldPlayerAutocomplete');
+        console.log('Setting up autocomplete for admin fields...');
         
-        if (oldPlayerInput && oldPlayerAutocomplete) {
+        // Setup autocomplete for leader selection
+        const leaderInput = document.getElementById('newLeaderName');
+        const leaderDropdown = document.getElementById('leaderAutocomplete');
+        if (leaderInput && leaderDropdown) {
+            console.log('Setting up leader autocomplete');
             this.autocompleteService.setupAutocomplete(
-                oldPlayerInput, 
-                oldPlayerAutocomplete, 
+                leaderInput,
+                leaderDropdown,
+                (selectedName) => {
+                    leaderInput.value = selectedName;
+                    console.log('Leader selected:', selectedName);
+                }
+            );
+        } else {
+            console.warn('Leader autocomplete elements not found');
+        }
+        
+        // Setup autocomplete for VIP selection
+        const vipInput = document.getElementById('vipPlayer');
+        const vipDropdown = document.getElementById('vipAutocomplete');
+        if (vipInput && vipDropdown) {
+            console.log('Setting up VIP autocomplete');
+            this.autocompleteService.setupAutocomplete(
+                vipInput,
+                vipDropdown,
+                (selectedName) => {
+                    vipInput.value = selectedName;
+                    console.log('VIP selected:', selectedName);
+                    // Update VIP frequency info
+                    this.updateVIPFrequencyInfo(selectedName);
+                },
+                true // Exclude leaders
+            );
+        } else {
+            console.warn('VIP autocomplete elements not found');
+        }
+        
+        // Setup autocomplete for old player name
+        const oldPlayerInput = document.getElementById('oldPlayerName');
+        const oldPlayerDropdown = document.getElementById('oldPlayerAutocomplete');
+        if (oldPlayerInput && oldPlayerDropdown) {
+            console.log('Setting up old player autocomplete');
+            this.autocompleteService.setupAutocomplete(
+                oldPlayerInput,
+                oldPlayerDropdown,
                 (selectedName) => {
                     oldPlayerInput.value = selectedName;
-                },
-                false // Don't exclude leaders for old player name selection
+                    console.log('Old player selected:', selectedName);
+                }
             );
+        } else {
+            console.warn('Old player autocomplete elements not found');
         }
         
-        // Setup autocomplete for new leader input (include all players)
-        const newLeaderInput = document.getElementById('newLeaderName');
-        const leaderAutocomplete = document.getElementById('leaderAutocomplete');
-        
-        if (newLeaderInput && leaderAutocomplete) {
+        // Setup autocomplete for edit VIP player
+        const editVipInput = document.getElementById('editVipPlayer');
+        const editVipDropdown = document.getElementById('editVipAutocomplete');
+        if (editVipInput && editVipDropdown) {
+            console.log('Setting up edit VIP autocomplete');
             this.autocompleteService.setupAutocomplete(
-                newLeaderInput, 
-                leaderAutocomplete, 
+                editVipInput,
+                editVipDropdown,
                 (selectedName) => {
-                    newLeaderInput.value = selectedName;
+                    editVipInput.value = selectedName;
+                    console.log('Edit VIP selected:', selectedName);
+                    // Update VIP frequency info
+                    this.updateEditVIPFrequencyInfo(selectedName);
                 },
-                false // Don't exclude leaders for leader selection
+                true // Exclude leaders
             );
+        } else {
+            console.warn('Edit VIP autocomplete elements not found');
         }
         
-        // Setup autocomplete for VIP player input (exclude leaders)
-        const vipPlayerInput = document.getElementById('vipPlayer');
-        const vipAutocomplete = document.getElementById('vipAutocomplete');
-        
-        if (vipPlayerInput && vipAutocomplete) {
+        // Setup autocomplete for edit VIP conductor
+        const editVipConductorInput = document.getElementById('editVipConductor');
+        const editVipConductorDropdown = document.getElementById('editVipConductorAutocomplete');
+        if (editVipConductorInput && editVipConductorDropdown) {
+            console.log('Setting up edit VIP conductor autocomplete');
             this.autocompleteService.setupAutocomplete(
-                vipPlayerInput, 
-                vipAutocomplete, 
+                editVipConductorInput,
+                editVipConductorDropdown,
                 (selectedName) => {
-                    vipPlayerInput.value = selectedName;
-                },
-                true // Exclude leaders from VIP selection
+                    editVipConductorInput.value = selectedName;
+                    console.log('Edit VIP conductor selected:', selectedName);
+                }
             );
+        } else {
+            console.warn('Edit VIP conductor autocomplete elements not found');
         }
+        
+        console.log('Autocomplete setup completed');
     }
 
     setupVIPEditListeners() {
