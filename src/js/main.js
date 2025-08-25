@@ -99,7 +99,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.14 loaded successfully!');
+        console.log('🚀 LWRank v1.1.15 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -177,19 +177,7 @@ class DailyRankingsApp {
             this.processPastedCSV();
         });
 
-        // Special event and player management
-        document.getElementById('createEventBtn').addEventListener('click', () => {
-            this.createSpecialEvent();
-        });
-        
-        document.getElementById('updatePlayerBtn').addEventListener('click', () => {
-            this.updatePlayerName();
-        });
-
-        // Leader and VIP management
-        document.getElementById('addLeaderBtn').addEventListener('click', () => {
-            this.addAllianceLeader();
-        });
+        // Admin-specific event listeners will be set up when admin content loads
         
 
         
@@ -453,8 +441,8 @@ class DailyRankingsApp {
             if (versionElement) {
                 // For now, we'll use a hardcoded version since Vite doesn't expose package.json
                 // In a real app, you might use import.meta.env.VITE_APP_VERSION
-                console.log('Updating version to v1.1.14');
-                versionElement.textContent = 'v1.1.14';
+                console.log('Updating version to v1.1.15');
+                versionElement.textContent = 'v1.1.15';
                 console.log('Version updated:', versionElement.textContent);
             } else {
                 console.error('Version element not found!');
