@@ -92,7 +92,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.15 loaded successfully!');
+        console.log('🚀 LWRank v1.1.16 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -270,6 +270,36 @@ class DailyRankingsApp {
                     console.error('Missing content or icon for:', targetId);
                 }
             });
+            
+            // Add touch support for mobile devices
+            newHeader.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                console.log('Collapsible header touched:', newHeader.textContent);
+                
+                const targetId = newHeader.getAttribute('data-target');
+                const content = document.getElementById(targetId);
+                const icon = newHeader.querySelector('.collapsible-icon');
+                
+                console.log('Target ID:', targetId, 'Content found:', !!content, 'Icon found:', !!icon);
+                
+                if (content && icon) {
+                    if (content.classList.contains('collapsed')) {
+                        // Expand
+                        console.log('Expanding section:', targetId);
+                        content.classList.remove('collapsed');
+                        newHeader.classList.remove('collapsed');
+                        icon.style.transform = 'rotate(0deg)';
+                    } else {
+                        // Collapse
+                        console.log('Collapsing section:', targetId);
+                        content.classList.add('collapsed');
+                        newHeader.classList.add('collapsed');
+                        icon.style.transform = 'rotate(-90deg)';
+                    }
+                } else {
+                    console.error('Missing content or icon for:', targetId);
+                }
+            });
         });
     }
 
@@ -415,13 +445,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                // For now, we'll use a hardcoded version since Vite doesn't expose package.json
-                // In a real app, you might use import.meta.env.VITE_APP_VERSION
-                console.log('Updating version to v1.1.15');
-                versionElement.textContent = 'v1.1.15';
-                console.log('Version updated:', versionElement.textContent);
-            } else {
-                console.error('Version element not found!');
+                versionElement.textContent = 'v1.1.16';
             }
         }
 

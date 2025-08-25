@@ -71,6 +71,13 @@ export class AutocompleteService {
                 this.closeDropdown(dropdownElement);
             }
         });
+
+        // Touch outside to close (mobile support)
+        document.addEventListener('touchend', (e) => {
+            if (!inputElement.contains(e.target) && !dropdownElement.contains(e.target)) {
+                this.closeDropdown(dropdownElement);
+            }
+        });
     }
 
     handleInput(value, dropdownElement, onSelect, excludeLeaders = false) {
@@ -123,6 +130,14 @@ export class AutocompleteService {
         // Add click handlers to items
         dropdownElement.querySelectorAll('.autocomplete-item').forEach(item => {
             item.addEventListener('click', () => {
+                const value = item.getAttribute('data-value');
+                onSelect(value);
+                this.closeDropdown(dropdownElement);
+            });
+            
+            // Add touch support for mobile devices
+            item.addEventListener('touchend', (e) => {
+                e.preventDefault(); // Prevent double-firing with click
                 const value = item.getAttribute('data-value');
                 onSelect(value);
                 this.closeDropdown(dropdownElement);
