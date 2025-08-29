@@ -92,7 +92,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.21 loaded successfully!');
+        console.log('🚀 LWRank v1.1.22 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -471,7 +471,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.21';
+                versionElement.textContent = 'v1.1.22';
             }
         }
 
@@ -2359,6 +2359,70 @@ class DailyRankingsApp {
         }
     }
 
+    // Get consistently struggling players for the week
+    async getConsistentlyStrugglingPlayers(weekDateKeys) {
+        try {
+            console.log('Finding consistently struggling players for week:', weekDateKeys);
+            
+            // Get all rankings for the week
+            const weeklyRankings = {};
+            const playerAppearances = {};
+            const top10Players = new Set();
+            const lower20Players = new Set();
+            
+            // Process each day's rankings
+            for (const dateKey of weekDateKeys) {
+                const rankings = await this.rankingManager.getRankingsForDate(dateKey);
+                if (!rankings || rankings.length === 0) continue;
+                
+                weeklyRankings[dateKey] = rankings;
+                
+                // Track top 10 players (to exclude them)
+                const top10 = rankings.slice(0, 10);
+                top10.forEach(r => top10Players.add(r.commander));
+                
+                // Track lower 20 players
+                const lower20 = rankings.slice(-20);
+                lower20.forEach(r => lower20Players.add(r.commander));
+                
+                // Count appearances for each player
+                rankings.forEach(r => {
+                    if (!playerAppearances[r.commander]) {
+                        playerAppearances[r.commander] = 0;
+                    }
+                    playerAppearances[r.commander]++;
+                });
+            }
+            
+            console.log('Top 10 players found:', Array.from(top10Players));
+            console.log('Lower 20 players found:', Array.from(lower20Players));
+            console.log('Player appearances:', playerAppearances);
+            
+            // Filter players who meet our criteria
+            const strugglingPlayers = Object.entries(playerAppearances)
+                .filter(([name, frequency]) => {
+                    // Must not appear in top 10 on any day
+                    const neverInTop10 = !top10Players.has(name);
+                    // Must appear in lower 20 at least once
+                    const inLower20AtLeastOnce = lower20Players.has(name);
+                    // Must have appeared at least twice to show consistency
+                    const hasMultipleAppearances = frequency >= 2;
+                    
+                    return neverInTop10 && inLower20AtLeastOnce && hasMultipleAppearances;
+                })
+                .map(([name, frequency]) => ({ name, frequency }))
+                .sort((a, b) => b.frequency - a.frequency) // Sort by frequency (highest first)
+                .slice(0, 3); // Take top 3
+            
+            console.log('Consistently struggling players:', strugglingPlayers);
+            return strugglingPlayers;
+            
+        } catch (error) {
+            console.error('Error finding consistently struggling players:', error);
+            return [];
+        }
+    }
+
     // Cleanup invalid special events
     async cleanupInvalidSpecialEvents() {
         try {
@@ -2772,7 +2836,7 @@ class DailyRankingsApp {
                 const cumulativeScores = await this.rankingManager.getWeeklyCumulativeScores(weekDateKeys);
                 
                 if (rankings && rankings.length > 0) {
-                    const analysis = this.generateDailyAnalysis(rankings, currentDateKey, top10Occurrences, cumulativeScores, weekDateKeys);
+                    const analysis = await this.generateDailyAnalysis(rankings, currentDateKey, top10Occurrences, cumulativeScores, weekDateKeys);
                     analysisContent.innerHTML = analysis;
                     dataAnalysis.style.display = 'block';
                 } else {
@@ -2785,7 +2849,7 @@ class DailyRankingsApp {
         }
     }
 
-    generateDailyAnalysis(rankings, dateKey, top10Occurrences, cumulativeScores, weekDateKeys) {
+    async generateDailyAnalysis(rankings, dateKey, top10Occurrences, cumulativeScores, weekDateKeys) {
         const date = new Date(dateKey + 'T00:00:00');
         const dayName = this.formatSimpleDayName(date);
         const totalPlayers = rankings.length;
@@ -2836,10 +2900,9 @@ class DailyRankingsApp {
         const bottom3Today = rankings.slice(-3).reverse();
         const bottom3TodayNames = bottom3Today.map(r => r.commander).join(', ');
         
-        // Find lowest performers this week (based on cumulative scores)
-        const bottom3Weekly = Object.entries(cumulativeScores)
-            .sort(([_, a], [__, b]) => a - b) // Sort by lowest scores first
-            .slice(0, 3);
+        // Find consistently struggling players this week
+        // Players who: never in top 10, appear in lower 20 at least once, sorted by frequency
+        const strugglingPlayers = await this.getConsistentlyStrugglingPlayers(weekDateKeys);
         
         let analysis = `
             <p><span class="analysis-highlight">${dayName} Analysis:</span> ${totalPlayers} players competed today ${pointsAnalysis}.</p>
@@ -2873,13 +2936,13 @@ class DailyRankingsApp {
             `;
         }
         
-        if (bottom3Weekly.length > 0) {
-            const bottom3WeeklyText = bottom3Weekly
-                .map(([name, score]) => `${name} (${score} pts)`)
+        if (strugglingPlayers.length > 0) {
+            const strugglingPlayersText = strugglingPlayers
+                .map(player => `${player.name} (appeared ${player.frequency}x)`)
                 .join(', ');
             analysis += `
                 <div class="analysis-stat bottom-performers">
-                    <strong>Lowest Performers This Week:</strong> ${bottom3WeeklyText}
+                    <strong>Consistently Struggling This Week:</strong> ${strugglingPlayersText}
                 </div>
             `;
         }
