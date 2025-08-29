@@ -1414,6 +1414,11 @@ header h1 {
         background: rgba(16, 185, 129, 0.1);
         border-left-color: #10b981;
     }
+    
+    .analysis-content .analysis-stat.bottom-performers {
+        background: rgba(239, 68, 68, 0.1);
+        border-left-color: #ef4444;
+    }
 }
 
 /* Reports Tab Styles */
@@ -1976,6 +1981,39 @@ header h1 {
 .event-actions {
     display: flex;
     gap: 8px;
+}
+
+.event-actions-header {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding: 12px;
+    background: #f8fafc;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.cleanup-btn {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    align-self: flex-start;
+}
+
+.cleanup-btn:hover {
+    background: linear-gradient(135deg, #d97706, #b45309);
+    transform: translateY(-1px);
+}
+
+.cleanup-btn:active {
+    transform: translateY(0);
 }
 
 .event-btn {

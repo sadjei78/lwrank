@@ -92,7 +92,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.20 loaded successfully!');
+        console.log('🚀 LWRank v1.1.21 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -471,7 +471,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.20';
+                versionElement.textContent = 'v1.1.21';
             }
         }
 
@@ -699,48 +699,82 @@ class DailyRankingsApp {
         const weekStart = this.getWeekStart(this.selectedDate);
         const weekEnd = this.getWeekEnd(this.selectedDate);
         
-        console.log('Filtering special events for week:', {
-            weekStart: weekStart.toISOString().split('T')[0],
-            weekEnd: weekEnd.toISOString().split('T')[0],
-            totalEvents: specialEvents.length
-        });
+        // Validate week dates before using toISOString
+        if (isNaN(weekStart.getTime()) || isNaN(weekEnd.getTime())) {
+            console.error('Invalid week dates detected, using fallback dates');
+            const today = new Date();
+            const fallbackWeekStart = this.getWeekStart(today);
+            const fallbackWeekEnd = this.getWeekEnd(today);
+            
+            console.log('Filtering special events for week (fallback):', {
+                weekStart: fallbackWeekStart.toISOString().split('T')[0],
+                weekEnd: fallbackWeekEnd.toISOString().split('T')[0],
+                totalEvents: specialEvents.length
+            });
+        } else {
+            console.log('Filtering special events for week:', {
+                weekStart: weekStart.toISOString().split('T')[0],
+                weekEnd: weekEnd.toISOString().split('T')[0],
+                totalEvents: specialEvents.length
+            });
+        }
         
         for (const event of specialEvents) {
-            // Check if event overlaps with the selected week
-            const eventStart = new Date(event.start_date + 'T00:00:00');
-            const eventEnd = new Date(event.end_date + 'T23:59:59');
-            
-            // Event overlaps if: event starts before week ends AND event ends after week starts
-            const eventOverlapsWeek = eventStart <= weekEnd && eventEnd >= weekStart;
-            
-            console.log('Event date check:', {
-                eventName: event.name,
-                eventStart: event.start_date,
-                eventEnd: event.end_date,
-                eventStartParsed: eventStart.toISOString(),
-                eventEndParsed: eventEnd.toISOString(),
-                weekStart: weekStart.toISOString(),
-                weekEnd: weekEnd.toISOString(),
-                overlaps: eventOverlapsWeek
-            });
-            
-            if (eventOverlapsWeek) {
-                const eventKey = event.key;
-                const eventName = event.name;
+            try {
+                // Check if event overlaps with the selected week
+                const eventStart = new Date(event.start_date + 'T00:00:00');
+                const eventEnd = new Date(event.end_date + 'T23:59:59');
                 
-                // Create special event tab
-                const eventTab = document.createElement('button');
-                eventTab.className = 'tab special-event-tab';
-                eventTab.textContent = eventName;
-                eventTab.setAttribute('data-date', eventKey);
-                eventTab.setAttribute('data-type', 'special-event');
-                tabsContainer.appendChild(eventTab);
+                // Validate event dates
+                if (isNaN(eventStart.getTime()) || isNaN(eventEnd.getTime())) {
+                    console.warn('Invalid date in special event, skipping:', {
+                        eventName: event.name,
+                        startDate: event.start_date,
+                        endDate: event.end_date
+                    });
+                    continue; // Skip this event
+                }
                 
-                // Create special event content
-                const eventContent = document.createElement('div');
-                eventContent.className = 'tab-content';
-                eventContent.id = `tab-${eventKey}`;
-                tabContentsContainer.appendChild(eventContent);
+                // Use fallback dates if week dates are invalid
+                const effectiveWeekStart = isNaN(weekStart.getTime()) ? this.getWeekStart(new Date()) : weekStart;
+                const effectiveWeekEnd = isNaN(weekEnd.getTime()) ? this.getWeekEnd(new Date()) : weekEnd;
+                
+                // Event overlaps if: event starts before week ends AND event ends after week starts
+                const eventOverlapsWeek = eventStart <= effectiveWeekEnd && eventEnd >= effectiveWeekStart;
+                
+                console.log('Event date check:', {
+                    eventName: event.name,
+                    eventStart: event.start_date,
+                    eventEnd: event.end_date,
+                    eventStartParsed: eventStart.toISOString(),
+                    eventEndParsed: eventEnd.toISOString(),
+                    weekStart: effectiveWeekStart.toISOString(),
+                    weekEnd: effectiveWeekEnd.toISOString(),
+                    overlaps: eventOverlapsWeek
+                });
+                
+                if (eventOverlapsWeek) {
+                    const eventKey = event.key;
+                    const eventName = event.name;
+                    
+                    // Create special event tab
+                    const eventTab = document.createElement('button');
+                    eventTab.className = 'tab special-event-tab';
+                    eventTab.textContent = eventName;
+                    eventTab.setAttribute('data-date', eventKey);
+                    eventTab.setAttribute('data-type', 'special-event');
+                    tabsContainer.appendChild(eventTab);
+                    
+                    // Create special event content
+                    const eventContent = document.createElement('div');
+                    eventContent.className = 'tab-content';
+                    eventContent.id = `tab-${eventKey}`;
+                    tabContentsContainer.appendChild(eventContent);
+                }
+            } catch (error) {
+                console.error('Error processing special event:', event, error);
+                // Continue with next event instead of crashing
+                continue;
             }
         }
         
@@ -1507,6 +1541,10 @@ class DailyRankingsApp {
                     
                     <div class="current-events">
                         <h4>All Special Events (<span id="eventCount">0</span>)</h4>
+                        <div class="event-actions-header">
+                            <button id="cleanupInvalidEventsBtn" class="cleanup-btn">🧹 Cleanup Invalid Events</button>
+                            <small class="form-help">Remove events with invalid dates that may cause errors</small>
+                        </div>
                         <div id="currentEventsList" class="current-events-list">
                             <p class="loading-events">Loading special events...</p>
                         </div>
@@ -2224,6 +2262,12 @@ class DailyRankingsApp {
             // Setup event delegation for edit/delete buttons
             this.setupSpecialEventListeners();
             
+            // Setup cleanup button listener
+            const cleanupBtn = document.getElementById('cleanupInvalidEventsBtn');
+            if (cleanupBtn) {
+                cleanupBtn.addEventListener('click', () => this.cleanupInvalidSpecialEvents());
+            }
+            
         } catch (error) {
             console.error('Error updating special events list:', error);
             eventsListContainer.innerHTML = '<p class="error">Error loading special events.</p>';
@@ -2312,6 +2356,59 @@ class DailyRankingsApp {
         } catch (error) {
             console.error('Error deleting special event:', error);
             this.uiManager.showError(`Error deleting special event: ${error.message}`);
+        }
+    }
+
+    // Cleanup invalid special events
+    async cleanupInvalidSpecialEvents() {
+        try {
+            console.log('Starting cleanup of invalid special events...');
+            
+            const specialEvents = await this.rankingManager.getSpecialEvents();
+            let invalidEvents = [];
+            
+            // Find events with invalid dates
+            for (const event of specialEvents) {
+                try {
+                    const startDate = new Date(event.start_date + 'T00:00:00');
+                    const endDate = new Date(event.end_date + 'T23:59:59');
+                    
+                    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+                        invalidEvents.push(event);
+                    }
+                } catch (error) {
+                    console.warn('Error validating event dates:', event, error);
+                    invalidEvents.push(event);
+                }
+            }
+            
+            if (invalidEvents.length === 0) {
+                this.uiManager.showInfo('No invalid events found. All special events have valid dates.');
+                return;
+            }
+            
+            if (confirm(`Found ${invalidEvents.length} invalid special events. Would you like to delete them? This will also remove all associated rankings.`)) {
+                let deletedCount = 0;
+                
+                for (const event of invalidEvents) {
+                    try {
+                        await this.rankingManager.deleteSpecialEvent(event.key);
+                        deletedCount++;
+                        console.log('Deleted invalid event:', event.key);
+                    } catch (error) {
+                        console.error('Error deleting invalid event:', event.key, error);
+                    }
+                }
+                
+                this.uiManager.showSuccess(`Successfully deleted ${deletedCount} invalid special events.`);
+                
+                // Refresh the events list and weekly tabs
+                this.updateSpecialEventsList();
+                await this.updateWeeklyTabs();
+            }
+        } catch (error) {
+            console.error('Error during cleanup:', error);
+            this.uiManager.showError(`Error during cleanup: ${error.message}`);
         }
     }
 
@@ -2735,10 +2832,22 @@ class DailyRankingsApp {
             .sort(([_, a], [__, b]) => b - a)
             .slice(0, 3);
         
+        // Find lowest performers today
+        const bottom3Today = rankings.slice(-3).reverse();
+        const bottom3TodayNames = bottom3Today.map(r => r.commander).join(', ');
+        
+        // Find lowest performers this week (based on cumulative scores)
+        const bottom3Weekly = Object.entries(cumulativeScores)
+            .sort(([_, a], [__, b]) => a - b) // Sort by lowest scores first
+            .slice(0, 3);
+        
         let analysis = `
             <p><span class="analysis-highlight">${dayName} Analysis:</span> ${totalPlayers} players competed today ${pointsAnalysis}.</p>
             <div class="analysis-stat">
                 <strong>Top 3 Today:</strong> ${top3Names}
+            </div>
+            <div class="analysis-stat bottom-performers">
+                <strong>Bottom 3 Today:</strong> ${bottom3TodayNames}
             </div>
         `;
         
@@ -2760,6 +2869,17 @@ class DailyRankingsApp {
             analysis += `
                 <div class="analysis-stat">
                     <strong>Weekly Leaders:</strong> ${topCumulativeText}
+                </div>
+            `;
+        }
+        
+        if (bottom3Weekly.length > 0) {
+            const bottom3WeeklyText = bottom3Weekly
+                .map(([name, score]) => `${name} (${score} pts)`)
+                .join(', ');
+            analysis += `
+                <div class="analysis-stat bottom-performers">
+                    <strong>Lowest Performers This Week:</strong> ${bottom3WeeklyText}
                 </div>
             `;
         }
