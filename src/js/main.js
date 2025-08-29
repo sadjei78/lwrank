@@ -92,7 +92,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.17 loaded successfully!');
+        console.log('🚀 LWRank v1.1.18 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -438,7 +438,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.17';
+                versionElement.textContent = 'v1.1.18';
             }
         }
 
@@ -1049,6 +1049,27 @@ class DailyRankingsApp {
         } catch (error) {
             console.error('Error processing pasted CSV:', error);
             alert('Error processing CSV data. Please check the format and try again.');
+        }
+    }
+
+    // CSV upload handler methods for admin interface
+    async handleCSVUpload() {
+        console.log('handleCSVUpload method called');
+        try {
+            await this.processCSVFile();
+        } catch (error) {
+            console.error('Error in handleCSVUpload:', error);
+            this.uiManager.showError('Error processing CSV upload. Please try again.');
+        }
+    }
+
+    async handlePasteCSVUpload() {
+        console.log('handlePasteCSVUpload method called');
+        try {
+            await this.processPastedCSV();
+        } catch (error) {
+            console.error('Error in handlePasteCSVUpload:', error);
+            this.uiManager.showError('Error processing pasted CSV data. Please try again.');
         }
     }
 
