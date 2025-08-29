@@ -92,7 +92,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.19 loaded successfully!');
+        console.log('🚀 LWRank v1.1.20 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -362,17 +362,23 @@ class DailyRankingsApp {
                 return;
             }
             
+            console.log('Admin mode confirmed, looking for admin tab...');
+            
             // First, ensure admin tab exists by calling updateWeeklyTabs if needed
             if (!document.querySelector('.tab[data-type="admin"]')) {
                 console.log('Admin tab not found, refreshing tabs...');
                 await this.updateWeeklyTabs();
                 
                 // Wait a bit for the DOM to update
-                await new Promise(resolve => setTimeout(resolve, 100));
+                await new Promise(resolve => setTimeout(resolve, 200));
+                
+                console.log('Tabs refreshed, checking for admin tab again...');
             }
             
             // Now try to find the admin tab again
             const adminTab = document.querySelector('.tab[data-type="admin"]');
+            console.log('Admin tab search result:', adminTab);
+            
             if (adminTab) {
                 console.log('Admin tab found, clicking it...');
                 adminTab.click();
@@ -380,6 +386,8 @@ class DailyRankingsApp {
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             } else {
                 console.error('Admin tab still not found after refresh');
+                console.log('All tabs in DOM:', document.querySelectorAll('.tab'));
+                console.log('All elements with data-type:', document.querySelectorAll('[data-type]'));
                 this.uiManager.showError('Admin tab not available. Please try refreshing the page.');
             }
         } catch (error) {
@@ -463,7 +471,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.19';
+                versionElement.textContent = 'v1.1.20';
             }
         }
 
@@ -741,6 +749,8 @@ class DailyRankingsApp {
         reportsTab.className = 'tab reports-tab';
         reportsTab.textContent = '📊 Reports';
         reportsTab.setAttribute('data-type', 'reports');
+        reportsTab.style.display = 'inline-block'; // Ensure it's visible
+        reportsTab.style.visibility = 'visible'; // Ensure it's visible
         tabsContainer.appendChild(reportsTab);
         
         // Add click handler for reports tab
@@ -753,6 +763,7 @@ class DailyRankingsApp {
         console.log('Reports tab element:', reportsTab);
         console.log('Reports tab parent:', reportsTab.parentElement);
         console.log('All tabs in container:', tabsContainer.querySelectorAll('.tab').length);
+        console.log('Reports tab computed styles:', window.getComputedStyle(reportsTab));
         
         // Add Admin tab (only show if admin mode is active)
         console.log('Checking admin status:', this.isAdmin(), 'adminAuthenticated:', this.adminAuthenticated);
@@ -947,9 +958,9 @@ class DailyRankingsApp {
         await this.updateDataAnalysis();
     }
 
-    async processCSVFile() {
+    async processCSVFile(selectedDate) {
         const fileInput = document.getElementById('csvFileUpload');
-        const selectedDateKey = this.currentTabDate || this.formatDateKey(this.selectedDate);
+        const selectedDateKey = selectedDate || this.currentTabDate || this.formatDateKey(this.selectedDate);
         
         if (!fileInput.files.length) {
             alert('Please select a CSV file.');
@@ -1027,9 +1038,9 @@ class DailyRankingsApp {
         });
     }
 
-    async processPastedCSV() {
+    async processPastedCSV(selectedDate) {
         const rawCsvInput = document.getElementById('rawCsvInput');
-        const selectedDateKey = this.currentTabDate || this.formatDateKey(this.selectedDate);
+        const selectedDateKey = selectedDate || this.currentTabDate || this.formatDateKey(this.selectedDate);
         
         if (!rawCsvInput.value.trim()) {
             alert('Please paste CSV data into the text area.');
@@ -1115,7 +1126,11 @@ class DailyRankingsApp {
     async handleCSVUpload() {
         console.log('handleCSVUpload method called');
         try {
-            await this.processCSVFile();
+            // Validate date selection
+            const selectedDate = this.validateCSVUploadDate();
+            if (!selectedDate) return;
+            
+            await this.processCSVFile(selectedDate);
         } catch (error) {
             console.error('Error in handleCSVUpload:', error);
             this.uiManager.showError('Error processing CSV upload. Please try again.');
@@ -1125,11 +1140,47 @@ class DailyRankingsApp {
     async handlePasteCSVUpload() {
         console.log('handlePasteCSVUpload method called');
         try {
-            await this.processPastedCSV();
+            // Validate date selection
+            const selectedDate = this.validateCSVUploadDate();
+            if (!selectedDate) return;
+            
+            await this.processPastedCSV(selectedDate);
         } catch (error) {
             console.error('Error in handlePasteCSVUpload:', error);
             this.uiManager.showError('Error processing pasted CSV data. Please try again.');
         }
+    }
+
+    // Validate CSV upload date selection
+    validateCSVUploadDate() {
+        const dateInput = document.getElementById('csvUploadDate');
+        if (!dateInput) {
+            this.uiManager.showError('Date selector not found. Please refresh the page.');
+            return null;
+        }
+        
+        const selectedDate = dateInput.value;
+        if (!selectedDate) {
+            this.uiManager.showError('Please select a date for the CSV upload.');
+            return null;
+        }
+        
+        // Convert to Date object and validate
+        const date = new Date(selectedDate);
+        if (isNaN(date.getTime())) {
+            this.uiManager.showError('Invalid date selected. Please choose a valid date.');
+            return null;
+        }
+        
+        // Check if date is in the future
+        const today = new Date();
+        today.setHours(23, 59, 59, 999); // End of today
+        if (date > today) {
+            this.uiManager.showError('Cannot upload scores for future dates. Please select today or a past date.');
+            return null;
+        }
+        
+        return selectedDate;
     }
 
     async showImportConfirmation(rankings, dateKey) {
@@ -1391,6 +1442,20 @@ class DailyRankingsApp {
                 <div class="admin-section">
                     <h3>📁 CSV Upload</h3>
                     <div class="csv-upload">
+                        <!-- Date Selection for CSV Upload -->
+                        <div class="upload-date-selector">
+                            <h4>📅 Select Date for Scores</h4>
+                            <div class="date-input-group">
+                                <label for="csvUploadDate">Date:</label>
+                                <input type="date" id="csvUploadDate" class="form-input" required>
+                                <small class="form-help">Choose the date these scores should be applied to</small>
+                            </div>
+                        </div>
+                        
+                        <div class="upload-divider">
+                            <span>OR</span>
+                        </div>
+                        
                         <div class="upload-option">
                             <h4>📄 File Upload</h4>
                             <label for="csvFileUpload">Upload CSV File:</label>
