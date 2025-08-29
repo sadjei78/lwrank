@@ -206,7 +206,14 @@ class DailyRankingsApp {
         // Admin banner clickable to return to admin tab
         const adminBannerClickable = document.getElementById('adminBannerClickable');
         if (adminBannerClickable) {
-            adminBannerClickable.addEventListener('click', () => this.navigateToAdminTab());
+            adminBannerClickable.addEventListener('click', async () => {
+                try {
+                    await this.navigateToAdminTab();
+                } catch (error) {
+                    console.error('Error navigating to admin tab:', error);
+                    this.uiManager.showError('Error navigating to admin tab. Please try again.');
+                }
+            });
         }
 
         // Admin-specific event listeners will be set up when admin content loads
@@ -344,22 +351,40 @@ class DailyRankingsApp {
         }
     }
 
-    navigateToAdminTab() {
-        // First, ensure admin tab exists by calling updateWeeklyTabs if needed
-        if (!document.querySelector('.tab[data-type="admin"]')) {
-            console.log('Admin tab not found, refreshing tabs...');
-            this.updateWeeklyTabs();
-        }
+    async navigateToAdminTab() {
+        console.log('navigateToAdminTab called');
         
-        // Now try to find the admin tab again
-        const adminTab = document.querySelector('.tab[data-type="admin"]');
-        if (adminTab) {
-            adminTab.click();
-            // Scroll to top for better mobile experience
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        } else {
-            console.error('Admin tab still not found after refresh');
-            this.uiManager.showError('Admin tab not available. Please try refreshing the page.');
+        try {
+            // Check if we're in admin mode
+            if (!this.isAdmin()) {
+                console.log('Not in admin mode, cannot navigate to admin tab');
+                this.uiManager.showError('Admin access required. Please log in as admin first.');
+                return;
+            }
+            
+            // First, ensure admin tab exists by calling updateWeeklyTabs if needed
+            if (!document.querySelector('.tab[data-type="admin"]')) {
+                console.log('Admin tab not found, refreshing tabs...');
+                await this.updateWeeklyTabs();
+                
+                // Wait a bit for the DOM to update
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            
+            // Now try to find the admin tab again
+            const adminTab = document.querySelector('.tab[data-type="admin"]');
+            if (adminTab) {
+                console.log('Admin tab found, clicking it...');
+                adminTab.click();
+                // Scroll to top for better mobile experience
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } else {
+                console.error('Admin tab still not found after refresh');
+                this.uiManager.showError('Admin tab not available. Please try refreshing the page.');
+            }
+        } catch (error) {
+            console.error('Error in navigateToAdminTab:', error);
+            this.uiManager.showError('Error navigating to admin tab. Please try again.');
         }
     }
 
@@ -718,6 +743,17 @@ class DailyRankingsApp {
         reportsTab.setAttribute('data-type', 'reports');
         tabsContainer.appendChild(reportsTab);
         
+        // Add click handler for reports tab
+        reportsTab.addEventListener('click', () => {
+            console.log('Reports tab clicked');
+            this.showTab('reports');
+        });
+        
+        console.log('Reports tab created and added to DOM');
+        console.log('Reports tab element:', reportsTab);
+        console.log('Reports tab parent:', reportsTab.parentElement);
+        console.log('All tabs in container:', tabsContainer.querySelectorAll('.tab').length);
+        
         // Add Admin tab (only show if admin mode is active)
         console.log('Checking admin status:', this.isAdmin(), 'adminAuthenticated:', this.adminAuthenticated);
         if (this.isAdmin()) {
@@ -760,19 +796,42 @@ class DailyRankingsApp {
         
         // Check if this is the Reports tab
         if (dateKey === 'reports') {
+            console.log('Showing Reports tab...');
+            
             // Show reports tab
-            document.getElementById('reportsTab').style.display = 'block';
-            document.getElementById('adminTab').style.display = 'none';
-            document.querySelector('.tabs-container').style.display = 'none';
+            const reportsTabElement = document.getElementById('reportsTab');
+            const adminTabElement = document.getElementById('adminTab');
+            const tabsContainerElement = document.querySelector('.tabs-container');
+            
+            console.log('Reports tab element found:', !!reportsTabElement);
+            console.log('Admin tab element found:', !!adminTabElement);
+            console.log('Tabs container found:', !!tabsContainerElement);
+            
+            if (reportsTabElement) {
+                reportsTabElement.style.display = 'block';
+                console.log('Reports tab display set to block');
+            }
+            
+            if (adminTabElement) {
+                adminTabElement.style.display = 'none';
+            }
+            
+            if (tabsContainerElement) {
+                tabsContainerElement.style.display = 'none';
+            }
             
             // Add active class to reports tab
             const reportsTab = document.querySelector('.tab[data-type="reports"]');
             if (reportsTab) {
                 reportsTab.classList.add('active');
+                console.log('Active class added to Reports tab');
+            } else {
+                console.error('Reports tab button not found in DOM');
             }
             
             // Initialize reports functionality
             this.initializeReports();
+            console.log('Reports functionality initialized');
             return;
         } else if (dateKey === 'admin') {
             // Show admin tab
