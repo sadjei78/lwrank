@@ -92,7 +92,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.24 loaded successfully!');
+        console.log('🚀 LWRank v1.1.25 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -471,7 +471,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.24';
+                versionElement.textContent = 'v1.1.25';
             }
         }
 
@@ -2418,7 +2418,7 @@ class DailyRankingsApp {
                         if (rankings) {
                             const playerRanking = rankings.find(r => r.commander === name);
                             if (playerRanking) {
-                                const actualRank = playerRanking.rank; // Use actual rank from database
+                                const actualRank = playerRanking.ranking; // Use actual ranking from database
                                 const totalPlayers = rankings.length;
                                 dailyRanks.push({ date: dateKey, rank: actualRank, totalPlayers });
                             }
