@@ -92,7 +92,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.23 loaded successfully!');
+        console.log('🚀 LWRank v1.1.24 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -471,7 +471,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.23';
+                versionElement.textContent = 'v1.1.24';
             }
         }
 
@@ -2418,9 +2418,9 @@ class DailyRankingsApp {
                         if (rankings) {
                             const playerRanking = rankings.find(r => r.commander === name);
                             if (playerRanking) {
-                                const rank = rankings.indexOf(playerRanking) + 1; // +1 because index is 0-based
+                                const actualRank = playerRanking.rank; // Use actual rank from database
                                 const totalPlayers = rankings.length;
-                                dailyRanks.push({ date: dateKey, rank, totalPlayers });
+                                dailyRanks.push({ date: dateKey, rank: actualRank, totalPlayers });
                             }
                         }
                     }
@@ -2956,7 +2956,7 @@ class DailyRankingsApp {
             const strugglingPlayersText = strugglingPlayers
                 .map(player => {
                     const rankInfo = player.dailyRanks
-                        .map(rank => `${this.formatSimpleDayName(new Date(rank.date + 'T00:00:00'))}: ${rank.rank}/${rank.totalPlayers}`)
+                        .map(rank => `${this.formatSimpleDayName(new Date(rank.date + 'T00:00:00'))}: rank ${rank.rank}`)
                         .join(', ');
                     return `${player.name} (appeared ${player.frequency}x - ${rankInfo})`;
                 })
