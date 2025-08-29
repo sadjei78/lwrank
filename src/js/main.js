@@ -92,7 +92,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.22 loaded successfully!');
+        console.log('🚀 LWRank v1.1.23 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -471,7 +471,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.22';
+                versionElement.textContent = 'v1.1.23';
             }
         }
 
@@ -2398,7 +2398,7 @@ class DailyRankingsApp {
             console.log('Lower 20 players found:', Array.from(lower20Players));
             console.log('Player appearances:', playerAppearances);
             
-            // Filter players who meet our criteria
+            // Filter players who meet our criteria and collect their daily rank data
             const strugglingPlayers = Object.entries(playerAppearances)
                 .filter(([name, frequency]) => {
                     // Must not appear in top 10 on any day
@@ -2410,7 +2410,23 @@ class DailyRankingsApp {
                     
                     return neverInTop10 && inLower20AtLeastOnce && hasMultipleAppearances;
                 })
-                .map(([name, frequency]) => ({ name, frequency }))
+                .map(([name, frequency]) => {
+                    // Collect daily rank data for this player
+                    const dailyRanks = [];
+                    for (const dateKey of weekDateKeys) {
+                        const rankings = weeklyRankings[dateKey];
+                        if (rankings) {
+                            const playerRanking = rankings.find(r => r.commander === name);
+                            if (playerRanking) {
+                                const rank = rankings.indexOf(playerRanking) + 1; // +1 because index is 0-based
+                                const totalPlayers = rankings.length;
+                                dailyRanks.push({ date: dateKey, rank, totalPlayers });
+                            }
+                        }
+                    }
+                    
+                    return { name, frequency, dailyRanks };
+                })
                 .sort((a, b) => b.frequency - a.frequency) // Sort by frequency (highest first)
                 .slice(0, 3); // Take top 3
             
@@ -2938,11 +2954,17 @@ class DailyRankingsApp {
         
         if (strugglingPlayers.length > 0) {
             const strugglingPlayersText = strugglingPlayers
-                .map(player => `${player.name} (appeared ${player.frequency}x)`)
-                .join(', ');
+                .map(player => {
+                    const rankInfo = player.dailyRanks
+                        .map(rank => `${this.formatSimpleDayName(new Date(rank.date + 'T00:00:00'))}: ${rank.rank}/${rank.totalPlayers}`)
+                        .join(', ');
+                    return `${player.name} (appeared ${player.frequency}x - ${rankInfo})`;
+                })
+                .join('<br>');
             analysis += `
                 <div class="analysis-stat bottom-performers">
-                    <strong>Consistently Struggling This Week:</strong> ${strugglingPlayersText}
+                    <strong>Consistently Struggling This Week:</strong><br>
+                    ${strugglingPlayersText}
                 </div>
             `;
         }
