@@ -92,7 +92,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.25 loaded successfully!');
+        console.log('🚀 LWRank v1.1.26 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -471,7 +471,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.25';
+                versionElement.textContent = 'v1.1.26';
             }
         }
 
@@ -1279,6 +1279,15 @@ class DailyRankingsApp {
             
             if (startDateObj > endDateObj) {
                 this.uiManager.showError('Start date must be before end date.');
+                return;
+            }
+            
+            // Prevent future dates
+            const today = new Date();
+            today.setHours(0, 0, 0, 0); // Reset time to start of day
+            
+            if (startDateObj > today || endDateObj > today) {
+                this.uiManager.showError('Cannot create special events with future dates. Please use today or past dates only.');
                 return;
             }
             
@@ -2560,6 +2569,29 @@ class DailyRankingsApp {
             const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
             if (!dateRegex.test(startDate) || !dateRegex.test(endDate)) {
                 this.uiManager.showError('Invalid date format. Please use YYYY-MM-DD format.');
+                return;
+            }
+            
+            // Validate date logic and prevent future dates
+            const startDateObj = new Date(startDate);
+            const endDateObj = new Date(endDate);
+            
+            if (isNaN(startDateObj.getTime()) || isNaN(endDateObj.getTime())) {
+                this.uiManager.showError('Invalid date values. Please check your input.');
+                return;
+            }
+            
+            if (startDateObj > endDateObj) {
+                this.uiManager.showError('Start date must be before end date.');
+                return;
+            }
+            
+            // Prevent future dates
+            const today = new Date();
+            today.setHours(0, 0, 0, 0); // Reset time to start of day
+            
+            if (startDateObj > today || endDateObj > today) {
+                this.uiManager.showError('Cannot update special events with future dates. Please use today or past dates only.');
                 return;
             }
             
