@@ -92,7 +92,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.30 loaded successfully!');
+        console.log('🚀 LWRank v1.1.31 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -471,7 +471,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.30';
+                versionElement.textContent = 'v1.1.31';
             }
         }
 
@@ -4234,7 +4234,32 @@ class DailyRankingsApp {
             // Performance distribution
             const top10Count = rankings.filter(r => r.ranking <= 10).length;
             const top25Count = rankings.filter(r => r.ranking <= 25).length;
-            const bottom20Count = rankings.filter(r => r.ranking > 20).length;
+            
+            // Calculate bottom 20 appearances correctly
+            // We need to check if the player was in the bottom 20 positions of each day's field
+            let bottom20Count = 0;
+            const dayRankings = {};
+            
+            // Group rankings by day to get total participants per day
+            rankings.forEach(r => {
+                if (!dayRankings[r.day]) {
+                    dayRankings[r.day] = [];
+                }
+                dayRankings[r.day].push(r);
+            });
+            
+            // For each day, check if player was in bottom 20
+            Object.values(dayRankings).forEach(dayRankingList => {
+                const totalParticipants = dayRankingList.length;
+                const playerRanking = dayRankingList.find(r => r.commander === playerName);
+                
+                if (playerRanking && playerRanking.ranking) {
+                    // Check if player was in bottom 20 positions of that day
+                    if (playerRanking.ranking > (totalParticipants - 20)) {
+                        bottom20Count++;
+                    }
+                }
+            });
             
             // Recent performance (last 5 appearances)
             const recentRankings = sortedRankings.slice(0, 5);
