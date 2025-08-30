@@ -92,7 +92,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.26 loaded successfully!');
+        console.log('🚀 LWRank v1.1.27 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -471,7 +471,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.26';
+                versionElement.textContent = 'v1.1.27';
             }
         }
 
@@ -3050,6 +3050,16 @@ class DailyRankingsApp {
         const reportType = document.getElementById('reportType');
         if (reportType) {
             reportType.addEventListener('change', () => {
+                // Show/hide player name filter based on report type
+                const playerNameFilter = document.getElementById('playerNameFilter');
+                if (playerNameFilter) {
+                    if (reportType.value === 'player-performance') {
+                        playerNameFilter.style.display = 'block';
+                    } else {
+                        playerNameFilter.style.display = 'none';
+                    }
+                }
+                
                 if (reportType.value) {
                     this.generateReport();
                 }
@@ -3071,6 +3081,16 @@ class DailyRankingsApp {
         if (dateRange) {
             dateRange.addEventListener('change', () => {
                 if (reportType.value) {
+                    this.generateReport();
+                }
+            });
+        }
+        
+        // Set up player name change handler
+        const playerName = document.getElementById('playerName');
+        if (playerName) {
+            playerName.addEventListener('input', () => {
+                if (reportType.value === 'player-performance') {
                     this.generateReport();
                 }
             });
@@ -3646,6 +3666,14 @@ class DailyRankingsApp {
                     reportData = await this.generateBottom10WeeklyReport(minAppearances, dateRange);
                     reportTitle = '📊 Bottom 10 Weekly Total Points';
                     break;
+                case 'player-performance':
+                    const playerName = document.getElementById('playerName').value?.trim();
+                    if (!playerName) {
+                        throw new Error('Please enter a player name for the performance analysis');
+                    }
+                    reportData = await this.generatePlayerPerformanceReport(playerName, dateRange);
+                    reportTitle = `👤 ${playerName} - Performance Analysis`;
+                    break;
                 default:
                     throw new Error('Unknown report type');
             }
@@ -3670,6 +3698,12 @@ class DailyRankingsApp {
     displayReport(title, data) {
         const content = document.getElementById('reportContent');
         if (!content) return;
+        
+        // Check if this is a player performance report
+        if (data.length > 0 && data[0].player && title.includes('Performance Analysis')) {
+            this.displayPlayerPerformanceReport(title, data[0]);
+            return;
+        }
         
         let html = `
             <div class="report-header">
@@ -3717,6 +3751,117 @@ class DailyRankingsApp {
         content.innerHTML = html;
     }
 
+    // Display player performance report in a special format
+    displayPlayerPerformanceReport(title, performance) {
+        const content = document.getElementById('reportContent');
+        if (!content) return;
+        
+        const html = `
+            <div class="report-header">
+                <h3>${title}</h3>
+                <div class="report-meta">
+                    <span class="meta-item">⏰ Generated: ${new Date().toLocaleString()}</span>
+                </div>
+            </div>
+            
+            <div class="player-performance-report">
+                <div class="performance-overview">
+                    <div class="performance-card primary">
+                        <h4>📊 Overall Performance</h4>
+                        <div class="metric-grid">
+                            <div class="metric">
+                                <span class="metric-label">Total Appearances</span>
+                                <span class="metric-value">${performance.totalAppearances}</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Average Ranking</span>
+                                <span class="metric-value">${performance.averageRanking}</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Best Ranking</span>
+                                <span class="metric-value">🏆 ${performance.bestRanking}</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Worst Ranking</span>
+                                <span class="metric-value">📉 ${performance.worstRanking}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="performance-card">
+                        <h4>💰 Points Analysis</h4>
+                        <div class="metric-grid">
+                            <div class="metric">
+                                <span class="metric-label">Total Points</span>
+                                <span class="metric-value">${performance.totalPoints.toLocaleString()}</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Average Points</span>
+                                <span class="metric-value">${performance.averagePoints}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="performance-details">
+                    <div class="performance-card">
+                        <h4>📈 Performance Distribution</h4>
+                        <div class="metric-grid">
+                            <div class="metric">
+                                <span class="metric-label">Top 10 Finishes</span>
+                                <span class="metric-value">${performance.top10Percentage}%</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Top 25 Finishes</span>
+                                <span class="metric-value">${performance.top25Percentage}%</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Consistency</span>
+                                <span class="metric-value">${performance.consistency}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="performance-card">
+                        <h4>🔄 Recent & Trend Analysis</h4>
+                        <div class="metric-grid">
+                            <div class="metric">
+                                <span class="metric-label">Recent Performance (Last 5)</span>
+                                <span class="metric-value">${performance.recentPerformance}</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Performance Trend</span>
+                                <span class="metric-value">${performance.trendIndicator} ${performance.performanceTrend}</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Special Events</span>
+                                <span class="metric-value">${performance.specialEventAppearances}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="performance-timeline">
+                    <div class="performance-card">
+                        <h4>📅 Participation Timeline</h4>
+                        <div class="metric-grid">
+                            <div class="metric">
+                                <span class="metric-label">First Appearance</span>
+                                <span class="metric-value">${this.formatDateDisplay(performance.firstAppearance)}</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Last Appearance</span>
+                                <span class="metric-value">${this.formatDateDisplay(performance.lastAppearance)}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        content.innerHTML = html;
+    }
+
     displayReportError(message) {
         const content = document.getElementById('reportContent');
         if (!content) return;
@@ -3742,6 +3887,38 @@ class DailyRankingsApp {
             return value.toLocaleString();
         }
         return value.toString();
+    }
+
+    // Generate comprehensive player performance report
+    async generatePlayerPerformanceReport(playerName, dateRange) {
+        try {
+            console.log(`Generating performance report for player: ${playerName}`);
+            
+            const allRankings = await this.rankingManager.getAllRankings();
+            
+            if (!Array.isArray(allRankings)) {
+                throw new Error('Failed to retrieve rankings data');
+            }
+            
+            const filteredRankings = this.filterRankingsByDateRange(allRankings, dateRange);
+            
+            // Filter rankings for the specific player
+            const playerRankings = filteredRankings.filter(r => 
+                r.commander.toLowerCase() === playerName.toLowerCase()
+            );
+            
+            if (playerRankings.length === 0) {
+                throw new Error(`No data found for player "${playerName}" in the selected date range`);
+            }
+            
+            // Calculate comprehensive performance metrics
+            const performance = this.calculatePlayerPerformanceMetrics(playerRankings, playerName);
+            
+            return [performance]; // Return as array for consistency with other reports
+        } catch (error) {
+            console.error('Error in generatePlayerPerformanceReport:', error);
+            throw new Error(`Failed to generate player performance report: ${error.message}`);
+        }
     }
 
     // Report Generation Methods
@@ -4002,6 +4179,105 @@ class DailyRankingsApp {
                 return false;
             }
         });
+    }
+
+    // Calculate comprehensive performance metrics for a specific player
+    calculatePlayerPerformanceMetrics(rankings, playerName) {
+        try {
+            // Sort rankings by date (newest first)
+            const sortedRankings = [...rankings].sort((a, b) => {
+                const dateA = new Date(a.day + 'T00:00:00');
+                const dateB = new Date(b.day + 'T00:00:00');
+                return dateB - dateA;
+            });
+            
+            // Basic metrics
+            const totalAppearances = rankings.length;
+            const totalPoints = rankings.reduce((sum, r) => sum + (parseFloat(r.points) || 0), 0);
+            const avgPoints = totalPoints / totalAppearances;
+            
+            // Ranking metrics
+            const rankings_only = rankings.filter(r => r.ranking && !isNaN(r.ranking));
+            const avgRanking = rankings_only.length > 0 ? 
+                rankings_only.reduce((sum, r) => sum + r.ranking, 0) / rankings_only.length : 0;
+            
+            const bestRanking = Math.min(...rankings_only.map(r => r.ranking));
+            const worstRanking = Math.max(...rankings_only.map(r => r.ranking));
+            
+            // Performance distribution
+            const top10Count = rankings.filter(r => r.ranking <= 10).length;
+            const top25Count = rankings.filter(r => r.ranking <= 25).length;
+            const bottom25Count = rankings.filter(r => r.ranking > 25).length;
+            
+            // Recent performance (last 5 appearances)
+            const recentRankings = sortedRankings.slice(0, 5);
+            const recentAvgRanking = recentRankings.length > 0 ? 
+                recentRankings.reduce((sum, r) => sum + (r.ranking || 0), 0) / recentRankings.length : 0;
+            
+            // Special events participation
+            const specialEventRankings = rankings.filter(r => r.day.startsWith('event_'));
+            const specialEventCount = specialEventRankings.length;
+            
+            // Performance trends
+            const firstHalf = rankings.slice(0, Math.ceil(rankings.length / 2));
+            const secondHalf = rankings.slice(Math.ceil(rankings.length / 2));
+            
+            const firstHalfAvg = firstHalf.length > 0 ? 
+                firstHalf.reduce((sum, r) => sum + (r.ranking || 0), 0) / firstHalf.length : 0;
+            const secondHalfAvg = secondHalf.length > 0 ? 
+                secondHalf.reduce((sum, r) => sum + (r.ranking || 0), 0) / secondHalf.length : 0;
+            
+            const isImproving = secondHalfAvg < firstHalfAvg;
+            
+            // Create performance summary
+            const performance = {
+                player: playerName,
+                totalAppearances: totalAppearances,
+                totalPoints: Math.round(totalPoints),
+                averagePoints: Math.round(avgPoints * 100) / 100,
+                averageRanking: Math.round(avgRanking * 100) / 100,
+                bestRanking: bestRanking,
+                worstRanking: worstRanking,
+                top10Percentage: Math.round((top10Count / totalAppearances) * 100),
+                top25Percentage: Math.round((top25Count / totalAppearances) * 100),
+                recentPerformance: Math.round(recentAvgRanking * 100) / 100,
+                specialEventAppearances: specialEventCount,
+                performanceTrend: isImproving ? 'Improving' : 'Declining',
+                trendIndicator: isImproving ? '📈' : '📉',
+                consistency: this.calculateConsistencyScore(rankings),
+                lastAppearance: sortedRankings[0]?.day || 'Unknown',
+                firstAppearance: sortedRankings[sortedRankings.length - 1]?.day || 'Unknown'
+            };
+            
+            console.log('Player performance metrics calculated:', performance);
+            return performance;
+            
+        } catch (error) {
+            console.error('Error calculating player performance metrics:', error);
+            throw new Error(`Failed to calculate performance metrics: ${error.message}`);
+        }
+    }
+
+    // Calculate consistency score based on ranking variance
+    calculateConsistencyScore(rankings) {
+        try {
+            const validRankings = rankings.filter(r => r.ranking && !isNaN(r.ranking));
+            if (validRankings.length < 2) return 'Insufficient Data';
+            
+            const avgRanking = validRankings.reduce((sum, r) => sum + r.ranking, 0) / validRankings.length;
+            const variance = validRankings.reduce((sum, r) => sum + Math.pow(r.ranking - avgRanking, 2), 0) / validRankings.length;
+            const stdDev = Math.sqrt(variance);
+            
+            // Lower standard deviation = more consistent
+            if (stdDev <= 5) return 'Very Consistent';
+            if (stdDev <= 10) return 'Consistent';
+            if (stdDev <= 15) return 'Moderate';
+            if (stdDev <= 20) return 'Variable';
+            return 'Highly Variable';
+        } catch (error) {
+            console.error('Error calculating consistency score:', error);
+            return 'Unknown';
+        }
     }
 
     calculatePlayerStats(rankings, minAppearances) {

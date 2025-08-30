@@ -19,7 +19,7 @@
             <div class="header-content">
                 <h1>Daily Rankings Manager</h1>
                 <div class="version-info">
-                    <span id="versionNumber" class="version-number">v1.1.26</span>
+                    <span id="versionNumber" class="version-number">v1.1.27</span>
                     <button id="adminLoginBtn" class="admin-login-btn">🔐 Admin Login</button>
                 </div>
             </div>
@@ -93,6 +93,7 @@
                         <option value="bottom10-avgpoints">🔻 Bottom 10 Individual Average Points</option>
                         <option value="top10-weekly">📈 Top 10 Weekly Total Points</option>
                         <option value="bottom10-weekly">📊 Bottom 10 Weekly Total Points</option>
+                        <option value="player-performance">👤 Individual Player Performance Analysis</option>
                     </select>
                     <button id="generateReportBtn" class="generate-report-btn">Generate Report</button>
                 </div>
@@ -110,6 +111,10 @@
                             <option value="last90">Last 90 Days</option>
                             <option value="lastyear">Last Year</option>
                         </select>
+                    </div>
+                    <div class="filter-group" id="playerNameFilter" style="display: none;">
+                        <label for="playerName">Player Name:</label>
+                        <input type="text" id="playerName" placeholder="Enter player name" class="filter-input">
                     </div>
                 </div>
             </div>
@@ -159,6 +164,6 @@
     </div>
 
                     <script type="module" src="/src/js/config.js"></script>
-                <script type="module" src="/src/js/main.js?v=1.1.26&t=1734984000"></script>
+                <script type="module" src="/src/js/main.js?v=1.1.27&t=1734984000"></script>
 </body>
 </html>
