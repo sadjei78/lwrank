@@ -4260,6 +4260,7 @@ class DailyRankingsApp {
                     
                     // Check if player was in bottom 20 players by ranking score
                     if (playerRanking.ranking >= (lowestScoringPlayer.ranking - 20)) {
+                        console.log('Player was in bottom 20 players by ranking score:', playerName, playerRanking.ranking, lowestScoringPlayer.ranking);
                         bottom20Count++;
                     }
                 }
