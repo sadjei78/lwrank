@@ -92,7 +92,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.31 loaded successfully!');
+        console.log('🚀 LWRank v1.1.32 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -471,7 +471,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.31';
+                versionElement.textContent = 'v1.1.32';
             }
         }
 
@@ -3869,11 +3869,11 @@ class DailyRankingsApp {
                         <div class="metric-grid">
                             <div class="metric">
                                 <span class="metric-label">First Appearance</span>
-                                <span class="metric-value">${this.formatDateDisplay(performance.firstAppearance)}</span>
+                                <span class="metric-value">${performance.firstAppearance ? this.formatDateDisplay(new Date(performance.firstAppearance + 'T00:00:00')) : 'Unknown'}</span>
                             </div>
                             <div class="metric">
                                 <span class="metric-label">Last Appearance</span>
-                                <span class="metric-value">${this.formatDateDisplay(performance.lastAppearance)}</span>
+                                <span class="metric-value">${performance.lastAppearance ? this.formatDateDisplay(new Date(performance.lastAppearance + 'T00:00:00')) : 'Unknown'}</span>
                             </div>
                         </div>
                     </div>
@@ -4255,7 +4255,8 @@ class DailyRankingsApp {
                 
                 if (playerRanking && playerRanking.ranking) {
                     // Check if player was in bottom 20 positions of that day
-                    if (playerRanking.ranking > (totalParticipants - 20)) {
+                    // Only count as bottom 20 if field size is at least 20 and player is in bottom 20
+                    if (totalParticipants >= 20 && playerRanking.ranking > (totalParticipants - 20)) {
                         bottom20Count++;
                     }
                 }
@@ -4301,8 +4302,8 @@ class DailyRankingsApp {
                 performanceTrend: isImproving ? 'Improving' : 'Declining',
                 trendIndicator: isImproving ? '📈' : '📉',
                 consistency: this.calculateConsistencyScore(rankings),
-                lastAppearance: sortedRankings[0]?.day || 'Unknown',
-                firstAppearance: sortedRankings[sortedRankings.length - 1]?.day || 'Unknown'
+                lastAppearance: sortedRankings[0]?.day || null,
+                firstAppearance: sortedRankings[sortedRankings.length - 1]?.day || null
             };
             
             console.log('Player performance metrics calculated:', performance);
