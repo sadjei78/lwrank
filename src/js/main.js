@@ -92,7 +92,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.33 loaded successfully!');
+        console.log('🚀 LWRank v1.1.34 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -471,7 +471,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.33';
+                versionElement.textContent = 'v1.1.34';
             }
         }
 
@@ -3934,7 +3934,7 @@ class DailyRankingsApp {
             }
             
             // Calculate comprehensive performance metrics
-            const performance = this.calculatePlayerPerformanceMetrics(playerRankings, playerName);
+            const performance = await this.calculatePlayerPerformanceMetrics(playerRankings, playerName);
             
             return [performance]; // Return as array for consistency with other reports
         } catch (error) {
@@ -4204,7 +4204,7 @@ class DailyRankingsApp {
     }
 
     // Calculate comprehensive performance metrics for a specific player
-    calculatePlayerPerformanceMetrics(rankings, playerName) {
+    async calculatePlayerPerformanceMetrics(rankings, playerName) {
         try {
             // Sort rankings by date (newest first)
             const sortedRankings = [...rankings].sort((a, b) => {
@@ -4238,33 +4238,43 @@ class DailyRankingsApp {
             // Calculate bottom 20 appearances correctly
             // We need to check if the player was in the bottom 20 players by ranking score
             let bottom20Count = 0;
-            const dayRankings = {};
             
-            // Group rankings by day to get total participants per day
-            rankings.forEach(r => {
-                if (!dayRankings[r.day]) {
-                    dayRankings[r.day] = [];
-                }
-                dayRankings[r.day].push(r);
-            });
-            
-            // For each day, check if player was in bottom 20
-            Object.values(dayRankings).forEach(dayRankingList => {
-                const playerRanking = dayRankingList.find(r => r.commander === playerName);
-                
-                if (playerRanking && playerRanking.ranking) {
-                    // Find the lowest scoring player (highest ranking number) for this day
-                    const lowestScoringPlayer = dayRankingList.reduce((lowest, current) => {
-                        return (current.ranking > lowest.ranking) ? current : lowest;
-                    });
-                    
-                    // Check if player was in bottom 20 players by ranking score
-                    if (playerRanking.ranking >= (lowestScoringPlayer.ranking - 20)) {
-                        console.log('Player was in bottom 20 players by ranking score:', playerName, playerRanking.ranking, lowestScoringPlayer.ranking);
-                        bottom20Count++;
+            // Get all rankings to find the true lowest scoring player for each day
+            const allRankings = await this.rankingManager.getAllRankings();
+            if (!Array.isArray(allRankings)) {
+                console.error('Failed to get all rankings for bottom 20 calculation');
+                bottom20Count = 0;
+            } else {
+                // Group ALL rankings by day to get complete field data
+                const allDayRankings = {};
+                allRankings.forEach(r => {
+                    if (!allDayRankings[r.day]) {
+                        allDayRankings[r.day] = [];
                     }
-                }
-            });
+                    allDayRankings[r.day].push(r);
+                });
+                
+                // For each day the player participated, check if they were in bottom 20
+                rankings.forEach(playerRanking => {
+                    if (playerRanking.ranking) {
+                        const dayKey = playerRanking.day;
+                        const allRankingsForDay = allDayRankings[dayKey];
+                        
+                        if (allRankingsForDay && allRankingsForDay.length > 0) {
+                            // Find the true lowest scoring player (highest ranking number) for this day
+                            const lowestScoringPlayer = allRankingsForDay.reduce((lowest, current) => {
+                                return (current.ranking > lowest.ranking) ? current : lowest;
+                            });
+                            
+                            // Check if player was in bottom 20 players by ranking score
+                            if (playerRanking.ranking >= (lowestScoringPlayer.ranking - 20)) {
+                                console.log('Player was in bottom 20 players by ranking score:', playerName, playerRanking.ranking, lowestScoringPlayer.ranking, 'Day:', dayKey);
+                                bottom20Count++;
+                            }
+                        }
+                    }
+                });
+            }
             
             // Recent performance (last 5 appearances)
             const recentRankings = sortedRankings.slice(0, 5);
