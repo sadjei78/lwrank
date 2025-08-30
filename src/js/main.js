@@ -92,7 +92,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.27 loaded successfully!');
+        console.log('🚀 LWRank v1.1.29 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -471,7 +471,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.27';
+                versionElement.textContent = 'v1.1.29';
             }
         }
 
@@ -3086,14 +3086,24 @@ class DailyRankingsApp {
             });
         }
         
-        // Set up player name change handler
+        // Set up player name change handler with autocomplete
         const playerName = document.getElementById('playerName');
         if (playerName) {
             playerName.addEventListener('input', () => {
                 if (reportType.value === 'player-performance') {
-                    this.generateReport();
+                    this.handlePlayerNameInput();
                 }
             });
+            
+            // Add autocomplete event listeners
+            playerName.addEventListener('focus', () => this.showPlayerSuggestions());
+            playerName.addEventListener('blur', () => {
+                // Delay hiding suggestions to allow clicking on them
+                setTimeout(() => this.hidePlayerSuggestions(), 200);
+            });
+            
+            // Add keyboard navigation
+            playerName.addEventListener('keydown', (e) => this.handlePlayerNameKeydown(e));
         }
     }
 
@@ -3799,6 +3809,14 @@ class DailyRankingsApp {
                                 <span class="metric-label">Average Points</span>
                                 <span class="metric-value">${performance.averagePoints}</span>
                             </div>
+                            <div class="metric">
+                                <span class="metric-label">Highest Score</span>
+                                <span class="metric-value">🏆 ${performance.highestScore.toLocaleString()}</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Lowest Score</span>
+                                <span class="metric-value">📉 ${performance.lowestScore.toLocaleString()}</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -3809,7 +3827,11 @@ class DailyRankingsApp {
                         <div class="metric-grid">
                             <div class="metric">
                                 <span class="metric-label">Top 10 Finishes</span>
-                                <span class="metric-value">${performance.top10Percentage}%</span>
+                                <span class="metric-value">${performance.top10Count}x (${performance.top10Percentage}%)</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Bottom 20 Finishes</span>
+                                <span class="metric-value">${performance.bottom20Count}x</span>
                             </div>
                             <div class="metric">
                                 <span class="metric-label">Top 25 Finishes</span>
@@ -4196,6 +4218,11 @@ class DailyRankingsApp {
             const totalPoints = rankings.reduce((sum, r) => sum + (parseFloat(r.points) || 0), 0);
             const avgPoints = totalPoints / totalAppearances;
             
+            // Points range
+            const validPoints = rankings.filter(r => r.points && !isNaN(parseFloat(r.points)));
+            const highestScore = validPoints.length > 0 ? Math.max(...validPoints.map(r => parseFloat(r.points))) : 0;
+            const lowestScore = validPoints.length > 0 ? Math.min(...validPoints.map(r => parseFloat(r.points))) : 0;
+            
             // Ranking metrics
             const rankings_only = rankings.filter(r => r.ranking && !isNaN(r.ranking));
             const avgRanking = rankings_only.length > 0 ? 
@@ -4207,7 +4234,7 @@ class DailyRankingsApp {
             // Performance distribution
             const top10Count = rankings.filter(r => r.ranking <= 10).length;
             const top25Count = rankings.filter(r => r.ranking <= 25).length;
-            const bottom25Count = rankings.filter(r => r.ranking > 25).length;
+            const bottom20Count = rankings.filter(r => r.ranking > 20).length;
             
             // Recent performance (last 5 appearances)
             const recentRankings = sortedRankings.slice(0, 5);
@@ -4235,10 +4262,14 @@ class DailyRankingsApp {
                 totalAppearances: totalAppearances,
                 totalPoints: Math.round(totalPoints),
                 averagePoints: Math.round(avgPoints * 100) / 100,
+                highestScore: highestScore,
+                lowestScore: lowestScore,
                 averageRanking: Math.round(avgRanking * 100) / 100,
                 bestRanking: bestRanking,
                 worstRanking: worstRanking,
+                top10Count: top10Count,
                 top10Percentage: Math.round((top10Count / totalAppearances) * 100),
+                bottom20Count: bottom20Count,
                 top25Percentage: Math.round((top25Count / totalAppearances) * 100),
                 recentPerformance: Math.round(recentAvgRanking * 100) / 100,
                 specialEventAppearances: specialEventCount,
@@ -4255,6 +4286,157 @@ class DailyRankingsApp {
         } catch (error) {
             console.error('Error calculating player performance metrics:', error);
             throw new Error(`Failed to calculate performance metrics: ${error.message}`);
+        }
+    }
+
+    // Handle player name input with autocomplete
+    async handlePlayerNameInput() {
+        const playerName = document.getElementById('playerName');
+        if (!playerName) return;
+        
+        const inputValue = playerName.value.trim();
+        
+        // Show suggestions if there's input
+        if (inputValue.length > 0) {
+            await this.updatePlayerSuggestions(inputValue);
+        } else {
+            this.hidePlayerSuggestions();
+        }
+        
+        // Generate report if there's a valid name
+        if (inputValue.length >= 2) {
+            this.generateReport();
+        }
+    }
+
+    // Show player name suggestions
+    showPlayerSuggestions() {
+        const suggestions = document.getElementById('playerNameSuggestions');
+        if (suggestions) {
+            suggestions.style.display = 'block';
+        }
+    }
+
+    // Hide player name suggestions
+    hidePlayerSuggestions() {
+        const suggestions = document.getElementById('playerNameSuggestions');
+        if (suggestions) {
+            suggestions.style.display = 'none';
+        }
+    }
+
+    // Handle keyboard navigation for player name autocomplete
+    handlePlayerNameKeydown(e) {
+        const suggestions = document.getElementById('playerNameSuggestions');
+        if (!suggestions || suggestions.style.display === 'none') return;
+        
+        const suggestionElements = suggestions.querySelectorAll('.autocomplete-suggestion');
+        if (suggestionElements.length === 0) return;
+        
+        const currentSelected = suggestions.querySelector('.autocomplete-suggestion.selected');
+        let nextSelected = null;
+        
+        switch (e.key) {
+            case 'ArrowDown':
+                e.preventDefault();
+                if (!currentSelected) {
+                    nextSelected = suggestionElements[0];
+                } else {
+                    const currentIndex = Array.from(suggestionElements).indexOf(currentSelected);
+                    nextSelected = suggestionElements[(currentIndex + 1) % suggestionElements.length];
+                }
+                break;
+                
+            case 'ArrowUp':
+                e.preventDefault();
+                if (!currentSelected) {
+                    nextSelected = suggestionElements[suggestionElements.length - 1];
+                } else {
+                    const currentIndex = Array.from(suggestionElements).indexOf(currentSelected);
+                    nextSelected = suggestionElements[currentIndex === 0 ? suggestionElements.length - 1 : currentIndex - 1];
+                }
+                break;
+                
+            case 'Enter':
+                e.preventDefault();
+                if (currentSelected) {
+                    const playerNameInput = document.getElementById('playerName');
+                    if (playerNameInput) {
+                        playerNameInput.value = currentSelected.dataset.value;
+                        this.hidePlayerSuggestions();
+                        this.generateReport();
+                    }
+                }
+                return;
+                
+            case 'Escape':
+                e.preventDefault();
+                this.hidePlayerSuggestions();
+                return;
+        }
+        
+        // Update selection
+        if (currentSelected) {
+            currentSelected.classList.remove('selected');
+        }
+        if (nextSelected) {
+            nextSelected.classList.add('selected');
+        }
+    }
+
+    // Update player name suggestions based on input
+    async updatePlayerSuggestions(inputValue) {
+        try {
+            const suggestions = document.getElementById('playerNameSuggestions');
+            if (!suggestions) return;
+            
+            // Get all unique player names from rankings
+            const allRankings = await this.rankingManager.getAllRankings();
+            if (!Array.isArray(allRankings)) return;
+            
+            // Extract unique player names and filter by input
+            const uniquePlayers = [...new Set(allRankings.map(r => r.commander))];
+            const filteredPlayers = uniquePlayers
+                .filter(name => name.toLowerCase().includes(inputValue.toLowerCase()))
+                .sort((a, b) => {
+                    // Prioritize exact matches and names that start with input
+                    const aStartsWith = a.toLowerCase().startsWith(inputValue.toLowerCase());
+                    const bStartsWith = b.toLowerCase().startsWith(inputValue.toLowerCase());
+                    
+                    if (aStartsWith && !bStartsWith) return -1;
+                    if (!aStartsWith && bStartsWith) return 1;
+                    
+                    // Then sort alphabetically
+                    return a.toLowerCase().localeCompare(b.toLowerCase());
+                })
+                .slice(0, 10); // Limit to 10 suggestions
+            
+            // Update suggestions
+            if (filteredPlayers.length > 0) {
+                suggestions.innerHTML = filteredPlayers
+                    .map(name => `<div class="autocomplete-suggestion" data-value="${name}">${name}</div>`)
+                    .join('');
+                
+                // Add click event listeners to suggestions
+                suggestions.querySelectorAll('.autocomplete-suggestion').forEach(suggestion => {
+                    suggestion.addEventListener('click', () => {
+                        const playerNameInput = document.getElementById('playerName');
+                        if (playerNameInput) {
+                            playerNameInput.value = suggestion.dataset.value;
+                            this.hidePlayerSuggestions();
+                            this.generateReport();
+                        }
+                    });
+                });
+                
+                suggestions.style.display = 'block';
+            } else {
+                suggestions.innerHTML = '<div class="autocomplete-suggestion">No players found</div>';
+                suggestions.style.display = 'block';
+            }
+            
+        } catch (error) {
+            console.error('Error updating player suggestions:', error);
         }
     }
 
