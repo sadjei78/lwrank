@@ -571,9 +571,18 @@ export class RankingManager {
         // Try to save to database first (primary storage)
         if (this.isOnline) {
             try {
+                // Convert to database field names (snake_case)
+                const dbEventData = {
+                    name: eventName,
+                    start_date: startDate,
+                    end_date: endDate,
+                    key: eventKey,
+                    created: new Date().toISOString()
+                };
+                
                 const { error } = await supabase
                     .from('special_events')
-                    .insert([eventData]);
+                    .insert([dbEventData]);
                 
                 if (error) {
                     console.warn('Database error creating event, using localStorage:', error);
@@ -620,9 +629,18 @@ export class RankingManager {
                 
                 // Successfully got data from database
                 if (data && data.length > 0) {
+                    // Convert database field names (snake_case) to camelCase for consistency
+                    const convertedData = data.map(event => ({
+                        name: event.name,
+                        startDate: event.start_date,
+                        endDate: event.end_date,
+                        key: event.key,
+                        created: event.created
+                    }));
+                    
                     // Also update localStorage as backup
-                    localStorage.setItem('specialEvents', JSON.stringify(data));
-                    return data;
+                    localStorage.setItem('specialEvents', JSON.stringify(convertedData));
+                    return convertedData;
                 }
             } catch (error) {
                 console.warn('Database error fetching events, using localStorage:', error);

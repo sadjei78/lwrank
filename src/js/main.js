@@ -722,15 +722,15 @@ class DailyRankingsApp {
         for (const event of specialEvents) {
             try {
                 // Check if event overlaps with the selected week
-                const eventStart = new Date(event.start_date + 'T00:00:00');
-                const eventEnd = new Date(event.end_date + 'T23:59:59');
+                const eventStart = new Date(event.startDate + 'T00:00:00');
+                const eventEnd = new Date(event.endDate + 'T23:59:59');
                 
                 // Validate event dates
                 if (isNaN(eventStart.getTime()) || isNaN(eventEnd.getTime())) {
                     console.warn('Invalid date in special event, skipping:', {
                         eventName: event.name,
-                        startDate: event.start_date,
-                        endDate: event.end_date
+                        startDate: event.startDate,
+                        endDate: event.endDate
                     });
                     continue; // Skip this event
                 }
@@ -744,8 +744,8 @@ class DailyRankingsApp {
                 
                 console.log('Event date check:', {
                     eventName: event.name,
-                    eventStart: event.start_date,
-                    eventEnd: event.end_date,
+                    eventStart: event.startDate,
+                    eventEnd: event.endDate,
                     eventStartParsed: eventStart.toISOString(),
                     eventEndParsed: eventEnd.toISOString(),
                     weekStart: effectiveWeekStart.toISOString(),
@@ -2385,8 +2385,8 @@ class DailyRankingsApp {
             let html = '';
             specialEvents.forEach(event => {
                 try {
-                    const startDate = new Date(event.start_date);
-                    const endDate = new Date(event.end_date);
+                    const startDate = new Date(event.startDate);
+                    const endDate = new Date(event.endDate);
                     
                     // Validate dates
                     if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
@@ -2398,7 +2398,7 @@ class DailyRankingsApp {
                     const endDateStr = endDate.toLocaleDateString();
                 
                 html += `
-                    <div class="event-entry" data-event-key="${this.escapeHTML(event.key)}" data-event-name="${this.escapeHTML(event.name)}" data-start-date="${event.start_date}" data-end-date="${event.end_date}">
+                    <div class="event-entry" data-event-key="${this.escapeHTML(event.key)}" data-event-name="${this.escapeHTML(event.name)}" data-start-date="${event.startDate}" data-end-date="${event.endDate}">
                         <div class="event-info">
                             <div class="event-name">${this.escapeHTML(event.name)}</div>
                             <div class="event-dates">${startDateStr} - ${endDateStr}</div>
@@ -2609,8 +2609,8 @@ class DailyRankingsApp {
             // Find events with invalid dates
             for (const event of specialEvents) {
                 try {
-                    const startDate = new Date(event.start_date + 'T00:00:00');
-                    const endDate = new Date(event.end_date + 'T23:59:59');
+                    const startDate = new Date(event.startDate + 'T00:00:00');
+                    const endDate = new Date(event.endDate + 'T23:59:59');
                     
                     if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
                         invalidEvents.push(event);
@@ -2748,8 +2748,8 @@ class DailyRankingsApp {
             // Update the special event
             await this.rankingManager.updateSpecialEvent(eventKey, {
                 name: eventName,
-                start_date: startDate,
-                end_date: endDate
+                startDate: startDate,
+                endDate: endDate
             });
             
             this.uiManager.showSuccess('Special event updated successfully!');
