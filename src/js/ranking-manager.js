@@ -857,4 +857,44 @@ export class RankingManager {
             throw error;
         }
     }
+
+    async saveSpecialEventRankings(rankings) {
+        try {
+            if (this.isOnline) {
+                // Save rankings to database
+                const { data, error } = await supabase
+                    .from('daily_rankings')
+                    .insert(rankings);
+                    
+                if (error) throw error;
+                
+                // Also save to local storage for immediate use
+                rankings.forEach(ranking => {
+                    const dateKey = ranking.date;
+                    if (!this.rankingsData[dateKey]) {
+                        this.rankingsData[dateKey] = [];
+                    }
+                    this.rankingsData[dateKey].push(ranking);
+                });
+                
+                this.saveToStorage();
+                return data;
+            } else {
+                // Offline mode - save to localStorage only
+                rankings.forEach(ranking => {
+                    const dateKey = ranking.date;
+                    if (!this.rankingsData[dateKey]) {
+                        this.rankingsData[dateKey] = [];
+                    }
+                    this.rankingsData[dateKey].push(ranking);
+                });
+                
+                this.saveToStorage();
+                return rankings;
+            }
+        } catch (error) {
+            console.error('Error saving special event rankings:', error);
+            throw error;
+        }
+    }
 }

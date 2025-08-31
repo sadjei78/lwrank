@@ -471,7 +471,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.34';
+                versionElement.textContent = 'v1.1.35';
             }
         }
 
@@ -1246,6 +1246,10 @@ class DailyRankingsApp {
             const startDateInput = document.getElementById('eventStartDate');
             const endDateInput = document.getElementById('eventEndDate');
             
+            // Get data upload inputs
+            const csvFile = document.getElementById('eventCSVFile')?.files[0];
+            const rawData = document.getElementById('eventRawData')?.value?.trim();
+            
             if (!eventNameInput || !startDateInput || !endDateInput) {
                 console.error('Special event form elements not found - admin content not loaded');
                 this.uiManager.showError('Admin interface not ready. Please try again.');
@@ -1295,10 +1299,30 @@ class DailyRankingsApp {
             
             if (success) {
                 this.uiManager.showSuccess(`Special event "${eventName}" created successfully!`);
+                
+                // Process data if provided
+                if (csvFile || rawData) {
+                    try {
+                        let csvContent = '';
+                        
+                        if (csvFile) {
+                            csvContent = await this.readFileAsText(csvFile);
+                        } else if (rawData) {
+                            csvContent = rawData;
+                        }
+
+                        if (csvContent) {
+                            // Process the CSV data for the special event
+                            await this.processSpecialEventData(csvContent, eventName, startDate);
+                        }
+                    } catch (dataError) {
+                        console.error('Error processing event data:', dataError);
+                        this.uiManager.showError(`Event created but failed to process data: ${dataError.message}`);
+                    }
+                }
+                
                 // Clear form
-                eventNameInput.value = '';
-                startDateInput.value = '';
-                endDateInput.value = '';
+                this.clearEventForm();
                 
                 // Refresh tabs to include new special event
                 await this.updateWeeklyTabs();
@@ -1311,6 +1335,82 @@ class DailyRankingsApp {
         } catch (error) {
             console.error('Error in createSpecialEvent:', error);
             this.uiManager.showError(`Error creating special event: ${error.message}`);
+        }
+    }
+
+    readFileAsText(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result);
+            reader.onerror = (e) => reject(new Error('Failed to read file'));
+            reader.readAsText(file);
+        });
+    }
+
+    async processSpecialEventData(csvContent, eventName, startDate) {
+        try {
+            // Use existing CSV processing logic but for special events
+            const lines = csvContent.trim().split('\n');
+            const rankings = [];
+            
+            for (let i = 1; i < lines.length; i++) { // Skip header
+                const line = lines[i].trim();
+                if (!line) continue;
+                
+                const [rank, commander, points] = line.split(',').map(s => s.trim());
+                
+                if (rank && commander && points) {
+                    rankings.push({
+                        ranking: parseInt(rank),
+                        commander: commander.replace(/['"]/g, ''),
+                        points: parseInt(points),
+                        date: startDate, // Use start date for the ranking
+                        event_name: eventName
+                    });
+                }
+            }
+
+            if (rankings.length > 0) {
+                // Save rankings to database
+                await this.rankingManager.saveSpecialEventRankings(rankings);
+                this.uiManager.showSuccess(`Successfully processed ${rankings.length} rankings for event "${eventName}"`);
+                
+                // Refresh the current tab if it's showing this event
+                await this.updateWeeklyTabs();
+            }
+            
+        } catch (error) {
+            throw new Error(`Failed to process CSV data: ${error.message}`);
+        }
+    }
+
+    clearEventForm() {
+        const fields = [
+            'eventName',
+            'eventStartDate', 
+            'eventEndDate',
+            'eventCSVFile',
+            'eventRawData'
+        ];
+        
+        fields.forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (field) {
+                field.value = '';
+            }
+        });
+        
+        // Reset tab to CSV upload
+        const csvTab = document.querySelector('.tab-btn[data-tab="csv-upload"]');
+        const rawTab = document.querySelector('.tab-btn[data-tab="raw-data"]');
+        const csvContent = document.getElementById('csv-upload-tab');
+        const rawContent = document.getElementById('raw-data-tab');
+        
+        if (csvTab && rawTab && csvContent && rawContent) {
+            csvTab.classList.add('active');
+            rawTab.classList.remove('active');
+            csvContent.classList.add('active');
+            rawContent.classList.remove('active');
         }
     }
 
@@ -1545,6 +1645,33 @@ class DailyRankingsApp {
                             <label for="eventEndDate">End Date:</label>
                             <input type="date" id="eventEndDate" class="form-input">
                         </div>
+                        
+                        <div class="event-data-section">
+                            <h4>📊 Add Event Data (Optional)</h4>
+                            <p class="form-help">You can add event data now or later. If adding now, the event will be created and data will be processed immediately.</p>
+                            
+                            <div class="data-input-tabs">
+                                <button type="button" class="tab-btn active" data-tab="csv-upload">📁 CSV Upload</button>
+                                <button type="button" class="tab-btn" data-tab="raw-data">📝 Raw Data</button>
+                            </div>
+                            
+                            <div class="tab-content active" id="csv-upload-tab">
+                                <div class="form-group">
+                                    <label for="eventCSVFile">CSV File:</label>
+                                    <input type="file" id="eventCSVFile" accept=".csv" class="form-input">
+                                    <small class="form-help">Upload a CSV file with event rankings</small>
+                                </div>
+                            </div>
+                            
+                            <div class="tab-content" id="raw-data-tab">
+                                <div class="form-group">
+                                    <label for="eventRawData">Raw Data:</label>
+                                    <textarea id="eventRawData" placeholder="Paste CSV data here (rank,commander,points format)" class="form-input" rows="6"></textarea>
+                                    <small class="form-help">Paste CSV data in rank,commander,points format</small>
+                                </div>
+                            </div>
+                        </div>
+                        
                         <button id="createEventBtn" class="event-btn">Create Special Event</button>
                     </div>
                     
@@ -1861,6 +1988,9 @@ class DailyRankingsApp {
             console.error('Create event button not found');
         }
         
+        // Setup event data tabs
+        this.setupEventDataTabs();
+        
         // Update player button
         const updatePlayerBtn = document.getElementById('updatePlayerBtn');
         if (updatePlayerBtn) {
@@ -1892,6 +2022,26 @@ class DailyRankingsApp {
         }
         
         console.log('Admin event listeners setup complete');
+    }
+
+    setupEventDataTabs() {
+        // Setup tab switching for event data input
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('tab-btn')) {
+                const targetTab = e.target.dataset.tab;
+                
+                // Remove active class from all tabs and content
+                document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+                
+                // Add active class to clicked tab and corresponding content
+                e.target.classList.add('active');
+                const targetContent = document.getElementById(`${targetTab}-tab`);
+                if (targetContent) {
+                    targetContent.classList.add('active');
+                }
+            }
+        });
     }
 
     async addAllianceLeader() {
