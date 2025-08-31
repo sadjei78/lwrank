@@ -1862,9 +1862,36 @@ class DailyRankingsApp {
                             <input type="date" id="editEventStartDate" class="form-input" required>
                         </div>
                         <div class="form-group">
-                            <label for="editEventStartDate">End Date:</label>
+                            <label for="editEventEndDate">End Date:</label>
                             <input type="date" id="editEventEndDate" class="form-input" required>
                         </div>
+                        
+                        <div class="event-data-section">
+                            <h4>📊 Update Event Data (Optional)</h4>
+                            <p class="form-help">You can add or update event data. New data will replace existing rankings for this event.</p>
+                            
+                            <div class="data-input-tabs">
+                                <button type="button" class="tab-btn active" data-tab="edit-csv-upload">📁 CSV Upload</button>
+                                <button type="button" class="tab-btn" data-tab="edit-raw-data">📝 Raw Data</button>
+                            </div>
+                            
+                            <div class="tab-content active" id="edit-csv-upload-tab">
+                                <div class="form-group">
+                                    <label for="editEventCSVFile">CSV File:</label>
+                                    <input type="file" id="editEventCSVFile" accept=".csv" class="form-input">
+                                    <small class="form-help">Upload a CSV file with updated event rankings</small>
+                                </div>
+                            </div>
+                            
+                            <div class="tab-content" id="edit-raw-data-tab">
+                                <div class="form-group">
+                                    <label for="editEventRawData">Raw Data:</label>
+                                    <textarea id="editEventRawData" placeholder="Paste CSV data here (rank,commander,points format)" class="form-input" rows="6"></textarea>
+                                    <small class="form-help">Paste CSV data in rank,commander,points format</small>
+                                </div>
+                            </div>
+                        </div>
+                        
                         <div class="form-actions">
                             <button type="submit" class="event-btn">Update Event</button>
                             <button type="button" class="event-btn secondary" id="deleteEventBtn">Delete Event</button>
@@ -2671,6 +2698,24 @@ class DailyRankingsApp {
                 return;
             }
             
+            // Setup tab switching for edit modal data input
+            modal.addEventListener('click', (e) => {
+                if (e.target.classList.contains('tab-btn')) {
+                    const targetTab = e.target.dataset.tab;
+                    
+                    // Remove active class from all tabs and content
+                    modal.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+                    modal.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+                    
+                    // Add active class to clicked tab and corresponding content
+                    e.target.classList.add('active');
+                    const targetContent = modal.querySelector(`#${targetTab}-tab`);
+                    if (targetContent) {
+                        targetContent.classList.add('active');
+                    }
+                }
+            });
+            
             // Close modal on X click
             closeBtn.onclick = () => {
                 modal.classList.remove('show');
@@ -2711,6 +2756,10 @@ class DailyRankingsApp {
             const eventName = document.getElementById('editEventName')?.value?.trim();
             const startDate = document.getElementById('editEventStartDate')?.value;
             const endDate = document.getElementById('editEventEndDate')?.value;
+            
+            // Get data upload inputs
+            const csvFile = document.getElementById('editEventCSVFile')?.files[0];
+            const rawData = document.getElementById('editEventRawData')?.value?.trim();
             
             if (!eventKey || !eventName || !startDate || !endDate) {
                 this.uiManager.showError('Please fill in all fields');
@@ -2753,6 +2802,30 @@ class DailyRankingsApp {
                 startDate: startDate,
                 endDate: endDate
             });
+            
+            // Process data if provided
+            if (csvFile || rawData) {
+                try {
+                    let csvContent = '';
+                    
+                    if (csvFile) {
+                        csvContent = await this.readFileAsText(csvFile);
+                    } else if (rawData) {
+                        csvContent = rawData;
+                    }
+
+                    if (csvContent) {
+                        // Process the CSV data for the special event
+                        await this.processSpecialEventData(csvContent, eventName, startDate);
+                        
+                        // Clear the form fields
+                        this.clearEditEventForm();
+                    }
+                } catch (dataError) {
+                    console.error('Error processing event data:', dataError);
+                    this.uiManager.showError(`Event updated but failed to process data: ${dataError.message}`);
+                }
+            }
             
             this.uiManager.showSuccess('Special event updated successfully!');
             
@@ -4795,6 +4868,39 @@ class DailyRankingsApp {
             return `${year}-W${week.toString().padStart(2, '0')}`;
         } catch (error) {
             return dayString;
+        }
+    }
+
+    clearEditEventForm() {
+        const fields = [
+            'editEventName',
+            'editEventStartDate', 
+            'editEventEndDate',
+            'editEventCSVFile',
+            'editEventRawData'
+        ];
+        
+        fields.forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (field) {
+                field.value = '';
+            }
+        });
+        
+        // Reset tab to CSV upload
+        const modal = document.getElementById('eventEditModal');
+        if (modal) {
+            const csvTab = modal.querySelector('.tab-btn[data-tab="edit-csv-upload"]');
+            const rawTab = modal.querySelector('.tab-btn[data-tab="edit-raw-data"]');
+            const csvContent = modal.querySelector('#edit-csv-upload-tab');
+            const rawContent = modal.querySelector('#edit-raw-data-tab');
+            
+            if (csvTab && rawTab && csvContent && rawContent) {
+                csvTab.classList.add('active');
+                rawTab.classList.remove('active');
+                csvContent.classList.add('active');
+                rawContent.classList.remove('active');
+            }
         }
     }
 }
