@@ -921,6 +921,10 @@ class DailyRankingsApp {
                 
                 if (eventRankings && eventRankings.length > 0) {
                     // For special events, show all rankings without weekly stats
+                    // Use the start date from the event key for display purposes
+                    const eventStartDate = dateKey.split('_').slice(-2)[0]; // Get the start date part
+                    const displayDate = new Date(eventStartDate + 'T00:00:00');
+                    
                     selectedContent.innerHTML = this.uiManager.createRankingTable(
                         eventRankings, 
                         eventName, 
@@ -928,13 +932,11 @@ class DailyRankingsApp {
                         {}, // No bottom 20 occurrences for special events
                         {}, // No cumulative scores for special events
                         true, // isSpecialEvent = true
-                        new Date(dateKey + 'T00:00:00') // date parameter
+                        displayDate // Use the actual start date instead of invalid event key
                     );
                 } else {
-                    // Show conductor banner even when there are no rankings for special events
-                    const conductorBanner = this.uiManager.createTrainConductorVIPDisplay(new Date(dateKey + 'T00:00:00'));
+                    // Special events don't need conductor banners - just show event info
                     selectedContent.innerHTML = `
-                        ${conductorBanner}
                         <div class="no-data">
                             <h3>Special Event: ${eventName}</h3>
                             <p>No ranking data available for this special event. Upload a CSV file to add rankings.</p>
