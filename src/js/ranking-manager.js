@@ -732,9 +732,41 @@ export class RankingManager {
 
     // Special Event Data Management
     async getRankingsForSpecialEvent(eventKey) {
-        // Get special event data from localStorage
-        const eventData = JSON.parse(localStorage.getItem(`event_${eventKey}`) || '[]');
-        return eventData;
+        try {
+            // First try to get from localStorage
+            const localData = JSON.parse(localStorage.getItem(`event_${eventKey}`) || '[]');
+            
+            // If we have local data, return it
+            if (localData && localData.length > 0) {
+                return localData;
+            }
+            
+            // If no local data and we're online, try to get from database
+            if (this.isOnline) {
+                const { data, error } = await supabase
+                    .from('rankings')
+                    .select('*')
+                    .eq('date', eventKey)
+                    .order('ranking', { ascending: true });
+                
+                if (error) {
+                    console.error('Error fetching special event rankings from database:', error);
+                    return [];
+                }
+                
+                // Cache the data in localStorage for future use
+                if (data && data.length > 0) {
+                    localStorage.setItem(`event_${eventKey}`, JSON.stringify(data));
+                }
+                
+                return data || [];
+            }
+            
+            return [];
+        } catch (error) {
+            console.error('Error getting special event rankings:', error);
+            return [];
+        }
     }
 
     async setRankingsForSpecialEvent(eventKey, rankings) {
@@ -879,9 +911,9 @@ export class RankingManager {
     async saveSpecialEventRankings(rankings) {
         try {
             if (this.isOnline) {
-                // Save rankings to database
+                // Save rankings to database (use rankings table, not daily_rankings)
                 const { data, error } = await supabase
-                    .from('daily_rankings')
+                    .from('rankings')
                     .insert(rankings);
                     
                 if (error) throw error;
