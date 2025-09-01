@@ -202,4 +202,31 @@ export class AutocompleteService {
     async refreshPlayerNames() {
         await this.loadAllPlayerNames();
     }
+
+    // Method to get player suggestions for removed player autocomplete
+    async getPlayerSuggestions(query) {
+        const trimmedQuery = query.trim().toLowerCase();
+        
+        if (trimmedQuery.length < 2) {
+            return [];
+        }
+
+        // Filter player names based on input
+        const suggestions = Array.from(this.allPlayerNames)
+            .filter(name => name.toLowerCase().includes(trimmedQuery))
+            .sort((a, b) => {
+                // Prioritize names that start with the query
+                const aStartsWith = a.toLowerCase().startsWith(trimmedQuery);
+                const bStartsWith = b.toLowerCase().startsWith(trimmedQuery);
+                
+                if (aStartsWith && !bStartsWith) return -1;
+                if (!aStartsWith && bStartsWith) return 1;
+                
+                // Then sort alphabetically
+                return a.localeCompare(b);
+            })
+            .slice(0, 10); // Limit to 10 results
+
+        return suggestions;
+    }
 }

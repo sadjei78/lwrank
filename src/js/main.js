@@ -472,7 +472,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.42';
+                versionElement.textContent = 'v1.1.43';
             }
         }
 
@@ -931,15 +931,8 @@ class DailyRankingsApp {
                     const eventStartDate = dateKey.split('_').slice(-2)[0]; // Get the start date part
                     const displayDate = new Date(eventStartDate + 'T00:00:00');
                     
-                    selectedContent.innerHTML = this.uiManager.createRankingTable(
-                        eventRankings, 
-                        eventName, 
-                        {}, // No top 10 occurrences for special events
-                        {}, // No bottom 20 occurrences for special events
-                        {}, // No cumulative scores for special events
-                        true, // isSpecialEvent = true
-                        displayDate // Use the actual start date instead of invalid event key
-                    );
+                    // For special events, just create the ranking table directly
+                    this.uiManager.createRankingTable(eventRankings, selectedContent, displayDate);
                 } else {
                     // Special events don't need conductor banners - just show event info
                     selectedContent.innerHTML = `
