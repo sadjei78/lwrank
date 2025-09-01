@@ -471,7 +471,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.39';
+                versionElement.textContent = 'v1.1.40';
             }
         }
 
@@ -1386,7 +1386,7 @@ class DailyRankingsApp {
                         commander: commander.replace(/['"]/g, ''),
                         points: parseInt(points),
                         day: eventDateKey, // Use the day field for special event keys
-                        date: startDate // Keep the date field in YYYY-MM-DD format for constraint compliance
+                        date: null // Set date to null for special events to avoid constraint conflicts
                     };
                     rankings.push(ranking);
                 }
