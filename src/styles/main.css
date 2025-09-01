@@ -1978,6 +1978,16 @@ header h1 {
     display: inline-block;
 }
 
+.event-row-count {
+    font-size: 0.8rem;
+    color: #059669;
+    font-weight: 500;
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
 .event-actions {
     display: flex;
     gap: 8px;

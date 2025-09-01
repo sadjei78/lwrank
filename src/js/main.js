@@ -471,7 +471,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.35';
+                versionElement.textContent = 'v1.1.36';
             }
         }
 
@@ -2420,7 +2420,7 @@ class DailyRankingsApp {
             }
             
             let html = '';
-            specialEvents.forEach(event => {
+            for (const event of specialEvents) {
                 try {
                     const startDate = new Date(event.startDate);
                     const endDate = new Date(event.endDate);
@@ -2428,11 +2428,15 @@ class DailyRankingsApp {
                     // Validate dates
                     if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
                         console.error('Invalid date in special event:', event);
-                        return; // Skip this event
+                        continue; // Skip this event
                     }
                     
                     const startDateStr = startDate.toLocaleDateString();
                     const endDateStr = endDate.toLocaleDateString();
+                    
+                    // Get row count for this special event
+                    const eventRankings = await this.rankingManager.getRankingsForSpecialEvent(event.key);
+                    const rowCount = eventRankings ? eventRankings.length : 0;
                 
                 html += `
                     <div class="event-entry" data-event-key="${this.escapeHTML(event.key)}" data-event-name="${this.escapeHTML(event.name)}" data-start-date="${event.startDate}" data-end-date="${event.endDate}">
@@ -2440,6 +2444,7 @@ class DailyRankingsApp {
                             <div class="event-name">${this.escapeHTML(event.name)}</div>
                             <div class="event-dates">${startDateStr} - ${endDateStr}</div>
                             <div class="event-key">Key: ${this.escapeHTML(event.key)}</div>
+                            <div class="event-row-count">📊 ${rowCount} rankings</div>
                         </div>
                         <div class="event-actions">
                             <button class="event-btn edit" data-action="edit">✏️ Edit</button>
@@ -2451,7 +2456,7 @@ class DailyRankingsApp {
                     console.error('Error processing special event:', event, error);
                     // Skip this event and continue with the next one
                 }
-            });
+            }
             
             eventsListContainer.innerHTML = html;
             
