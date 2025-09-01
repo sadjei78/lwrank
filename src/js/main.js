@@ -1305,9 +1305,12 @@ class DailyRankingsApp {
                 return;
             }
             
+            console.log('About to call rankingManager.createSpecialEvent with:', { eventName, startDate, endDate });
             const success = await this.rankingManager.createSpecialEvent(eventName, startDate, endDate);
+            console.log('createSpecialEvent result:', success);
             
             if (success) {
+                console.log('Special event created successfully, showing success message');
                 this.uiManager.showSuccess(`Special event "${eventName}" created successfully!`);
                 
                 // Process data if provided

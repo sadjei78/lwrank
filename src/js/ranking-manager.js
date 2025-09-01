@@ -557,7 +557,10 @@ export class RankingManager {
 
     // Special Event Management
     async createSpecialEvent(eventName, startDate, endDate) {
+        console.log('rankingManager.createSpecialEvent called with:', { eventName, startDate, endDate });
+        
         const eventKey = `event_${eventName.replace(/\s+/g, '_').toLowerCase()}_${startDate}_${endDate}`;
+        console.log('Generated event key:', eventKey);
         
         // Store event metadata
         const eventData = {
@@ -570,6 +573,7 @@ export class RankingManager {
         
         // Try to save to database first (primary storage)
         if (this.isOnline) {
+            console.log('Online mode - attempting database save');
             try {
                 // Convert to database field names (snake_case)
                 const dbEventData = {
@@ -580,37 +584,46 @@ export class RankingManager {
                     created: new Date().toISOString()
                 };
                 
-                const { error } = await supabase
+                console.log('Inserting into database:', dbEventData);
+                const { data, error } = await supabase
                     .from('special_events')
                     .insert([dbEventData]);
                 
                 if (error) {
-                    console.warn('Database error creating event, using localStorage:', error);
+                    console.error('Database error creating event:', error);
                     // Fall back to localStorage
                     const events = JSON.parse(localStorage.getItem('specialEvents') || '[]');
                     events.push(eventData);
                     localStorage.setItem('specialEvents', JSON.stringify(events));
+                    console.log('Saved to localStorage as fallback');
+                    return false; // Return false on database error
                 } else {
+                    console.log('Successfully saved to database:', data);
                     // Successfully saved to database, also save to localStorage as backup
                     const events = JSON.parse(localStorage.getItem('specialEvents') || '[]');
                     events.push(eventData);
                     localStorage.setItem('specialEvents', JSON.stringify(events));
+                    console.log('Also saved to localStorage as backup');
+                    return true;
                 }
             } catch (error) {
-                console.warn('Database error creating event, using localStorage:', error);
+                console.error('Exception during database save:', error);
                 // Fall back to localStorage
                 const events = JSON.parse(localStorage.getItem('specialEvents') || '[]');
                 events.push(eventData);
                 localStorage.setItem('specialEvents', JSON.stringify(events));
+                console.log('Saved to localStorage as fallback after exception');
+                return false; // Return false on exception
             }
         } else {
+            console.log('Offline mode - using localStorage only');
             // Offline mode - use localStorage
             const events = JSON.parse(localStorage.getItem('specialEvents') || '[]');
             events.push(eventData);
             localStorage.setItem('specialEvents', JSON.stringify(events));
+            console.log('Saved to localStorage in offline mode');
+            return true;
         }
-        
-        return true;
     }
 
     async getSpecialEvents() {
