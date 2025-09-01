@@ -1315,7 +1315,7 @@ class DailyRankingsApp {
 
                         if (csvContent) {
                             // Process the CSV data for the special event
-                            await this.processSpecialEventData(csvContent, eventName, startDate);
+                            await this.processSpecialEventData(csvContent, eventName, startDate, endDate);
                         }
                     } catch (dataError) {
                         console.error('Error processing event data:', dataError);
@@ -1349,11 +1349,19 @@ class DailyRankingsApp {
         });
     }
 
-    async processSpecialEventData(csvContent, eventName, startDate) {
+    async processSpecialEventData(csvContent, eventName, startDate, endDate = null) {
         try {
             // Use existing CSV processing logic but for special events
             const lines = csvContent.trim().split('\n');
             const rankings = [];
+            
+            // If endDate is not provided, use startDate as endDate
+            if (!endDate) {
+                endDate = startDate;
+            }
+            
+            // Create the special event date key in the correct format
+            const eventDateKey = `event_${eventName.replace(/\s+/g, '_').toLowerCase()}_${startDate}_${endDate}`;
             
             for (let i = 1; i < lines.length; i++) { // Skip header
                 const line = lines[i].trim();
@@ -1366,7 +1374,7 @@ class DailyRankingsApp {
                         ranking: parseInt(rank),
                         commander: commander.replace(/['"]/g, ''),
                         points: parseInt(points),
-                        date: startDate, // Use start date for the ranking
+                        date: eventDateKey, // Use the special event date key format
                         event_name: eventName
                     });
                 }
@@ -2816,7 +2824,7 @@ class DailyRankingsApp {
 
                     if (csvContent) {
                         // Process the CSV data for the special event
-                        await this.processSpecialEventData(csvContent, eventName, startDate);
+                        await this.processSpecialEventData(csvContent, eventName, startDate, endDate);
                         
                         // Clear the form fields
                         this.clearEditEventForm();
