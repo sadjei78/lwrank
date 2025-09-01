@@ -2,10 +2,15 @@ export class UIManager {
     constructor() {
         this.activeTab = null;
         this.leaderVIPManager = null;
+        this.rankingManager = null;
     }
 
     setLeaderVIPManager(manager) {
         this.leaderVIPManager = manager;
+    }
+
+    setRankingManager(manager) {
+        this.rankingManager = manager;
     }
 
     toggleAdminFeatures(isAdmin) {
@@ -63,6 +68,8 @@ export class UIManager {
                     // Add all rankings for special events
         sortedRankings.forEach(rank => {
             const commander = rank.commander;
+            const isRemoved = this.rankingManager && this.rankingManager.isPlayerRemoved(commander);
+            const removedClass = isRemoved ? 'player-removed' : '';
             const leaderIndicator = this.leaderVIPManager && this.leaderVIPManager.isAllianceLeader(commander) 
                 ? ' <span class="leader-indicator" title="Alliance Leader">👑</span>' : '';
             const vipIndicator = this.leaderVIPManager && date && this.leaderVIPManager.isVIPForWeek(commander, new Date(date))
@@ -71,7 +78,7 @@ export class UIManager {
             html += `
                 <tr>
                     <td class="rank-number">#${this.escapeHTML(rank.ranking.toString())}</td>
-                    <td>${this.escapeHTML(commander)}${leaderIndicator}${vipIndicator}</td>
+                    <td class="${removedClass}">${this.escapeHTML(commander)}${leaderIndicator}${vipIndicator}</td>
                     <td class="points">${this.escapeHTML(this.formatNumber(rank.points))}</td>
                 </tr>
             `;
@@ -107,6 +114,8 @@ export class UIManager {
         // Add top 10
         top10.forEach(rank => {
                 const commander = rank.commander;
+                const isRemoved = this.rankingManager && this.rankingManager.isPlayerRemoved(commander);
+                const removedClass = isRemoved ? 'player-removed' : '';
                 const isTop10Multiple = top10Occurrences[commander];
                 const isTop5Cumulative = cumulativeScores[commander];
                 const cumulativeScore = isTop5Cumulative ? cumulativeScores[commander] : null;
@@ -127,7 +136,7 @@ export class UIManager {
             html += `
                     <tr class="${rowClass}">
                     <td class="rank-number">#${this.escapeHTML(rank.ranking.toString())}</td>
-                        <td>${this.escapeHTML(commander)}${top10Indicator}${cumulativeIndicator}${leaderIndicator}${vipIndicator}</td>
+                        <td class="${removedClass}">${this.escapeHTML(commander)}${top10Indicator}${cumulativeIndicator}${leaderIndicator}${vipIndicator}</td>
                         <td class="points">${this.escapeHTML(this.formatNumber(rank.points))}</td>
                 </tr>
             `;
@@ -147,6 +156,8 @@ export class UIManager {
         // Add bottom 20
         bottom20.forEach(rank => {
                 const commander = rank.commander;
+                const isRemoved = this.rankingManager && this.rankingManager.isPlayerRemoved(commander);
+                const removedClass = isRemoved ? 'player-removed' : '';
                 const isTop10Multiple = top10Occurrences[commander];
                 const isBottom20Multiple = bottom20Occurrences[commander];
                 const isTop5Cumulative = cumulativeScores[commander];
@@ -169,7 +180,7 @@ export class UIManager {
             html += `
                     <tr class="${rowClass}">
                     <td class="rank-number">#${this.escapeHTML(rank.ranking.toString())}</td>
-                        <td>${this.escapeHTML(commander)}${top10Indicator}${bottom20Indicator}${cumulativeIndicator}${leaderIndicator}${vipIndicator}</td>
+                        <td class="${removedClass}">${this.escapeHTML(commander)}${top10Indicator}${bottom20Indicator}${cumulativeIndicator}${leaderIndicator}${vipIndicator}</td>
                         <td class="points">${this.escapeHTML(this.formatNumber(rank.points))}</td>
                 </tr>
             `;

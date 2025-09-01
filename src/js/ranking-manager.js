@@ -1034,4 +1034,115 @@ export class RankingManager {
             throw error;
         }
     }
+
+    // Removed Players Management
+    async addRemovedPlayer(playerName, removedBy, reason = null) {
+        try {
+            if (this.isOnline) {
+                const { data, error } = await supabase
+                    .from('removed_players')
+                    .insert([{
+                        player_name: playerName,
+                        removed_by: removedBy,
+                        reason: reason
+                    }]);
+                
+                if (error) {
+                    console.error('Database error adding removed player:', error);
+                    return false;
+                }
+                
+                // Also save to localStorage as backup
+                const removedPlayers = JSON.parse(localStorage.getItem('removedPlayers') || '[]');
+                removedPlayers.push({
+                    playerName: playerName,
+                    removedBy: removedBy,
+                    reason: reason,
+                    removedDate: new Date().toISOString().split('T')[0]
+                });
+                localStorage.setItem('removedPlayers', JSON.stringify(removedPlayers));
+                
+                return true;
+            } else {
+                // Offline mode - save to localStorage only
+                const removedPlayers = JSON.parse(localStorage.getItem('removedPlayers') || '[]');
+                removedPlayers.push({
+                    playerName: playerName,
+                    removedBy: removedBy,
+                    reason: reason,
+                    removedDate: new Date().toISOString().split('T')[0]
+                });
+                localStorage.setItem('removedPlayers', JSON.stringify(removedPlayers));
+                return true;
+            }
+        } catch (error) {
+            console.error('Error adding removed player:', error);
+            return false;
+        }
+    }
+
+    async getRemovedPlayers() {
+        try {
+            if (this.isOnline) {
+                const { data, error } = await supabase
+                    .from('removed_players')
+                    .select('*')
+                    .order('removed_date', { ascending: false });
+                
+                if (error) {
+                    console.warn('Database error fetching removed players, using localStorage:', error);
+                    return JSON.parse(localStorage.getItem('removedPlayers') || '[]');
+                }
+                
+                // Convert database format to consistent format
+                const convertedData = data.map(player => ({
+                    playerName: player.player_name,
+                    removedBy: player.removed_by,
+                    reason: player.reason,
+                    removedDate: player.removed_date
+                }));
+                
+                // Also update localStorage as backup
+                localStorage.setItem('removedPlayers', JSON.stringify(convertedData));
+                return convertedData;
+            }
+            
+            // Fall back to localStorage
+            return JSON.parse(localStorage.getItem('removedPlayers') || '[]');
+        } catch (error) {
+            console.error('Error getting removed players:', error);
+            return JSON.parse(localStorage.getItem('removedPlayers') || '[]');
+        }
+    }
+
+    async removePlayerFromRemovedList(playerName) {
+        try {
+            if (this.isOnline) {
+                const { error } = await supabase
+                    .from('removed_players')
+                    .delete()
+                    .eq('player_name', playerName);
+                
+                if (error) {
+                    console.error('Database error removing player from removed list:', error);
+                    return false;
+                }
+            }
+            
+            // Remove from localStorage
+            const removedPlayers = JSON.parse(localStorage.getItem('removedPlayers') || '[]');
+            const filteredPlayers = removedPlayers.filter(p => p.playerName !== playerName);
+            localStorage.setItem('removedPlayers', JSON.stringify(filteredPlayers));
+            
+            return true;
+        } catch (error) {
+            console.error('Error removing player from removed list:', error);
+            return false;
+        }
+    }
+
+    isPlayerRemoved(playerName) {
+        const removedPlayers = JSON.parse(localStorage.getItem('removedPlayers') || '[]');
+        return removedPlayers.some(p => p.playerName === playerName);
+    }
 }

@@ -19,6 +19,7 @@ class DailyRankingsApp {
         
         // Set the leader VIP manager in the UI manager
         this.uiManager.setLeaderVIPManager(this.leaderVIPManager);
+        this.uiManager.setRankingManager(this.rankingManager);
         
         // Wait for DOM to be ready before initializing
         if (document.readyState === 'loading') {
@@ -471,7 +472,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.40';
+                versionElement.textContent = 'v1.1.41';
             }
         }
 
@@ -1439,6 +1440,113 @@ class DailyRankingsApp {
         }
     }
 
+    async addRemovedPlayer() {
+        const removedPlayerInput = document.getElementById('removedPlayerName');
+        const removalReasonInput = document.getElementById('removalReason');
+        
+        if (!removedPlayerInput || !removalReasonInput) {
+            console.error('Removed player form elements not found - admin content not loaded');
+            this.uiManager.showError('Admin interface not ready. Please try again.');
+            return;
+        }
+        
+        const playerName = removedPlayerInput.value.trim();
+        const reason = removalReasonInput.value.trim();
+        
+        if (!playerName) {
+            this.uiManager.showError('Please enter a player name');
+            return;
+        }
+        
+        try {
+            const success = await this.rankingManager.addRemovedPlayer(playerName, 'Admin', reason || null);
+            
+            if (success) {
+                this.uiManager.showSuccess(`Successfully marked "${playerName}" as removed from alliance`);
+                
+                // Clear form
+                removedPlayerInput.value = '';
+                removalReasonInput.value = '';
+                
+                // Update removed players list
+                this.updateRemovedPlayersList();
+                
+                // Refresh all tabs to show updated styling
+                await this.updateWeeklyTabs();
+            } else {
+                this.uiManager.showError('Failed to mark player as removed. Please try again.');
+            }
+        } catch (error) {
+            console.error('Error adding removed player:', error);
+            this.uiManager.showError(`Error marking player as removed: ${error.message}`);
+        }
+    }
+
+    async updateRemovedPlayersList() {
+        try {
+            const removedPlayers = await this.rankingManager.getRemovedPlayers();
+            const removedPlayersList = document.getElementById('currentRemovedPlayersList');
+            const removedPlayerCount = document.getElementById('removedPlayerCount');
+            
+            if (!removedPlayersList || !removedPlayerCount) {
+                console.error('Removed players list elements not found');
+                return;
+            }
+            
+            removedPlayerCount.textContent = removedPlayers.length;
+            
+            if (removedPlayers.length === 0) {
+                removedPlayersList.innerHTML = '<p class="no-removed-players">No players are currently marked as removed.</p>';
+                return;
+            }
+            
+            const removedPlayersHTML = removedPlayers.map(player => `
+                <div class="removed-player-item">
+                    <div class="removed-player-info">
+                        <span class="removed-player-name">${player.playerName}</span>
+                        <span class="removed-date">Removed: ${player.removedDate}</span>
+                        ${player.reason ? `<span class="removal-reason">Reason: ${player.reason}</span>` : ''}
+                    </div>
+                    <button class="restore-player-btn" data-player="${player.playerName}">🔄 Restore</button>
+                </div>
+            `).join('');
+            
+            removedPlayersList.innerHTML = removedPlayersHTML;
+            
+            // Add event listeners for restore buttons
+            removedPlayersList.querySelectorAll('.restore-player-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const playerName = e.target.dataset.player;
+                    await this.restoreRemovedPlayer(playerName);
+                });
+            });
+            
+        } catch (error) {
+            console.error('Error updating removed players list:', error);
+        }
+    }
+
+    async restoreRemovedPlayer(playerName) {
+        try {
+            const success = await this.rankingManager.removePlayerFromRemovedList(playerName);
+            
+            if (success) {
+                this.uiManager.showSuccess(`Successfully restored "${playerName}" to active status`);
+                
+                // Update removed players list
+                this.updateRemovedPlayersList();
+                
+                // Refresh all tabs to show updated styling
+                await this.updateWeeklyTabs();
+            } else {
+                this.uiManager.showError('Failed to restore player. Please try again.');
+            }
+        } catch (error) {
+            console.error('Error restoring removed player:', error);
+            this.uiManager.showError(`Error restoring player: ${error.message}`);
+        }
+    }
+
     async updatePlayerName() {
         const oldNameInput = document.getElementById('oldPlayerName');
         const newNameInput = document.getElementById('newPlayerName');
@@ -1745,6 +1853,38 @@ class DailyRankingsApp {
                     </div>
                 </div>
 
+                <!-- Removed Players Management Section -->
+                <div class="admin-section">
+                    <h3>🚫 Removed Players Management</h3>
+                    <div class="removed-player-form">
+                        <div class="form-group">
+                            <label for="removedPlayerName">Player Name:</label>
+                            <div class="autocomplete-container">
+                                <input type="text" id="removedPlayerName" placeholder="Enter player name" class="form-input">
+                                <div id="removedPlayerAutocomplete" class="autocomplete-dropdown"></div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="removalReason">Reason (Optional):</label>
+                            <textarea id="removalReason" placeholder="Enter reason for removal..." class="form-input" rows="3"></textarea>
+                        </div>
+                        <button id="addRemovedPlayerBtn" class="removed-player-btn">Mark as Removed</button>
+                        
+                        <div class="removed-players-help">
+                            <small class="form-help">
+                                <strong>Note:</strong> Removed players will still appear in rankings and reports with their names crossed out or in red to indicate they are no longer in the alliance.
+                            </small>
+                        </div>
+                    </div>
+                    
+                    <div class="current-removed-players">
+                        <h4>Currently Removed Players (<span id="removedPlayerCount">0</span>)</h4>
+                        <div id="currentRemovedPlayersList" class="current-removed-players-list">
+                            <p class="loading-removed-players">Loading removed players...</p>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Alliance Leader Management Section -->
                 <div class="admin-section collapsible">
                     <div class="collapsible-header" data-target="allianceLeaderContent">
@@ -1852,6 +1992,7 @@ class DailyRankingsApp {
         this.updateRecentVIPsList();
         this.updateRotationOrderList();
         this.updateSpecialEventsList();
+        this.updateRemovedPlayersList();
         
         // Setup autocomplete for leader and VIP inputs
         this.setupAutocomplete();
@@ -2073,6 +2214,16 @@ class DailyRankingsApp {
             });
         } else {
             console.error('Remove leader button not found');
+        }
+        
+        // Add removed player button
+        const addRemovedPlayerBtn = document.getElementById('addRemovedPlayerBtn');
+        if (addRemovedPlayerBtn) {
+            addRemovedPlayerBtn.addEventListener('click', () => {
+                this.addRemovedPlayer();
+            });
+        } else {
+            console.error('Add removed player button not found');
         }
         
         console.log('Admin event listeners setup complete');
