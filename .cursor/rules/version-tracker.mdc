@@ -1,0 +1,4 @@
+---
+description: If there is not a version attribute in the current project, prompt me to add one in order to confirm new changes have been published and the browser is not displaying just cached pages
+alwaysApply: false
+---

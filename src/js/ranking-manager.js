@@ -580,8 +580,8 @@ export class RankingManager {
                     name: eventName,
                     start_date: startDate,
                     end_date: endDate,
-                    key: eventKey,
-                    created: new Date().toISOString()
+                    key: eventKey
+                    // Note: created field has DEFAULT now() in database, so we don't need to specify it
                 };
                 
                 console.log('Inserting into database:', dbEventData);
@@ -591,6 +591,12 @@ export class RankingManager {
                 
                 if (error) {
                     console.error('Database error creating event:', error);
+                    console.error('Error details:', {
+                        message: error.message,
+                        details: error.details,
+                        hint: error.hint,
+                        code: error.code
+                    });
                     // Fall back to localStorage
                     const events = JSON.parse(localStorage.getItem('specialEvents') || '[]');
                     events.push(eventData);

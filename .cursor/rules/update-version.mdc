@@ -1,0 +1,4 @@
+---
+description: Always check to see if there is a version attribute to update in the current project. If there is, update minor and major versions as needed based on what is being saved or committed or pushed. 
+alwaysApply: true
+---
