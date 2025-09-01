@@ -532,6 +532,39 @@ export class LeaderVIPManager {
         return diffDays;
     }
 
+    // Refresh VIP data from database
+    async refreshVIPData() {
+        try {
+            console.log('Refreshing VIP data from database...');
+            const { data: vipData, error: vipError } = await supabase
+                .from('vip_selections')
+                .select('*')
+                .order('date', { ascending: false });
+            
+            if (vipError) {
+                console.error('Error refreshing VIP data:', vipError);
+                return;
+            }
+            
+            // Convert to the expected format
+            this.vipSelections = {};
+            if (vipData) {
+                vipData.forEach(vip => {
+                    this.vipSelections[vip.date] = {
+                        vip_player: vip.vip_player,
+                        train_conductor: vip.train_conductor,
+                        date: vip.date,
+                        notes: vip.notes
+                    };
+                });
+            }
+            
+            console.log(`Refreshed ${Object.keys(this.vipSelections).length} VIP selections`);
+        } catch (error) {
+            console.error('Error refreshing VIP data:', error);
+        }
+    }
+
     // Clear admin-related data to prevent duplication on re-login
     clearAdminData() {
         this.allianceLeaders = [];

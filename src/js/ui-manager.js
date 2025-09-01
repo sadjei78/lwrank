@@ -47,10 +47,9 @@ export class UIManager {
         let html = '';
         
         if (isSpecialEvent) {
-            // For special events, show all rankings
+            // For special events, show all rankings (no train conductor needed)
             html = `
                 <h2>Special Event: ${this.escapeHTML(displayName)}</h2>
-                ${this.createTrainConductorVIPDisplay(date)}
                 <div style="margin-bottom: 15px; color: #666; font-style: italic;">
                     Showing all ${sortedRankings.length} rankings
                 </div>

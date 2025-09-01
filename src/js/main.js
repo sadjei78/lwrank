@@ -472,7 +472,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.44';
+                versionElement.textContent = 'v1.1.46';
             }
         }
 
@@ -931,8 +931,16 @@ class DailyRankingsApp {
                     const eventStartDate = dateKey.split('_').slice(-2)[0]; // Get the start date part
                     const displayDate = new Date(eventStartDate + 'T00:00:00');
                     
-                    // For special events, just create the ranking table directly
-                    this.uiManager.createRankingTable(eventRankings, selectedContent, displayDate);
+                    // For special events, create the ranking table with proper parameters
+                    selectedContent.innerHTML = this.uiManager.createRankingTable(
+                        eventRankings, 
+                        eventName, 
+                        {}, // No top 10 occurrences for special events
+                        {}, // No bottom 20 occurrences for special events
+                        {}, // No cumulative scores for special events
+                        true, // isSpecialEvent = true
+                        displayDate // Use the actual start date
+                    );
                 } else {
                     // Special events don't need conductor banners - just show event info
                     selectedContent.innerHTML = `
@@ -1980,6 +1988,7 @@ class DailyRankingsApp {
                             <div id="vipFrequencyInfo" class="vip-frequency-info" style="display: none;">
                                 <span class="frequency-badge days-ago"></span>
                                 <span class="frequency-badge count-30-days"></span>
+                                <button type="button" id="refreshVIPFrequencyBtn" class="refresh-btn" title="Refresh VIP frequency info">🔄</button>
                             </div>
 
                             <small class="form-help">Note: Alliance leaders are excluded from VIP selection</small>
@@ -2111,6 +2120,7 @@ class DailyRankingsApp {
                             <div id="editVipFrequencyInfo" class="vip-frequency-info" style="display: none;">
                                 <span class="frequency-badge days-ago"></span>
                                 <span class="frequency-badge count-30-days"></span>
+                                <button type="button" id="refreshEditVIPFrequencyBtn" class="refresh-btn" title="Refresh VIP frequency info">🔄</button>
                             </div>
                             <small class="form-help">Note: Alliance leaders are excluded from VIP selection</small>
                         </div>
@@ -2247,6 +2257,27 @@ class DailyRankingsApp {
             });
         } else {
             console.error('Add removed player button not found');
+        }
+        
+        // VIP frequency refresh buttons
+        const refreshVIPFrequencyBtn = document.getElementById('refreshVIPFrequencyBtn');
+        if (refreshVIPFrequencyBtn) {
+            refreshVIPFrequencyBtn.addEventListener('click', () => {
+                const vipPlayerInput = document.getElementById('vipPlayer');
+                if (vipPlayerInput && vipPlayerInput.value.trim()) {
+                    this.updateVIPFrequencyDisplay('vipPlayer', vipPlayerInput.value.trim());
+                }
+            });
+        }
+        
+        const refreshEditVIPFrequencyBtn = document.getElementById('refreshEditVIPFrequencyBtn');
+        if (refreshEditVIPFrequencyBtn) {
+            refreshEditVIPFrequencyBtn.addEventListener('click', () => {
+                const editVipPlayerInput = document.getElementById('editVipPlayer');
+                if (editVipPlayerInput && editVipPlayerInput.value.trim()) {
+                    this.updateVIPFrequencyDisplay('editVipPlayer', editVipPlayerInput.value.trim());
+                }
+            });
         }
         
         console.log('Admin event listeners setup complete');
@@ -3061,7 +3092,7 @@ class DailyRankingsApp {
 
 
     // Update VIP frequency display
-    updateVIPFrequencyDisplay(inputId, playerName) {
+    async updateVIPFrequencyDisplay(inputId, playerName) {
         console.log(`updateVIPFrequencyDisplay called for ${inputId} with player: "${playerName}"`);
         
         const frequencyInfoElement = document.getElementById(inputId === 'vipPlayer' ? 'vipFrequencyInfo' : 'editVipFrequencyInfo');
@@ -3085,6 +3116,10 @@ class DailyRankingsApp {
         }
         
         console.log(`Getting VIP frequency info for: ${playerName}`);
+        
+        // Refresh VIP data to ensure we have the latest information
+        await this.leaderVIPManager.refreshVIPData();
+        
         const frequencyData = this.leaderVIPManager.getVIPFrequencyInfo(playerName);
         console.log('Frequency data:', frequencyData);
         

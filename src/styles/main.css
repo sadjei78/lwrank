@@ -1940,6 +1940,26 @@ header h1 {
     gap: 8px;
     margin-top: 8px;
     margin-bottom: 8px;
+    align-items: center;
+}
+
+.refresh-btn {
+    background: #6366f1;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.refresh-btn:hover {
+    background: #4f46e5;
+}
+
+.refresh-btn:active {
+    background: #3730a3;
 }
 
 
