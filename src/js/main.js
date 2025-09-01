@@ -93,7 +93,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.34 loaded successfully!');
+        console.log('🚀 LWRank v1.1.48 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -1506,16 +1506,21 @@ class DailyRankingsApp {
                 return;
             }
             
-            const removedPlayersHTML = removedPlayers.map(player => `
-                <div class="removed-player-item">
-                    <div class="removed-player-info">
-                        <span class="removed-player-name">${player.playerName}</span>
-                        <span class="removed-date">Removed: ${player.removedDate}</span>
-                        ${player.reason ? `<span class="removal-reason">Reason: ${player.reason}</span>` : ''}
+            const removedPlayersHTML = removedPlayers.map(player => {
+                const isPDX2 = player.reason && player.reason.toUpperCase() === 'PDX2';
+                const itemClass = isPDX2 ? 'removed-player-item pdx2-highlight' : 'removed-player-item';
+                
+                return `
+                    <div class="${itemClass}">
+                        <div class="removed-player-info">
+                            <span class="removed-player-name">${player.playerName}</span>
+                            <span class="removed-date">Removed: ${player.removedDate}</span>
+                            ${player.reason ? `<span class="removal-reason">Reason: ${player.reason}</span>` : ''}
+                        </div>
+                        <button class="restore-player-btn" data-player="${player.playerName}">🔄 Restore</button>
                     </div>
-                    <button class="restore-player-btn" data-player="${player.playerName}">🔄 Restore</button>
-                </div>
-            `).join('');
+                `;
+            }).join('');
             
             removedPlayersList.innerHTML = removedPlayersHTML;
             
@@ -1743,9 +1748,13 @@ class DailyRankingsApp {
             
             <div class="admin-sections">
                 <!-- CSV Upload Section -->
-                <div class="admin-section">
-                    <h3>📁 CSV Upload</h3>
-                    <div class="csv-upload">
+                <div class="admin-section collapsible">
+                    <div class="collapsible-header" data-target="csvUploadContent">
+                        <h3>📁 CSV Upload</h3>
+                        <span class="collapsible-icon">▼</span>
+                    </div>
+                    <div id="csvUploadContent" class="collapsible-content collapsed">
+                        <div class="csv-upload">
                         <!-- Date Selection for CSV Upload -->
                         <div class="upload-date-selector">
                             <h4>📅 Select Date for Scores</h4>
@@ -1788,12 +1797,17 @@ class DailyRankingsApp {
                             </small>
                         </div>
                     </div>
+                    </div>
                 </div>
                 
                 <!-- Special Event Management Section -->
-                <div class="admin-section">
-                    <h3>🎯 Special Event Management</h3>
-                    <div class="event-form">
+                <div class="admin-section collapsible">
+                    <div class="collapsible-header" data-target="specialEventContent">
+                        <h3>🎯 Special Event Management</h3>
+                        <span class="collapsible-icon">▼</span>
+                    </div>
+                    <div id="specialEventContent" class="collapsible-content collapsed">
+                        <div class="event-form">
                         <div class="form-group">
                             <label for="eventName">Event Name:</label>
                             <input type="text" id="eventName" placeholder="e.g., Summer Tournament" class="form-input">
@@ -1846,12 +1860,17 @@ class DailyRankingsApp {
                             <p class="loading-events">Loading special events...</p>
                         </div>
                     </div>
+                    </div>
                 </div>
                 
                 <!-- Player Name Management Section -->
-                <div class="admin-section">
-                    <h3>👤 Player Name Management</h3>
-                    <div class="player-form">
+                <div class="admin-section collapsible">
+                    <div class="collapsible-header" data-target="playerNameContent">
+                        <h3>👤 Player Name Management</h3>
+                        <span class="collapsible-icon">▼</span>
+                    </div>
+                    <div id="playerNameContent" class="collapsible-content collapsed">
+                        <div class="player-form">
                         <div class="form-group">
                             <label for="oldPlayerName">Old Player Name:</label>
                             <div class="autocomplete-container">
@@ -1879,12 +1898,17 @@ class DailyRankingsApp {
                             </div>
                         </div>
                     </div>
+                    </div>
                 </div>
 
                 <!-- Removed Players Management Section -->
-                <div class="admin-section">
-                    <h3>🚫 Removed Players Management</h3>
-                    <div class="removed-player-form">
+                <div class="admin-section collapsible">
+                    <div class="collapsible-header" data-target="removedPlayersContent">
+                        <h3>🚫 Removed Players Management</h3>
+                        <span class="collapsible-icon">▼</span>
+                    </div>
+                    <div id="removedPlayersContent" class="collapsible-content collapsed">
+                        <div class="removed-player-form">
                         <div class="form-group">
                             <label for="removedPlayerName">Player Name:</label>
                             <div class="autocomplete-container">
@@ -1910,6 +1934,7 @@ class DailyRankingsApp {
                         <div id="currentRemovedPlayersList" class="current-removed-players-list">
                             <p class="loading-removed-players">Loading removed players...</p>
                         </div>
+                    </div>
                     </div>
                 </div>
 
@@ -1972,9 +1997,13 @@ class DailyRankingsApp {
                 </div>
 
                 <!-- VIP Management Section -->
-                <div class="admin-section">
-                    <h3>⭐ VIP Management</h3>
-                    <div class="vip-form">
+                <div class="admin-section collapsible">
+                    <div class="collapsible-header" data-target="vipManagementContent">
+                        <h3>⭐ VIP Management</h3>
+                        <span class="collapsible-icon">▼</span>
+                    </div>
+                    <div id="vipManagementContent" class="collapsible-content collapsed">
+                        <div class="vip-form">
                         <div class="form-group">
                             <label for="vipDate">Date:</label>
                             <input type="date" id="vipDate" class="form-input">
@@ -2005,6 +2034,7 @@ class DailyRankingsApp {
                         <div id="recentVIPsList" class="recent-vips-list">
                             <p class="loading-vips">Loading recent VIPs...</p>
                         </div>
+                    </div>
                     </div>
                 </div>
             </div>

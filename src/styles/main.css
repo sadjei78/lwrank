@@ -1842,6 +1842,35 @@ header h1 {
     font-style: italic;
 }
 
+/* PDX2 Highlight for Removed Players */
+.removed-player-item.pdx2-highlight {
+    background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+    border-left: 4px solid #ffc107;
+    border-radius: 8px;
+    margin: 4px 0;
+    box-shadow: 0 2px 8px rgba(255, 193, 7, 0.2);
+}
+
+.removed-player-item.pdx2-highlight:hover {
+    background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+}
+
+.removed-player-item.pdx2-highlight .removed-player-name {
+    color: #856404;
+    font-weight: 700;
+}
+
+.removed-player-item.pdx2-highlight .removal-reason {
+    color: #856404;
+    font-weight: 600;
+    background: rgba(255, 193, 7, 0.2);
+    padding: 2px 6px;
+    border-radius: 4px;
+    display: inline-block;
+}
+
 /* Removed Player Styling in Rankings and Reports */
 .player-removed {
     text-decoration: line-through;
