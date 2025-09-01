@@ -472,7 +472,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.46';
+                versionElement.textContent = 'v1.1.47';
             }
         }
 
@@ -3919,7 +3919,7 @@ class DailyRankingsApp {
                     vipInput.value = selectedName;
                     console.log('VIP selected:', selectedName);
                     // Update VIP frequency info
-                    this.updateVIPFrequencyInfo(selectedName);
+                    this.updateVIPFrequencyDisplay('vipPlayer', selectedName);
                 },
                 true // Exclude leaders
             );
@@ -3956,7 +3956,7 @@ class DailyRankingsApp {
                     editVipInput.value = selectedName;
                     console.log('Edit VIP selected:', selectedName);
                     // Update VIP frequency info
-                    this.updateEditVIPFrequencyInfo(selectedName);
+                    this.updateVIPFrequencyDisplay('editVipPlayer', selectedName);
                 },
                 true // Exclude leaders
             );
