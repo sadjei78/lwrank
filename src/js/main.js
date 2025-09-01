@@ -471,7 +471,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.36';
+                versionElement.textContent = 'v1.1.37';
             }
         }
 
