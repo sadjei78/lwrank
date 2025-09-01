@@ -298,6 +298,10 @@ export class UIManager {
     }
 
     escapeHTML(str) {
+        // Handle null, undefined, or non-string values
+        if (str == null) return '';
+        if (typeof str !== 'string') return String(str);
+        
         return str.replace(/[&<>"']/g, function(m) {
             return ({
                 '&': '&amp;',

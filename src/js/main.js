@@ -472,7 +472,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.43';
+                versionElement.textContent = 'v1.1.44';
             }
         }
 
@@ -3172,7 +3172,10 @@ class DailyRankingsApp {
     }
 
     escapeHTML(str) {
-        if (typeof str !== 'string') return str;
+        // Handle null, undefined, or non-string values
+        if (str == null) return '';
+        if (typeof str !== 'string') return String(str);
+        
         return str.replace(/[&<>"']/g, function(m) {
             return ({
                 '&': '&amp;',
