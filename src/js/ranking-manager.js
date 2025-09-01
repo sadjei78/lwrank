@@ -950,11 +950,34 @@ export class RankingManager {
         try {
             if (this.isOnline) {
                 // For special events, we need to handle upserts (update existing, insert new)
-                // First, delete existing rankings for this event to avoid conflicts
                 if (rankings.length > 0) {
                     const eventKey = rankings[0].day; // All rankings should have the same day field
                     
-                    // Delete existing rankings for this event
+                    console.log(`Processing ${rankings.length} rankings for event: ${eventKey}`);
+                    console.log('Sample ranking:', rankings[0]);
+                    
+                    // Check for duplicate ranking values within the same event
+                    const rankingValues = rankings.map(r => r.ranking);
+                    const uniqueRankings = [...new Set(rankingValues)];
+                    if (uniqueRankings.length !== rankingValues.length) {
+                        console.warn('Duplicate ranking values detected:', rankingValues);
+                        // Remove duplicates by keeping only the first occurrence
+                        const seen = new Set();
+                        const deduplicatedRankings = rankings.filter(ranking => {
+                            const key = `${ranking.day}_${ranking.ranking}`;
+                            if (seen.has(key)) {
+                                console.warn(`Removing duplicate ranking: ${ranking.ranking} for ${ranking.commander}`);
+                                return false;
+                            }
+                            seen.add(key);
+                            return true;
+                        });
+                        rankings = deduplicatedRankings;
+                        console.log(`After deduplication: ${rankings.length} rankings`);
+                    }
+                    
+                    // Delete existing rankings for this event to avoid conflicts
+                    console.log(`Deleting existing rankings for event: ${eventKey}`);
                     const { error: deleteError } = await supabase
                         .from('rankings')
                         .delete()
@@ -964,14 +987,23 @@ export class RankingManager {
                         console.error('Error deleting existing rankings:', deleteError);
                         throw deleteError;
                     }
+                    
+                    console.log('Successfully deleted existing rankings');
+                    
+                    // Add a small delay to ensure delete operation completes
+                    await new Promise(resolve => setTimeout(resolve, 100));
                 }
                 
                 // Now insert the new rankings
+                console.log(`Inserting ${rankings.length} new rankings`);
                 const { data, error } = await supabase
                     .from('rankings')
                     .insert(rankings);
                     
-                if (error) throw error;
+                if (error) {
+                    console.error('Error inserting rankings:', error);
+                    throw error;
+                }
                 
                 // Also save to local storage for immediate use
                 rankings.forEach(ranking => {
