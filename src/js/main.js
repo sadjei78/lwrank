@@ -1370,13 +1370,14 @@ class DailyRankingsApp {
                 const [rank, commander, points] = line.split(',').map(s => s.trim());
                 
                 if (rank && commander && points) {
-                    rankings.push({
+                    const ranking = {
                         ranking: parseInt(rank),
                         commander: commander.replace(/['"]/g, ''),
                         points: parseInt(points),
-                        date: eventDateKey, // Use the special event date key format
-                        event_name: eventName
-                    });
+                        date: eventDateKey // Use the special event date key format
+                        // Note: event_name column doesn't exist in database, so we store event info in the date field
+                    };
+                    rankings.push(ranking);
                 }
             }
 
@@ -1387,9 +1388,12 @@ class DailyRankingsApp {
                 
                 // Refresh the current tab if it's showing this event
                 await this.updateWeeklyTabs();
+            } else {
+                this.uiManager.showError('No valid rankings found in CSV data');
             }
             
         } catch (error) {
+            console.error('Error in processSpecialEventData:', error);
             throw new Error(`Failed to process CSV data: ${error.message}`);
         }
     }
