@@ -1386,7 +1386,7 @@ class DailyRankingsApp {
                         commander: commander.replace(/['"]/g, ''),
                         points: parseInt(points),
                         day: eventDateKey, // Use the day field for special event keys
-                        date: startDate // Use the actual start date for the date field
+                        date: `${startDate}_${eventName.replace(/\s+/g, '_').toLowerCase()}` // Use startDate + event name to make it unique
                     };
                     rankings.push(ranking);
                 }
