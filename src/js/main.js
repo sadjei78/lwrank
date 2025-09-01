@@ -472,7 +472,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.41';
+                versionElement.textContent = 'v1.1.42';
             }
         }
 
@@ -743,6 +743,9 @@ class DailyRankingsApp {
                 // Event overlaps if: event starts before week ends AND event ends after week starts
                 const eventOverlapsWeek = eventStart <= effectiveWeekEnd && eventEnd >= effectiveWeekStart;
                 
+                // Include pinned events regardless of date overlap
+                const shouldIncludeEvent = eventOverlapsWeek || event.pinned;
+                
                 console.log('Event date check:', {
                     eventName: event.name,
                     eventStart: event.startDate,
@@ -751,16 +754,18 @@ class DailyRankingsApp {
                     eventEndParsed: eventEnd.toISOString(),
                     weekStart: effectiveWeekStart.toISOString(),
                     weekEnd: effectiveWeekEnd.toISOString(),
-                    overlaps: eventOverlapsWeek
+                    overlaps: eventOverlapsWeek,
+                    pinned: event.pinned,
+                    shouldInclude: shouldIncludeEvent
                 });
                 
-                if (eventOverlapsWeek) {
+                if (shouldIncludeEvent) {
                     const eventKey = event.key;
                     const eventName = event.name;
                     
                     // Create special event tab
                     const eventTab = document.createElement('button');
-                    eventTab.className = 'tab special-event-tab';
+                    eventTab.className = `tab special-event-tab${event.pinned ? ' pinned' : ''}`;
                     eventTab.textContent = eventName;
                     eventTab.setAttribute('data-date', eventKey);
                     eventTab.setAttribute('data-type', 'special-event');
@@ -1526,6 +1531,28 @@ class DailyRankingsApp {
         }
     }
 
+    async toggleSpecialEventPinned(eventKey, pinned) {
+        try {
+            const success = await this.rankingManager.toggleSpecialEventPinned(eventKey, pinned);
+            
+            if (success) {
+                const action = pinned ? 'pinned' : 'unpinned';
+                this.uiManager.showSuccess(`Successfully ${action} special event`);
+                
+                // Update special events list
+                this.updateSpecialEventsList();
+                
+                // Refresh weekly tabs to show/hide pinned events
+                await this.updateWeeklyTabs();
+            } else {
+                this.uiManager.showError('Failed to toggle pinned status. Please try again.');
+            }
+        } catch (error) {
+            console.error('Error toggling special event pinned status:', error);
+            this.uiManager.showError(`Error toggling pinned status: ${error.message}`);
+        }
+    }
+
     async restoreRemovedPlayer(playerName) {
         try {
             const success = await this.rankingManager.removePlayerFromRemovedList(playerName);
@@ -1996,6 +2023,9 @@ class DailyRankingsApp {
         
         // Setup autocomplete for leader and VIP inputs
         this.setupAutocomplete();
+        
+        // Setup autocomplete for removed player input
+        this.setupRemovedPlayerAutocomplete();
         
         // Setup collapsible sections immediately after content is loaded
         this.setupCollapsibleSections();
@@ -2607,14 +2637,18 @@ class DailyRankingsApp {
                     const rowCount = eventRankings ? eventRankings.length : 0;
                 
                 html += `
-                    <div class="event-entry" data-event-key="${this.escapeHTML(event.key)}" data-event-name="${this.escapeHTML(event.name)}" data-start-date="${event.startDate}" data-end-date="${event.endDate}">
+                    <div class="event-entry ${event.pinned ? 'pinned-event' : ''}" data-event-key="${this.escapeHTML(event.key)}" data-event-name="${this.escapeHTML(event.name)}" data-start-date="${event.startDate}" data-end-date="${event.endDate}">
                         <div class="event-info">
-                            <div class="event-name">${this.escapeHTML(event.name)}</div>
+                            <div class="event-name">${this.escapeHTML(event.name)} ${event.pinned ? '📌' : ''}</div>
                             <div class="event-dates">${startDateStr} - ${endDateStr}</div>
                             <div class="event-key">Key: ${this.escapeHTML(event.key)}</div>
                             <div class="event-row-count">📊 ${rowCount} rankings</div>
+                            ${event.pinned ? '<div class="pinned-indicator">📌 Pinned Event</div>' : ''}
                         </div>
                         <div class="event-actions">
+                            <button class="event-btn pin" data-action="pin" data-pinned="${event.pinned}">
+                                ${event.pinned ? '📌 Unpin' : '📌 Pin'}
+                            </button>
                             <button class="event-btn edit" data-action="edit">✏️ Edit</button>
                             <button class="event-btn delete" data-action="delete">🗑️ Delete</button>
                         </div>
@@ -2662,6 +2696,9 @@ class DailyRankingsApp {
                     this.editSpecialEvent(eventKey, eventName, startDate, endDate);
                 } else if (e.target.dataset.action === 'delete') {
                     this.deleteSpecialEvent(eventKey);
+                } else if (e.target.dataset.action === 'pin') {
+                    const currentPinned = e.target.dataset.pinned === 'true';
+                    this.toggleSpecialEventPinned(eventKey, !currentPinned);
                 }
             }
         });
@@ -3763,6 +3800,60 @@ class DailyRankingsApp {
         } catch (error) {
             this.uiManager.showError(`Error updating rotation: ${error.message}`);
         }
+    }
+
+    setupRemovedPlayerAutocomplete() {
+        const removedPlayerInput = document.getElementById('removedPlayerName');
+        const autocompleteDropdown = document.getElementById('removedPlayerAutocomplete');
+        
+        if (!removedPlayerInput || !autocompleteDropdown) {
+            console.error('Removed player autocomplete elements not found');
+            return;
+        }
+        
+        removedPlayerInput.addEventListener('input', async (e) => {
+            const query = e.target.value.trim();
+            
+            if (query.length < 2) {
+                autocompleteDropdown.innerHTML = '';
+                autocompleteDropdown.style.display = 'none';
+                return;
+            }
+            
+            try {
+                const suggestions = await this.autocompleteService.getPlayerSuggestions(query);
+                
+                if (suggestions.length === 0) {
+                    autocompleteDropdown.innerHTML = '';
+                    autocompleteDropdown.style.display = 'none';
+                    return;
+                }
+                
+                autocompleteDropdown.innerHTML = suggestions.map(player => 
+                    `<div class="autocomplete-suggestion" data-value="${player}">${player}</div>`
+                ).join('');
+                
+                autocompleteDropdown.style.display = 'block';
+                
+                // Add click event listeners
+                autocompleteDropdown.querySelectorAll('.autocomplete-suggestion').forEach(suggestion => {
+                    suggestion.addEventListener('click', (e) => {
+                        removedPlayerInput.value = e.target.dataset.value;
+                        autocompleteDropdown.style.display = 'none';
+                    });
+                });
+                
+            } catch (error) {
+                console.error('Error getting player suggestions for removed player:', error);
+            }
+        });
+        
+        // Hide dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!removedPlayerInput.contains(e.target) && !autocompleteDropdown.contains(e.target)) {
+                autocompleteDropdown.style.display = 'none';
+            }
+        });
     }
 
     setupAutocomplete() {

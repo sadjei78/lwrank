@@ -580,7 +580,8 @@ export class RankingManager {
                     name: eventName,
                     start_date: startDate,
                     end_date: endDate,
-                    key: eventKey
+                    key: eventKey,
+                    pinned: false // Default to not pinned
                     // Note: created field has DEFAULT now() in database, so we don't need to specify it
                 };
                 
@@ -654,6 +655,7 @@ export class RankingManager {
                         startDate: event.start_date,
                         endDate: event.end_date,
                         key: event.key,
+                        pinned: event.pinned || false,
                         created: event.created
                     }));
                     
@@ -1144,5 +1146,39 @@ export class RankingManager {
     isPlayerRemoved(playerName) {
         const removedPlayers = JSON.parse(localStorage.getItem('removedPlayers') || '[]');
         return removedPlayers.some(p => p.playerName === playerName);
+    }
+
+    async toggleSpecialEventPinned(eventKey, pinned) {
+        try {
+            if (this.isOnline) {
+                const { error } = await supabase
+                    .from('special_events')
+                    .update({ pinned: pinned })
+                    .eq('key', eventKey);
+                
+                if (error) {
+                    console.error('Database error toggling event pinned status:', error);
+                    return false;
+                }
+            }
+            
+            // Update localStorage
+            const events = JSON.parse(localStorage.getItem('specialEvents') || '[]');
+            const eventIndex = events.findIndex(e => e.key === eventKey);
+            if (eventIndex !== -1) {
+                events[eventIndex].pinned = pinned;
+                localStorage.setItem('specialEvents', JSON.stringify(events));
+            }
+            
+            return true;
+        } catch (error) {
+            console.error('Error toggling event pinned status:', error);
+            return false;
+        }
+    }
+
+    getPinnedSpecialEvents() {
+        const events = JSON.parse(localStorage.getItem('specialEvents') || '[]');
+        return events.filter(event => event.pinned);
     }
 }
