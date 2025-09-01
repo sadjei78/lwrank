@@ -930,7 +930,24 @@ export class RankingManager {
     async saveSpecialEventRankings(rankings) {
         try {
             if (this.isOnline) {
-                // Save rankings to database (use rankings table, not daily_rankings)
+                // For special events, we need to handle upserts (update existing, insert new)
+                // First, delete existing rankings for this event to avoid conflicts
+                if (rankings.length > 0) {
+                    const eventKey = rankings[0].day; // All rankings should have the same day field
+                    
+                    // Delete existing rankings for this event
+                    const { error: deleteError } = await supabase
+                        .from('rankings')
+                        .delete()
+                        .eq('day', eventKey);
+                    
+                    if (deleteError) {
+                        console.error('Error deleting existing rankings:', deleteError);
+                        throw deleteError;
+                    }
+                }
+                
+                // Now insert the new rankings
                 const { data, error } = await supabase
                     .from('rankings')
                     .insert(rankings);

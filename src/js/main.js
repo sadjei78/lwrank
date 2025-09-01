@@ -1244,9 +1244,17 @@ class DailyRankingsApp {
 
     async createSpecialEvent() {
         try {
+            console.log('createSpecialEvent method called');
+            
             const eventNameInput = document.getElementById('eventName');
             const startDateInput = document.getElementById('eventStartDate');
             const endDateInput = document.getElementById('eventEndDate');
+            
+            console.log('Form elements found:', {
+                eventNameInput: !!eventNameInput,
+                startDateInput: !!startDateInput,
+                endDateInput: !!endDateInput
+            });
             
             // Get data upload inputs
             const csvFile = document.getElementById('eventCSVFile')?.files[0];
@@ -2022,11 +2030,13 @@ class DailyRankingsApp {
         // Create event button
         const createEventBtn = document.getElementById('createEventBtn');
         if (createEventBtn) {
+            console.log('Create event button found, adding event listener');
             createEventBtn.addEventListener('click', () => {
+                console.log('Create Special Event button clicked');
                 this.createSpecialEvent();
             });
         } else {
-            console.error('Create event button not found');
+            console.error('Create event button not found - admin content may not be loaded');
         }
         
         // Setup event data tabs
