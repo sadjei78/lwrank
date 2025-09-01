@@ -746,7 +746,7 @@ export class RankingManager {
                 const { data, error } = await supabase
                     .from('rankings')
                     .select('*')
-                    .eq('date', eventKey)
+                    .eq('day', eventKey)
                     .order('ranking', { ascending: true });
                 
                 if (error) {
@@ -920,7 +920,7 @@ export class RankingManager {
                 
                 // Also save to local storage for immediate use
                 rankings.forEach(ranking => {
-                    const dateKey = ranking.date;
+                    const dateKey = ranking.day || ranking.date; // Use day field for special events, date for regular
                     if (!this.rankingsData[dateKey]) {
                         this.rankingsData[dateKey] = [];
                     }
@@ -932,7 +932,7 @@ export class RankingManager {
             } else {
                 // Offline mode - save to localStorage only
                 rankings.forEach(ranking => {
-                    const dateKey = ranking.date;
+                    const dateKey = ranking.day || ranking.date; // Use day field for special events, date for regular
                     if (!this.rankingsData[dateKey]) {
                         this.rankingsData[dateKey] = [];
                     }

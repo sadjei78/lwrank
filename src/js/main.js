@@ -1374,8 +1374,8 @@ class DailyRankingsApp {
                         ranking: parseInt(rank),
                         commander: commander.replace(/['"]/g, ''),
                         points: parseInt(points),
-                        date: eventDateKey // Use the special event date key format
-                        // Note: event_name column doesn't exist in database, so we store event info in the date field
+                        day: eventDateKey, // Use the day field for special event keys
+                        date: startDate // Use the actual start date for the date field
                     };
                     rankings.push(ranking);
                 }
