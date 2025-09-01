@@ -879,16 +879,29 @@ export class RankingManager {
     async deleteSpecialEvent(eventKey) {
         try {
             if (this.isOnline) {
-                // Delete from database
-                const { error } = await supabase
+                // First, delete all related ranking records from the database
+                const { error: rankingsError } = await supabase
+                    .from('rankings')
+                    .delete()
+                    .eq('day', eventKey);
+                
+                if (rankingsError) {
+                    console.error('Database error deleting special event rankings:', rankingsError);
+                    throw new Error(`Database error deleting rankings: ${rankingsError.message}`);
+                }
+                
+                // Then delete the special event record
+                const { error: eventError } = await supabase
                     .from('special_events')
                     .delete()
                     .eq('key', eventKey);
                 
-                if (error) {
-                    console.error('Database error deleting special event:', error);
-                    throw new Error(`Database error: ${error.message}`);
+                if (eventError) {
+                    console.error('Database error deleting special event:', eventError);
+                    throw new Error(`Database error: ${eventError.message}`);
                 }
+                
+                console.log(`Deleted special event and all related rankings: ${eventKey}`);
             }
             
             // Remove from localStorage
@@ -898,6 +911,12 @@ export class RankingManager {
             
             // Remove event rankings from localStorage
             localStorage.removeItem(`event_${eventKey}`);
+            
+            // Also remove from rankingsData if it exists
+            if (this.rankingsData[eventKey]) {
+                delete this.rankingsData[eventKey];
+                this.saveToStorage();
+            }
             
             console.log(`Deleted special event: ${eventKey}`);
             return true;
