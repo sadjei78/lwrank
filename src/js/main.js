@@ -95,7 +95,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.75 loaded successfully!');
+        console.log('🚀 LWRank v1.1.76 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -474,7 +474,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.75';
+                versionElement.textContent = 'v1.1.76';
             }
         }
 
@@ -1665,7 +1665,10 @@ class DailyRankingsApp {
         // 3. Update special events (if they reference player names)
         await this.rankingManager.updatePlayerNameInSpecialEvents(oldName, newName);
         
-        // 4. Refresh all data to ensure consistency
+        // 4. Update seasonal rankings
+        await this.seasonRankingManager.updatePlayerNameInSeasonRankings(oldName, newName);
+        
+        // 5. Refresh all data to ensure consistency
         await this.leaderVIPManager.loadFromDatabase();
         await this.rankingManager.loadFromDatabase();
     }
@@ -3116,21 +3119,50 @@ class DailyRankingsApp {
                             <div class="score-component-label">Kudos</div>
                             <div class="score-component-value">${ranking.kudosScore.toFixed(1)}%</div>
                             <div class="score-component-rank">Rank: #${ranking.kudosRank || 'N/A'}</div>
+                            <div class="score-component-details">
+                                ${ranking.kudosBreakdown?.hasKudos ? 
+                                    `${ranking.kudosBreakdown.points} points (awarded ${new Date(ranking.kudosBreakdown.dateAwarded).toLocaleDateString()})` : 
+                                    'No kudos awarded'
+                                }
+                            </div>
                         </div>
                         <div class="score-component">
                             <div class="score-component-label">VS Performance</div>
                             <div class="score-component-value">${ranking.vsPerformanceScore.toFixed(1)} pts</div>
                             <div class="score-component-rank">Rank: #${ranking.vsRank || 'N/A'}</div>
+                            <div class="score-component-details">
+                                Base: ${ranking.vsBreakdown?.basePoints || 50} pts | 
+                                Top 10: ${ranking.vsBreakdown?.top10Occurrences || 0} occurrences (+${(ranking.vsBreakdown?.top10Occurrences || 0) * 2} pts) | 
+                                Bottom 20: ${ranking.vsBreakdown?.bottom20Occurrences || 0} occurrences (-${ranking.vsBreakdown?.bottom20Occurrences || 0} pts) | 
+                                Total days: ${ranking.vsBreakdown?.totalDays || 0}
+                            </div>
                         </div>
                         <div class="score-component">
                             <div class="score-component-label">Special Events</div>
                             <div class="score-component-value">${ranking.specialEventsScore.toFixed(1)} pts</div>
                             <div class="score-component-rank">Rank: #${ranking.specialEventsRank || 'N/A'}</div>
+                            <div class="score-component-details">
+                                ${ranking.specialEventsBreakdown?.events?.length > 0 ? 
+                                    ranking.specialEventsBreakdown.events.map(event => 
+                                        `${event.eventName}: Rank ${event.rank} (${event.points} pts)`
+                                    ).join(' | ') : 
+                                    'No special events participated'
+                                }
+                            </div>
                         </div>
                         <div class="score-component">
                             <div class="score-component-label">Alliance Contribution</div>
-                            <div class="score-component-value">${ranking.allianceContributionScore.toFixed(1)}%</div>
+                            <div class="score-component-value">${ranking.allianceContributionScore.toFixed(1)} pts</div>
                             <div class="score-component-rank">Rank: #${ranking.allianceRank || 'N/A'}</div>
+                        </div>
+                        <div class="score-component total-breakdown">
+                            <div class="score-component-label">Total Calculation</div>
+                            <div class="score-component-details">
+                                Kudos: ${ranking.kudosScore.toFixed(1)}% × ${weights.kudos}% = ${(ranking.kudosScore * weights.kudos / 100).toFixed(1)} pts | 
+                                VS: ${ranking.vsPerformanceScore.toFixed(1)} pts × ${weights.vsPerformance}% = ${(ranking.vsPerformanceScore * weights.vsPerformance / 100).toFixed(1)} pts | 
+                                Events: ${ranking.specialEventsScore.toFixed(1)} pts × ${weights.specialEvents}% = ${(ranking.specialEventsScore * weights.specialEvents / 100).toFixed(1)} pts | 
+                                Alliance: ${ranking.allianceContributionScore.toFixed(1)} pts = ${(ranking.allianceContributionScore).toFixed(1)} pts
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -2350,6 +2350,27 @@ header h1 {
     font-weight: 500;
 }
 
+.score-component-details {
+    font-size: 11px;
+    color: #9ca3af;
+    margin-top: 6px;
+    line-height: 1.3;
+    word-wrap: break-word;
+}
+
+.score-component.total-breakdown {
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+    padding: 8px;
+    margin-top: 8px;
+}
+
+.score-component.total-breakdown .score-component-label {
+    font-weight: bold;
+    color: #495057;
+}
+
 .loading-kudos {
     padding: 20px;
     text-align: center;

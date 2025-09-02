@@ -178,17 +178,26 @@ export class SeasonRankingManager {
             const kudosData = await this.getKudosForPlayer(playerName, startDate, endDate);
             
             if (kudosData.length === 0) {
-                return 0;
+                return { score: 0, breakdown: { points: 0, hasKudos: false } };
             }
 
             // Use the most recent kudos points (unique value per player)
             const mostRecentKudos = kudosData.sort((a, b) => new Date(b.date_awarded) - new Date(a.date_awarded))[0];
             
             // Convert to percentage (0-100) from 1-10 scale
-            return (mostRecentKudos.points / 10) * 100;
+            const score = (mostRecentKudos.points / 10) * 100;
+            
+            return {
+                score,
+                breakdown: {
+                    points: mostRecentKudos.points,
+                    hasKudos: true,
+                    dateAwarded: mostRecentKudos.date_awarded
+                }
+            };
         } catch (error) {
             console.error('Error calculating kudos score:', error);
-            return 0;
+            return { score: 0, breakdown: { points: 0, hasKudos: false } };
         }
     }
 
@@ -209,25 +218,39 @@ export class SeasonRankingManager {
             }
 
             if (playerData.length === 0) {
-                return 0;
+                return { score: 0, breakdown: { basePoints: 50, top10Occurrences: 0, bottom20Occurrences: 0, totalDays: 0 } };
             }
 
             // New VS Points logic: 50 base points + 2 points per top 10 - 1 point per bottom 20
             let vsPoints = 50; // Base points for everyone
+            let top10Occurrences = 0;
+            let bottom20Occurrences = 0;
             
             playerData.forEach(ranking => {
                 if (ranking.ranking <= 10) {
                     vsPoints += 2; // +2 points for each top 10 occurrence
+                    top10Occurrences++;
                 }
                 if (ranking.ranking >= 21) { // Assuming bottom 20 means ranks 21+
                     vsPoints -= 1; // -1 point for each bottom 20 occurrence
+                    bottom20Occurrences++;
                 }
             });
 
-            return Math.max(0, vsPoints); // Ensure non-negative score
+            const finalScore = Math.max(0, vsPoints); // Ensure non-negative score
+            
+            return {
+                score: finalScore,
+                breakdown: {
+                    basePoints: 50,
+                    top10Occurrences,
+                    bottom20Occurrences,
+                    totalDays: playerData.length
+                }
+            };
         } catch (error) {
             console.error('Error calculating VS performance score:', error);
-            return 0;
+            return { score: 0, breakdown: { basePoints: 50, top10Occurrences: 0, bottom20Occurrences: 0, totalDays: 0 } };
         }
     }
 
@@ -242,11 +265,11 @@ export class SeasonRankingManager {
 
             if (eventsError) {
                 console.error('Error fetching special events:', eventsError);
-                return 0;
+                return { score: 0, breakdown: { events: [] } };
             }
 
             if (specialEvents.length === 0) {
-                return 0;
+                return { score: 0, breakdown: { events: [] } };
             }
 
             // Filter out alliance contribution events
@@ -256,7 +279,7 @@ export class SeasonRankingManager {
             );
 
             if (nonAllianceEvents.length === 0) {
-                return 0;
+                return { score: 0, breakdown: { events: [] } };
             }
 
             // Get player's rankings in these special events
@@ -269,15 +292,16 @@ export class SeasonRankingManager {
 
             if (rankingsError) {
                 console.error('Error fetching special event rankings:', rankingsError);
-                return 0;
+                return { score: 0, breakdown: { events: [] } };
             }
 
             if (rankings.length === 0) {
-                return 0;
+                return { score: 0, breakdown: { events: [] } };
             }
 
             // New Special Events Points logic: (total participants + 10) - actual rank
             let totalSpecialEventsPoints = 0;
+            const eventBreakdown = [];
 
             for (const ranking of rankings) {
                 // Find the corresponding event to get its weight
@@ -297,14 +321,27 @@ export class SeasonRankingManager {
 
                 const totalParticipants = eventRankings.length;
                 const eventPoints = (totalParticipants + 10) - ranking.ranking;
+                const finalEventPoints = Math.max(0, eventPoints); // Ensure non-negative
                 
-                totalSpecialEventsPoints += Math.max(0, eventPoints); // Ensure non-negative
+                totalSpecialEventsPoints += finalEventPoints;
+                
+                eventBreakdown.push({
+                    eventName: event.name,
+                    rank: ranking.ranking,
+                    totalParticipants,
+                    points: finalEventPoints
+                });
             }
 
-            return Math.round(totalSpecialEventsPoints * 100) / 100;
+            const finalScore = Math.round(totalSpecialEventsPoints * 100) / 100;
+            
+            return {
+                score: finalScore,
+                breakdown: { events: eventBreakdown }
+            };
         } catch (error) {
             console.error('Error calculating special events score:', error);
-            return 0;
+            return { score: 0, breakdown: { events: [] } };
         }
     }
 
@@ -394,10 +431,15 @@ export class SeasonRankingManager {
             const rankings = [];
 
             for (const playerName of eligiblePlayers) {
-                const kudosScore = await this.calculateKudosScore(playerName, startDate, endDate);
-                const vsScore = await this.calculateVSPerformanceScore(playerName, startDate, endDate);
-                const specialEventsScore = await this.calculateSpecialEventsScore(playerName, startDate, endDate);
+                const kudosResult = await this.calculateKudosScore(playerName, startDate, endDate);
+                const vsResult = await this.calculateVSPerformanceScore(playerName, startDate, endDate);
+                const specialEventsResult = await this.calculateSpecialEventsScore(playerName, startDate, endDate);
                 const allianceScore = await this.calculateAllianceContributionScore(playerName, startDate, endDate);
+
+                // Extract scores from the new return format
+                const kudosScore = kudosResult.score;
+                const vsScore = vsResult.score;
+                const specialEventsScore = specialEventsResult.score;
 
                 // Calculate weighted total score (excluding alliance contribution from weights)
                 const totalScore = 
@@ -417,7 +459,11 @@ export class SeasonRankingManager {
                     rawKudosScore: kudosScore,
                     rawVSScore: vsScore,
                     rawSpecialEventsScore: specialEventsScore,
-                    rawAllianceScore: allianceScore
+                    rawAllianceScore: allianceScore,
+                    // Store detailed breakdowns
+                    kudosBreakdown: kudosResult.breakdown,
+                    vsBreakdown: vsResult.breakdown,
+                    specialEventsBreakdown: specialEventsResult.breakdown
                 });
             }
 
@@ -595,6 +641,29 @@ export class SeasonRankingManager {
         } catch (error) {
             console.error('Error in clearSeasonData:', error);
             throw error;
+        }
+    }
+
+    // Update player name in seasonal rankings
+    async updatePlayerNameInSeasonRankings(oldName, newName) {
+        try {
+            console.log(`Updating player name in seasonal rankings: ${oldName} → ${newName}`);
+            
+            const { error } = await supabase
+                .from('season_rankings')
+                .update({ player_name: newName })
+                .eq('player_name', oldName);
+
+            if (error) {
+                console.error('Error updating player name in seasonal rankings:', error);
+                throw error;
+            }
+
+            console.log(`Successfully updated player name in seasonal rankings: ${oldName} → ${newName}`);
+            return true;
+        } catch (error) {
+            console.error('Error updating player name in seasonal rankings:', error);
+            throw new Error(`Failed to update player name in seasonal rankings: ${error.message}`);
         }
     }
 }
