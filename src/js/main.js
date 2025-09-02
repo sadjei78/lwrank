@@ -95,7 +95,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.49 loaded successfully!');
+        console.log('🚀 LWRank v1.1.50 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -2541,7 +2541,7 @@ class DailyRankingsApp {
         }
 
         try {
-            this.uiManager.showMessage('Generating season report... This may take a moment.');
+            this.uiManager.showSuccess('Generating season report... This may take a moment.');
             
             // Generate rankings
             const rankings = await this.seasonRankingManager.generateSeasonRankings(
