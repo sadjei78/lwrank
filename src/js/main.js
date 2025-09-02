@@ -95,7 +95,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.55 loaded successfully!');
+        console.log('🚀 LWRank v1.1.56 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -474,7 +474,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.55';
+                versionElement.textContent = 'v1.1.56';
             }
         }
 
@@ -2130,8 +2130,21 @@ class DailyRankingsApp {
                             </div>
                         </div>
 
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Add Season Report Display Section (separate from collapsible sections)
+        const seasonReportSection = `
+            <div class="admin-section">
+                <div class="collapsible">
+                    <div class="collapsible-header">
+                        <h3>📊 Season Report Results</h3>
+                        <span class="collapsible-toggle">▼</span>
+                    </div>
+                    <div class="collapsible-content collapsed">
                         <div class="season-report-display" id="seasonReportDisplay" style="display: none;">
-                            <h4>📊 Season Report Results</h4>
                             <div id="seasonReportContent" class="season-report-content">
                                 <!-- Season report will be generated here -->
                             </div>
@@ -2140,6 +2153,8 @@ class DailyRankingsApp {
                 </div>
             </div>
         `;
+        
+        adminSections.innerHTML += seasonReportSection;
         
         // Add modals for editing
         this.addAdminModals();
@@ -2677,6 +2692,19 @@ class DailyRankingsApp {
 
         console.log('Setting report display to block...');
         reportDisplay.style.display = 'block';
+        
+        // Also expand the season report section
+        const seasonReportSection = reportDisplay.closest('.collapsible');
+        if (seasonReportSection) {
+            const content = seasonReportSection.querySelector('.collapsible-content');
+            const toggle = seasonReportSection.querySelector('.collapsible-toggle');
+            if (content && toggle) {
+                content.classList.remove('collapsed');
+                toggle.textContent = '▲';
+                console.log('Season report section expanded');
+            }
+        }
+        
         console.log('Report display should now be visible');
     }
 

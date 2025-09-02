@@ -1879,6 +1879,22 @@ header h1 {
     margin-bottom: 20px;
 }
 
+/* Season Report Display Section */
+.season-report-display {
+    background: #ffffff;
+    border: 2px solid #28a745;
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 15px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.season-report-display h4 {
+    color: #28a745;
+    margin-bottom: 15px;
+    font-size: 1.2em;
+}
+
 .season-config, .weight-config, .kudos-management {
     background: white;
     padding: 20px;
