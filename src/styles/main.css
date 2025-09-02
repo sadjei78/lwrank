@@ -2092,6 +2092,18 @@ header h1 {
     box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 
+.season-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+.season-btn:disabled:hover {
+    transform: none !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
 .kudos-form {
     background: #f8f9fa;
     padding: 15px;

@@ -95,7 +95,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.61 loaded successfully!');
+        console.log('🚀 LWRank v1.1.62 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -474,7 +474,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.61';
+                versionElement.textContent = 'v1.1.62';
             }
         }
 
@@ -2155,7 +2155,7 @@ class DailyRankingsApp {
         `;
         
         // Find the admin sections container and append the season report section
-        const adminSectionsContainer = document.getElementById('adminSections');
+        const adminSectionsContainer = document.querySelector('.admin-sections');
         if (adminSectionsContainer) {
             adminSectionsContainer.innerHTML += seasonReportSection;
             console.log('Season report section added to admin sections');
@@ -2573,6 +2573,14 @@ class DailyRankingsApp {
             return;
         }
 
+        // Show loading spinner and disable button
+        const generateBtn = document.getElementById('generateSeasonReportBtn');
+        const originalBtnText = generateBtn?.textContent;
+        if (generateBtn) {
+            generateBtn.disabled = true;
+            generateBtn.innerHTML = '⏳ Generating Report...';
+        }
+
         try {
             console.log('Starting season report generation...');
             this.uiManager.showSuccess('Generating season report... This may take a moment.');
@@ -2599,6 +2607,12 @@ class DailyRankingsApp {
         } catch (error) {
             console.error('Error generating season report:', error);
             this.uiManager.showError(`Error generating season report: ${error.message}`);
+        } finally {
+            // Restore button state
+            if (generateBtn) {
+                generateBtn.disabled = false;
+                generateBtn.innerHTML = originalBtnText || '🏆 Generate Season Report';
+            }
         }
     }
 
@@ -2634,12 +2648,13 @@ class DailyRankingsApp {
         `;
         
         // Find the admin sections container and append the season report section
-        const adminSectionsContainer = document.getElementById('adminSections');
+        const adminSectionsContainer = document.querySelector('.admin-sections');
         if (adminSectionsContainer) {
             adminSectionsContainer.innerHTML += seasonReportSection;
             console.log('Season report section created and added to admin sections');
         } else {
             console.error('Admin sections container not found when trying to create season report elements');
+            console.log('Available admin elements:', document.querySelectorAll('#adminTab *'));
         }
     }
 
@@ -2702,7 +2717,7 @@ class DailyRankingsApp {
         
         if (!reportDisplay || !reportContent) {
             console.error('Season report display elements not found after retries');
-            console.log('Available elements in admin sections:', document.getElementById('adminSections')?.innerHTML.substring(0, 500));
+            console.log('Available elements in admin sections:', document.querySelector('.admin-sections')?.innerHTML.substring(0, 500));
             this.uiManager.showError('Could not display season report - elements not found');
             return;
         }
