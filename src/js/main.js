@@ -95,7 +95,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.73 loaded successfully!');
+        console.log('🚀 LWRank v1.1.74 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -474,7 +474,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.73';
+                versionElement.textContent = 'v1.1.74';
             }
         }
 
@@ -2096,7 +2096,7 @@ class DailyRankingsApp {
                                 <div class="weight-inputs">
                                     <div class="form-group">
                                         <label for="kudosWeight">Kudos Points (1-10 scale):</label>
-                                        <input type="number" id="kudosWeight" value="25" min="0" max="100" class="form-input">
+                                        <input type="number" id="kudosWeight" value="40" min="0" max="100" class="form-input">
                                         <span class="weight-percent">%</span>
                                     </div>
                                     <div class="form-group">
