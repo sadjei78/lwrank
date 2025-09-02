@@ -95,7 +95,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.53 loaded successfully!');
+        console.log('🚀 LWRank v1.1.54 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -474,7 +474,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.53';
+                versionElement.textContent = 'v1.1.54';
             }
         }
 
@@ -2439,10 +2439,15 @@ class DailyRankingsApp {
 
         // Generate Season Report button
         const generateSeasonReportBtn = document.getElementById('generateSeasonReportBtn');
+        console.log('Generate Season Report button found:', generateSeasonReportBtn);
         if (generateSeasonReportBtn) {
             generateSeasonReportBtn.addEventListener('click', () => {
+                console.log('Generate Season Report button clicked!');
                 this.generateSeasonReport();
             });
+            console.log('Generate Season Report event listener attached');
+        } else {
+            console.error('Generate Season Report button not found!');
         }
 
         // Clear Season Data button
@@ -2509,9 +2514,12 @@ class DailyRankingsApp {
     }
 
     async generateSeasonReport() {
+        console.log('generateSeasonReport method called!');
         const seasonName = document.getElementById('seasonName')?.value.trim();
         const startDate = document.getElementById('seasonStartDate')?.value;
         const endDate = document.getElementById('seasonEndDate')?.value;
+        
+        console.log('Form values:', { seasonName, startDate, endDate });
 
         if (!seasonName) {
             this.uiManager.showError('Please enter a season name');
