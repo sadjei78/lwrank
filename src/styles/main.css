@@ -2371,6 +2371,106 @@ header h1 {
     color: #495057;
 }
 
+/* Excused Players Styles */
+.excused-player-form {
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.excused-players-list {
+    background-color: #ffffff;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.excused-players-list-content {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.excused-player-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    background-color: #f8f9fa;
+}
+
+.excused-player-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.excused-player-info strong {
+    color: #495057;
+    font-size: 14px;
+}
+
+.excused-reason {
+    font-size: 12px;
+    color: #6c757d;
+    font-style: italic;
+}
+
+.excused-approved {
+    font-size: 11px;
+    color: #28a745;
+    font-weight: 500;
+}
+
+.excused-date {
+    font-size: 11px;
+    color: #6c757d;
+}
+
+.remove-excused-btn {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.remove-excused-btn:hover {
+    background-color: #c82333;
+}
+
+.remove-excused-btn:active {
+    background-color: #bd2130;
+}
+
+.no-excused-players {
+    text-align: center;
+    color: #6c757d;
+    font-style: italic;
+    padding: 20px;
+}
+
+.loading-excused {
+    text-align: center;
+    color: #6c757d;
+    font-style: italic;
+    padding: 20px;
+}
+
+.error-loading {
+    text-align: center;
+    color: #dc3545;
+    font-style: italic;
+    padding: 20px;
+}
+
 .loading-kudos {
     padding: 20px;
     text-align: center;

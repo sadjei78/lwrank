@@ -226,16 +226,20 @@ export class SeasonRankingManager {
             let top10Occurrences = 0;
             let bottom20Occurrences = 0;
             
-            playerData.forEach(ranking => {
+            for (const ranking of playerData) {
                 if (ranking.ranking <= 10) {
                     vsPoints += 2; // +2 points for each top 10 occurrence
                     top10Occurrences++;
                 }
                 if (ranking.ranking >= 21) { // Assuming bottom 20 means ranks 21+
-                    vsPoints -= 1; // -1 point for each bottom 20 occurrence
-                    bottom20Occurrences++;
+                    // Check if player was excused on this date
+                    const isExcused = await this.isPlayerExcused(playerName, ranking.date);
+                    if (!isExcused) {
+                        vsPoints -= 1; // -1 point for each bottom 20 occurrence (only if not excused)
+                        bottom20Occurrences++;
+                    }
                 }
-            });
+            }
 
             const finalScore = Math.max(0, vsPoints); // Ensure non-negative score
             
@@ -356,11 +360,11 @@ export class SeasonRankingManager {
 
             if (eventsError) {
                 console.error('Error fetching special events:', eventsError);
-                return 0;
+                return { score: 0, breakdown: { events: [] } };
             }
 
             if (specialEvents.length === 0) {
-                return 0;
+                return { score: 0, breakdown: { events: [] } };
             }
 
             // Filter for alliance contribution events only
@@ -370,7 +374,7 @@ export class SeasonRankingManager {
             );
 
             if (allianceEvents.length === 0) {
-                return 0;
+                return { score: 0, breakdown: { events: [] } };
             }
 
             // Get player's rankings in these alliance contribution events
@@ -383,38 +387,56 @@ export class SeasonRankingManager {
 
             if (rankingsError) {
                 console.error('Error fetching alliance contribution rankings:', rankingsError);
-                return 0;
+                return { score: 0, breakdown: { events: [] } };
             }
 
             if (rankings.length === 0) {
-                return 0;
+                return { score: 0, breakdown: { events: [] } };
             }
 
-            // Calculate weighted score for each alliance contribution event
-            let totalWeightedScore = 0;
+            // New Alliance Contribution Points logic: (total participants + 10) - actual rank (same as special events)
+            let totalAlliancePoints = 0;
+            const eventBreakdown = [];
 
             for (const ranking of rankings) {
                 // Find the corresponding event to get its weight
                 const event = allianceEvents.find(e => e.key === ranking.day);
                 if (!event) continue;
 
-                const eventWeight = event.event_weight || 10.0; // Default to 10% if not set
+                // Get total participants for this event (we'll need to count from rankings)
+                const { data: eventRankings, error: eventRankingsError } = await supabase
+                    .from('rankings')
+                    .select('commander')
+                    .eq('day', event.key);
+
+                if (eventRankingsError) {
+                    console.error('Error fetching event participants:', eventRankingsError);
+                    continue;
+                }
+
+                const totalParticipants = eventRankings.length;
+                const eventPoints = (totalParticipants + 10) - ranking.ranking;
+                const finalEventPoints = Math.max(0, eventPoints); // Ensure non-negative
                 
-                // Convert ranking to percentage (lower ranking = higher percentage)
-                // Assuming max 50 participants, 1st place = 100%, 50th place = 2%
-                const maxParticipants = 50;
-                const rankingPercentage = Math.max(0, ((maxParticipants - ranking.ranking + 1) / maxParticipants) * 100);
+                totalAlliancePoints += finalEventPoints;
                 
-                // Weight this event's contribution
-                const weightedEventScore = (rankingPercentage * eventWeight) / 100;
-                totalWeightedScore += weightedEventScore;
+                eventBreakdown.push({
+                    eventName: event.name,
+                    rank: ranking.ranking,
+                    totalParticipants,
+                    points: finalEventPoints
+                });
             }
 
-            // Return the total weighted score (sum of weighted scores, not normalized)
-            return Math.round(totalWeightedScore * 100) / 100;
+            const finalScore = Math.round(totalAlliancePoints * 100) / 100;
+            
+            return {
+                score: finalScore,
+                breakdown: { events: eventBreakdown }
+            };
         } catch (error) {
             console.error('Error calculating alliance contribution score:', error);
-            return 0;
+            return { score: 0, breakdown: { events: [] } };
         }
     }
 
@@ -434,12 +456,13 @@ export class SeasonRankingManager {
                 const kudosResult = await this.calculateKudosScore(playerName, startDate, endDate);
                 const vsResult = await this.calculateVSPerformanceScore(playerName, startDate, endDate);
                 const specialEventsResult = await this.calculateSpecialEventsScore(playerName, startDate, endDate);
-                const allianceScore = await this.calculateAllianceContributionScore(playerName, startDate, endDate);
+                const allianceResult = await this.calculateAllianceContributionScore(playerName, startDate, endDate);
 
                 // Extract scores from the new return format
                 const kudosScore = kudosResult.score;
                 const vsScore = vsResult.score;
                 const specialEventsScore = specialEventsResult.score;
+                const allianceScore = allianceResult.score;
 
                 // Calculate weighted total score (excluding alliance contribution from weights)
                 const totalScore = 
@@ -463,7 +486,8 @@ export class SeasonRankingManager {
                     // Store detailed breakdowns
                     kudosBreakdown: kudosResult.breakdown,
                     vsBreakdown: vsResult.breakdown,
-                    specialEventsBreakdown: specialEventsResult.breakdown
+                    specialEventsBreakdown: specialEventsResult.breakdown,
+                    allianceBreakdown: allianceResult.breakdown
                 });
             }
 
@@ -664,6 +688,97 @@ export class SeasonRankingManager {
         } catch (error) {
             console.error('Error updating player name in seasonal rankings:', error);
             throw new Error(`Failed to update player name in seasonal rankings: ${error.message}`);
+        }
+    }
+
+    // Excused Players Management
+    async addExcusedPlayer(playerName, reason, approvedBy, dateExcused) {
+        try {
+            console.log(`Adding excused player: ${playerName}`);
+            
+            const { data, error } = await supabase
+                .from('excused_players')
+                .insert({
+                    player_name: playerName,
+                    reason: reason,
+                    approved_by: approvedBy,
+                    date_excused: dateExcused
+                })
+                .select();
+
+            if (error) {
+                console.error('Error adding excused player:', error);
+                throw error;
+            }
+
+            console.log(`Successfully added excused player: ${playerName}`);
+            return data[0];
+        } catch (error) {
+            console.error('Error adding excused player:', error);
+            throw new Error(`Failed to add excused player: ${error.message}`);
+        }
+    }
+
+    async getExcusedPlayers() {
+        try {
+            const { data, error } = await supabase
+                .from('excused_players')
+                .select('*')
+                .order('date_excused', { ascending: false });
+
+            if (error) {
+                console.error('Error fetching excused players:', error);
+                throw error;
+            }
+
+            return data || [];
+        } catch (error) {
+            console.error('Error fetching excused players:', error);
+            throw new Error(`Failed to fetch excused players: ${error.message}`);
+        }
+    }
+
+    async removeExcusedPlayer(excusedPlayerId) {
+        try {
+            console.log(`Removing excused player with ID: ${excusedPlayerId}`);
+            
+            const { error } = await supabase
+                .from('excused_players')
+                .delete()
+                .eq('id', excusedPlayerId);
+
+            if (error) {
+                console.error('Error removing excused player:', error);
+                throw error;
+            }
+
+            console.log(`Successfully removed excused player with ID: ${excusedPlayerId}`);
+            return true;
+        } catch (error) {
+            console.error('Error removing excused player:', error);
+            throw new Error(`Failed to remove excused player: ${error.message}`);
+        }
+    }
+
+    async isPlayerExcused(playerName, date) {
+        try {
+            const { data, error } = await supabase
+                .from('excused_players')
+                .select('*')
+                .eq('player_name', playerName)
+                .lte('date_excused', date)
+                .order('date_excused', { ascending: false })
+                .limit(1);
+
+            if (error) {
+                console.error('Error checking if player is excused:', error);
+                return false;
+            }
+
+            return data && data.length > 0;
+        } catch (error) {
+            console.error('Error checking if player is excused:', error);
+            return false;
         }
     }
 }

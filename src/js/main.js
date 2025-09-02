@@ -95,7 +95,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.76 loaded successfully!');
+        console.log('🚀 LWRank v1.1.77 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -367,31 +367,31 @@ class DailyRankingsApp {
             
             console.log('Admin mode confirmed, looking for admin tab...');
             
-            // First, ensure admin tab exists by calling updateWeeklyTabs if needed
-            if (!document.querySelector('.tab[data-type="admin"]')) {
-                console.log('Admin tab not found, refreshing tabs...');
+        // First, ensure admin tab exists by calling updateWeeklyTabs if needed
+        if (!document.querySelector('.tab[data-type="admin"]')) {
+            console.log('Admin tab not found, refreshing tabs...');
                 await this.updateWeeklyTabs();
                 
                 // Wait a bit for the DOM to update
                 await new Promise(resolve => setTimeout(resolve, 200));
                 
                 console.log('Tabs refreshed, checking for admin tab again...');
-            }
-            
-            // Now try to find the admin tab again
-            const adminTab = document.querySelector('.tab[data-type="admin"]');
+        }
+        
+        // Now try to find the admin tab again
+        const adminTab = document.querySelector('.tab[data-type="admin"]');
             console.log('Admin tab search result:', adminTab);
             
-            if (adminTab) {
+        if (adminTab) {
                 console.log('Admin tab found, clicking it...');
-                adminTab.click();
-                // Scroll to top for better mobile experience
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            } else {
-                console.error('Admin tab still not found after refresh');
+            adminTab.click();
+            // Scroll to top for better mobile experience
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+            console.error('Admin tab still not found after refresh');
                 console.log('All tabs in DOM:', document.querySelectorAll('.tab'));
                 console.log('All elements with data-type:', document.querySelectorAll('[data-type]'));
-                this.uiManager.showError('Admin tab not available. Please try refreshing the page.');
+            this.uiManager.showError('Admin tab not available. Please try refreshing the page.');
             }
         } catch (error) {
             console.error('Error in navigateToAdminTab:', error);
@@ -474,7 +474,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.76';
+                versionElement.textContent = 'v1.1.77';
             }
         }
 
@@ -715,16 +715,16 @@ class DailyRankingsApp {
                 totalEvents: specialEvents.length
             });
         } else {
-            console.log('Filtering special events for week:', {
-                weekStart: weekStart.toISOString().split('T')[0],
-                weekEnd: weekEnd.toISOString().split('T')[0],
-                totalEvents: specialEvents.length
-            });
+        console.log('Filtering special events for week:', {
+            weekStart: weekStart.toISOString().split('T')[0],
+            weekEnd: weekEnd.toISOString().split('T')[0],
+            totalEvents: specialEvents.length
+        });
         }
         
         for (const event of specialEvents) {
             try {
-                // Check if event overlaps with the selected week
+            // Check if event overlaps with the selected week
                 const eventStart = new Date(event.startDate + 'T00:00:00');
                 const eventEnd = new Date(event.endDate + 'T23:59:59');
                 
@@ -741,19 +741,19 @@ class DailyRankingsApp {
                 // Use fallback dates if week dates are invalid
                 const effectiveWeekStart = isNaN(weekStart.getTime()) ? this.getWeekStart(new Date()) : weekStart;
                 const effectiveWeekEnd = isNaN(weekEnd.getTime()) ? this.getWeekEnd(new Date()) : weekEnd;
-                
-                // Event overlaps if: event starts before week ends AND event ends after week starts
+            
+            // Event overlaps if: event starts before week ends AND event ends after week starts
                 const eventOverlapsWeek = eventStart <= effectiveWeekEnd && eventEnd >= effectiveWeekStart;
                 
                 // Include pinned events regardless of date overlap
                 const shouldIncludeEvent = eventOverlapsWeek || event.pinned;
-                
-                console.log('Event date check:', {
-                    eventName: event.name,
+            
+            console.log('Event date check:', {
+                eventName: event.name,
                     eventStart: event.startDate,
                     eventEnd: event.endDate,
-                    eventStartParsed: eventStart.toISOString(),
-                    eventEndParsed: eventEnd.toISOString(),
+                eventStartParsed: eventStart.toISOString(),
+                eventEndParsed: eventEnd.toISOString(),
                     weekStart: effectiveWeekStart.toISOString(),
                     weekEnd: effectiveWeekEnd.toISOString(),
                     overlaps: eventOverlapsWeek,
@@ -762,22 +762,22 @@ class DailyRankingsApp {
                 });
                 
                 if (shouldIncludeEvent) {
-                    const eventKey = event.key;
-                    const eventName = event.name;
-                    
-                    // Create special event tab
-                    const eventTab = document.createElement('button');
+                const eventKey = event.key;
+                const eventName = event.name;
+                
+                // Create special event tab
+                const eventTab = document.createElement('button');
                     eventTab.className = `tab special-event-tab${event.pinned ? ' pinned' : ''}`;
-                    eventTab.textContent = eventName;
-                    eventTab.setAttribute('data-date', eventKey);
-                    eventTab.setAttribute('data-type', 'special-event');
-                    tabsContainer.appendChild(eventTab);
-                    
-                    // Create special event content
-                    const eventContent = document.createElement('div');
-                    eventContent.className = 'tab-content';
-                    eventContent.id = `tab-${eventKey}`;
-                    tabContentsContainer.appendChild(eventContent);
+                eventTab.textContent = eventName;
+                eventTab.setAttribute('data-date', eventKey);
+                eventTab.setAttribute('data-type', 'special-event');
+                tabsContainer.appendChild(eventTab);
+                
+                // Create special event content
+                const eventContent = document.createElement('div');
+                eventContent.className = 'tab-content';
+                eventContent.id = `tab-${eventKey}`;
+                tabContentsContainer.appendChild(eventContent);
                 }
             } catch (error) {
                 console.error('Error processing special event:', event, error);
@@ -1602,6 +1602,101 @@ class DailyRankingsApp {
         }
     }
 
+    async addExcusedPlayer() {
+        const excusedPlayerInput = document.getElementById('excusedPlayerName');
+        const excusedReasonInput = document.getElementById('excusedReason');
+        const excusedApprovedByInput = document.getElementById('excusedApprovedBy');
+        const excusedDateInput = document.getElementById('excusedDate');
+        
+        if (!excusedPlayerInput || !excusedReasonInput || !excusedApprovedByInput || !excusedDateInput) {
+            console.error('Excused player form elements not found - admin content not loaded');
+            this.uiManager.showError('Admin interface not ready. Please try again.');
+            return;
+        }
+        
+        const playerName = excusedPlayerInput.value.trim();
+        const reason = excusedReasonInput.value.trim();
+        const approvedBy = excusedApprovedByInput.value.trim();
+        const dateExcused = excusedDateInput.value;
+        
+        if (!playerName || !reason || !approvedBy || !dateExcused) {
+            this.uiManager.showError('Please fill in all fields for excused player.');
+            return;
+        }
+        
+        try {
+            const success = await this.seasonRankingManager.addExcusedPlayer(playerName, reason, approvedBy, dateExcused);
+            
+            if (success) {
+                this.uiManager.showSuccess(`Successfully added ${playerName} as excused player.`);
+                
+                // Clear form
+                excusedPlayerInput.value = '';
+                excusedReasonInput.value = '';
+                excusedApprovedByInput.value = '';
+                excusedDateInput.value = '';
+                
+                // Update excused players list
+                this.updateExcusedPlayersList();
+            } else {
+                this.uiManager.showError('Failed to add excused player. Please try again.');
+            }
+        } catch (error) {
+            console.error('Error adding excused player:', error);
+            this.uiManager.showError(`Error adding excused player: ${error.message}`);
+        }
+    }
+
+    async updateExcusedPlayersList() {
+        try {
+            const excusedPlayers = await this.seasonRankingManager.getExcusedPlayers();
+            const excusedPlayersList = document.getElementById('excusedPlayersList');
+            
+            if (!excusedPlayersList) {
+                console.error('Excused players list element not found');
+                return;
+            }
+            
+            if (excusedPlayers.length === 0) {
+                excusedPlayersList.innerHTML = '<p class="no-excused-players">No players are currently excused.</p>';
+                return;
+            }
+            
+            const excusedPlayersHTML = excusedPlayers.map(player => `
+                <div class="excused-player-item">
+                    <div class="excused-player-info">
+                        <strong>${player.player_name}</strong>
+                        <span class="excused-reason">${player.reason}</span>
+                        <span class="excused-approved">Approved by: ${player.approved_by}</span>
+                        <span class="excused-date">Date: ${new Date(player.date_excused).toLocaleDateString()}</span>
+                    </div>
+                    <button class="remove-excused-btn" onclick="removeExcusedPlayer(${player.id})">Remove</button>
+                </div>
+            `).join('');
+            
+            excusedPlayersList.innerHTML = excusedPlayersHTML;
+        } catch (error) {
+            console.error('Error updating excused players list:', error);
+            excusedPlayersList.innerHTML = '<p class="error-loading">Error loading excused players.</p>';
+        }
+    }
+
+    async removeExcusedPlayer(excusedPlayerId) {
+        try {
+            const success = await this.seasonRankingManager.removeExcusedPlayer(excusedPlayerId);
+            
+            if (success) {
+                this.uiManager.showSuccess('Successfully removed excused player.');
+                this.updateExcusedPlayersList();
+            } else {
+                this.uiManager.showError('Failed to remove excused player. Please try again.');
+            }
+        } catch (error) {
+            console.error('Error removing excused player:', error);
+            this.uiManager.showError(`Error removing excused player: ${error.message}`);
+        }
+    }
+
     async updatePlayerName() {
         const oldNameInput = document.getElementById('oldPlayerName');
         const newNameInput = document.getElementById('newPlayerName');
@@ -1775,11 +1870,11 @@ class DailyRankingsApp {
                 <!-- CSV Upload Section -->
                 <div class="admin-section collapsible">
                     <div class="collapsible-header" data-target="csvUploadContent">
-                        <h3>📁 CSV Upload</h3>
+                    <h3>📁 CSV Upload</h3>
                         <span class="collapsible-icon">▼</span>
                     </div>
                     <div id="csvUploadContent" class="collapsible-content collapsed">
-                        <div class="csv-upload">
+                    <div class="csv-upload">
                         <!-- Date Selection for CSV Upload -->
                         <div class="upload-date-selector">
                             <h4>📅 Select Date for Scores</h4>
@@ -1821,18 +1916,18 @@ class DailyRankingsApp {
                                 3,ThirdPlayer,900
                             </small>
                         </div>
-                    </div>
+                        </div>
                     </div>
                 </div>
                 
                 <!-- Special Event Management Section -->
                 <div class="admin-section collapsible">
                     <div class="collapsible-header" data-target="specialEventContent">
-                        <h3>🎯 Special Event Management</h3>
+                    <h3>🎯 Special Event Management</h3>
                         <span class="collapsible-icon">▼</span>
                     </div>
                     <div id="specialEventContent" class="collapsible-content collapsed">
-                        <div class="event-form">
+                    <div class="event-form">
                         <div class="form-group">
                             <label for="eventName">Event Name:</label>
                             <input type="text" id="eventName" placeholder="e.g., Summer Tournament" class="form-input">
@@ -1889,18 +1984,18 @@ class DailyRankingsApp {
                         <div id="currentEventsList" class="current-events-list">
                             <p class="loading-events">Loading special events...</p>
                         </div>
-                    </div>
+                        </div>
                     </div>
                 </div>
                 
                 <!-- Player Name Management Section -->
                 <div class="admin-section collapsible">
                     <div class="collapsible-header" data-target="playerNameContent">
-                        <h3>👤 Player Name Management</h3>
+                    <h3>👤 Player Name Management</h3>
                         <span class="collapsible-icon">▼</span>
                     </div>
                     <div id="playerNameContent" class="collapsible-content collapsed">
-                        <div class="player-form">
+                    <div class="player-form">
                         <div class="form-group">
                             <label for="oldPlayerName">Old Player Name:</label>
                             <div class="autocomplete-container">
@@ -1963,8 +2058,8 @@ class DailyRankingsApp {
                         <h4>Currently Removed Players (<span id="removedPlayerCount">0</span>)</h4>
                         <div id="currentRemovedPlayersList" class="current-removed-players-list">
                             <p class="loading-removed-players">Loading removed players...</p>
+                            </div>
                         </div>
-                    </div>
                     </div>
                 </div>
 
@@ -2029,11 +2124,11 @@ class DailyRankingsApp {
                 <!-- VIP Management Section -->
                 <div class="admin-section collapsible">
                     <div class="collapsible-header" data-target="vipManagementContent">
-                        <h3>⭐ VIP Management</h3>
+                    <h3>⭐ VIP Management</h3>
                         <span class="collapsible-icon">▼</span>
                     </div>
                     <div id="vipManagementContent" class="collapsible-content collapsed">
-                        <div class="vip-form">
+                    <div class="vip-form">
                         <div class="form-group">
                             <label for="vipDate">Date:</label>
                             <input type="date" id="vipDate" class="form-input">
@@ -2065,6 +2160,43 @@ class DailyRankingsApp {
                             <p class="loading-vips">Loading recent VIPs...</p>
                         </div>
                     </div>
+                    </div>
+                </div>
+
+                <!-- Excused Players Management Section -->
+                <div class="admin-section collapsible">
+                    <div class="collapsible-header" data-target="excusedPlayersContent">
+                        <h3>✅ Excused Players Management</h3>
+                        <span class="collapsible-icon">▼</span>
+                    </div>
+                    <div id="excusedPlayersContent" class="collapsible-content collapsed">
+                        <div class="excused-player-form">
+                        <div class="form-group">
+                            <label for="excusedPlayerName">Player Name:</label>
+                            <input type="text" id="excusedPlayerName" placeholder="Enter player name" class="form-input">
+                            <div id="excusedPlayerAutocomplete" class="autocomplete-dropdown"></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="excusedReason">Reason for Excuse:</label>
+                            <input type="text" id="excusedReason" placeholder="e.g., Medical emergency, Family obligation" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="excusedApprovedBy">Approved By:</label>
+                            <input type="text" id="excusedApprovedBy" placeholder="Leader name" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="excusedDate">Date Excused:</label>
+                            <input type="date" id="excusedDate" class="form-input">
+                        </div>
+                        <button id="addExcusedPlayerBtn" class="admin-btn">Add Excused Player</button>
+                        </div>
+                        
+                        <div class="excused-players-list">
+                            <h4>Current Excused Players</h4>
+                            <div id="excusedPlayersList" class="excused-players-list-content">
+                                <p class="loading-excused">Loading excused players...</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -2207,12 +2339,16 @@ class DailyRankingsApp {
         this.updateRotationOrderList();
         this.updateSpecialEventsList();
         this.updateRemovedPlayersList();
+        this.updateExcusedPlayersList();
         
         // Setup autocomplete for leader and VIP inputs
         this.setupAutocomplete();
         
         // Setup autocomplete for removed player input
         this.setupRemovedPlayerAutocomplete();
+        
+        // Setup autocomplete for excused player input
+        this.setupExcusedPlayerAutocomplete();
         
         // Setup collapsible sections immediately after content is loaded
         this.setupCollapsibleSections();
@@ -2448,6 +2584,16 @@ class DailyRankingsApp {
         } else {
             console.error('Add removed player button not found');
         }
+
+        // Add excused player button
+        const addExcusedPlayerBtn = document.getElementById('addExcusedPlayerBtn');
+        if (addExcusedPlayerBtn) {
+            addExcusedPlayerBtn.addEventListener('click', () => {
+                this.addExcusedPlayer();
+            });
+        } else {
+            console.error('Add excused player button not found');
+        }
         
         // VIP frequency refresh buttons
         const refreshVIPFrequencyBtn = document.getElementById('refreshVIPFrequencyBtn');
@@ -2481,6 +2627,15 @@ class DailyRankingsApp {
         console.log('Setting up season ranking event listeners...');
         console.log('Current time:', new Date().toISOString());
         console.log('Admin sections element exists:', !!document.querySelector('.admin-sections'));
+        
+        // Add a small delay to ensure all DOM elements are ready
+        setTimeout(() => {
+            this.attachSeasonRankingEventListeners();
+        }, 100);
+    }
+
+    attachSeasonRankingEventListeners() {
+        console.log('=== ATTACHING SEASON RANKING EVENT LISTENERS ===');
 
         // Weight total calculation
         const weightInputs = ['kudosWeight', 'vsPerformanceWeight', 'specialEventsWeight'];
@@ -3154,6 +3309,14 @@ class DailyRankingsApp {
                             <div class="score-component-label">Alliance Contribution</div>
                             <div class="score-component-value">${ranking.allianceContributionScore.toFixed(1)} pts</div>
                             <div class="score-component-rank">Rank: #${ranking.allianceRank || 'N/A'}</div>
+                            <div class="score-component-details">
+                                ${ranking.allianceBreakdown?.events?.length > 0 ? 
+                                    ranking.allianceBreakdown.events.map(event => 
+                                        `${event.eventName}: Rank ${event.rank} (${event.points} pts)`
+                                    ).join(' | ') : 
+                                    'No alliance contribution events participated'
+                                }
+                            </div>
                         </div>
                         <div class="score-component total-breakdown">
                             <div class="score-component-label">Total Calculation</div>
@@ -3188,6 +3351,13 @@ class DailyRankingsApp {
                     detailsElement.classList.add('collapsed');
                     iconElement.textContent = '▼';
                 }
+            }
+        };
+
+        // Add global function for removing excused players
+        window.removeExcusedPlayer = function(excusedPlayerId) {
+            if (window.dailyRankingsApp) {
+                window.dailyRankingsApp.removeExcusedPlayer(excusedPlayerId);
             }
         };
 
@@ -4903,6 +5073,56 @@ class DailyRankingsApp {
 
         // Blur event handler (close dropdown after a short delay)
         removedPlayerInput.addEventListener('blur', () => {
+            setTimeout(() => {
+                this.autocompleteService.closeDropdown(autocompleteDropdown);
+            }, 200);
+        });
+    }
+
+    setupExcusedPlayerAutocomplete() {
+        const excusedPlayerInput = document.getElementById('excusedPlayerName');
+        const autocompleteDropdown = document.getElementById('excusedPlayerAutocomplete');
+        
+        if (!excusedPlayerInput || !autocompleteDropdown) {
+            console.error('Excused player autocomplete elements not found');
+            return;
+        }
+        
+        // Use regular autocomplete that excludes removed players
+        let debounceTimer;
+        
+        excusedPlayerInput.addEventListener('input', (e) => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                this.autocompleteService.handleInput(
+                    e.target.value, 
+                    autocompleteDropdown, 
+                    (selectedName) => {
+                        excusedPlayerInput.value = selectedName;
+                    },
+                    false, // Don't exclude leaders
+                    true   // Exclude removed players
+                );
+            }, 150);
+        });
+
+        // Focus event handler
+        excusedPlayerInput.addEventListener('focus', () => {
+            if (excusedPlayerInput.value.trim()) {
+                this.autocompleteService.handleInput(
+                    excusedPlayerInput.value, 
+                    autocompleteDropdown, 
+                    (selectedName) => {
+                        excusedPlayerInput.value = selectedName;
+                    },
+                    false, // Don't exclude leaders
+                    true   // Exclude removed players
+                );
+            }
+        });
+
+        // Blur event handler (close dropdown after a short delay)
+        excusedPlayerInput.addEventListener('blur', () => {
             setTimeout(() => {
                 this.autocompleteService.closeDropdown(autocompleteDropdown);
             }, 200);
