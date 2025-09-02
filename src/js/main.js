@@ -95,7 +95,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.69 loaded successfully!');
+        console.log('🚀 LWRank v1.1.70 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -474,7 +474,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.69';
+                versionElement.textContent = 'v1.1.70';
             }
         }
 
@@ -1487,14 +1487,26 @@ class DailyRankingsApp {
                 // Update removed players list
                 this.updateRemovedPlayersList();
                 
-                // Refresh all tabs to show updated styling
-                await this.updateWeeklyTabs();
+                // Update current view to show removed player styling without full page refresh
+                this.updateCurrentViewForRemovedPlayers();
             } else {
                 this.uiManager.showError('Failed to mark player as removed. Please try again.');
             }
         } catch (error) {
             console.error('Error adding removed player:', error);
             this.uiManager.showError(`Error marking player as removed: ${error.message}`);
+        }
+    }
+
+    updateCurrentViewForRemovedPlayers() {
+        // Update the current rankings table to show removed player styling
+        const currentTab = document.querySelector('.tab.active');
+        if (currentTab) {
+            const tabId = currentTab.id;
+            if (tabId && tabId.startsWith('tab-')) {
+                // Refresh the current tab's content to show updated styling
+                this.loadTabContent(tabId);
+            }
         }
     }
 
@@ -2155,6 +2167,10 @@ class DailyRankingsApp {
                     </div>
                     <div class="collapsible-content collapsed">
                         <div class="season-report-display" id="seasonReportDisplay" style="display: none;">
+                            <div class="season-report-header">
+                                <h4>Season Report</h4>
+                                <button type="button" id="refreshSeasonReportBtn" class="refresh-btn" title="Refresh season report">🔄</button>
+                            </div>
                             <div id="seasonReportContent" class="season-report-content">
                                 <!-- Season report will be generated here -->
                             </div>
@@ -2515,11 +2531,25 @@ class DailyRankingsApp {
 
         // List Available Reports button
         const listReportsBtn = document.getElementById('listAvailableReportsBtn');
+        console.log('List Available Reports button found:', listReportsBtn);
         if (listReportsBtn) {
             listReportsBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 console.log('List Available Reports button clicked!');
                 this.listAvailableSeasonReports();
+            });
+            console.log('List Available Reports event listener attached');
+        } else {
+            console.error('List Available Reports button not found!');
+        }
+
+        // Refresh Season Report button
+        const refreshSeasonReportBtn = document.getElementById('refreshSeasonReportBtn');
+        if (refreshSeasonReportBtn) {
+            refreshSeasonReportBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                console.log('Refresh Season Report button clicked!');
+                this.refreshCurrentSeasonReport();
             });
         }
 
@@ -2702,6 +2732,49 @@ class DailyRankingsApp {
         }
     }
 
+    async refreshCurrentSeasonReport() {
+        console.log('refreshCurrentSeasonReport method called!');
+        
+        // Get current form values
+        const seasonName = document.getElementById('seasonName')?.value.trim();
+        const startDate = document.getElementById('seasonStartDate')?.value;
+        const endDate = document.getElementById('seasonEndDate')?.value;
+
+        if (!seasonName || !startDate || !endDate) {
+            this.uiManager.showError('Please fill in all season report fields before refreshing');
+            return;
+        }
+
+        try {
+            // Check if there's an existing report to refresh
+            const existingRankings = await this.seasonRankingManager.getSeasonRankings(seasonName, startDate, endDate);
+            
+            if (existingRankings.length === 0) {
+                this.uiManager.showError('No existing season report found to refresh. Please generate a new report first.');
+                return;
+            }
+
+            // Get the weights from the first record
+            const sampleRecord = existingRankings[0];
+            const weights = {
+                kudos: sampleRecord.kudos_weight || 0,
+                vsPerformance: sampleRecord.vs_performance_weight || 0,
+                specialEvents: sampleRecord.special_events_weight || 0
+            };
+
+            console.log('Refreshing existing season report:', { seasonName, startDate, endDate, rankings: existingRankings.length, weights });
+            
+            // Display the refreshed report
+            await this.displaySeasonReport(seasonName, startDate, endDate, existingRankings, weights);
+            
+            this.uiManager.showSuccess(`Refreshed season report with ${existingRankings.length} players`);
+            
+        } catch (error) {
+            console.error('Error refreshing season report:', error);
+            this.uiManager.showError(`Error refreshing season report: ${error.message}`);
+        }
+    }
+
     async generateSeasonReport() {
         console.log('generateSeasonReport method called!');
         const seasonName = document.getElementById('seasonName')?.value.trim();
@@ -2802,6 +2875,10 @@ class DailyRankingsApp {
                     </div>
                     <div class="collapsible-content collapsed">
                         <div class="season-report-display" id="seasonReportDisplay" style="display: none;">
+                            <div class="season-report-header">
+                                <h4>Season Report</h4>
+                                <button type="button" id="refreshSeasonReportBtn" class="refresh-btn" title="Refresh season report">🔄</button>
+                            </div>
                             <div id="seasonReportContent" class="season-report-content">
                                 <!-- Season report will be generated here -->
                             </div>
@@ -2905,6 +2982,10 @@ class DailyRankingsApp {
             const itemClass = isTop3 ? 'season-ranking-item top-3' : 'season-ranking-item';
             const uniqueId = `ranking-${index}`;
             
+            // Check if player is removed
+            const isRemoved = this.rankingManager.isPlayerRemoved(ranking.playerName);
+            const removedClass = isRemoved ? 'player-removed' : '';
+            
             // Create hover summary
             const hoverSummary = `Kudos: ${ranking.kudosScore.toFixed(1)}% | VS: ${ranking.vsPerformanceScore.toFixed(1)}% | Events: ${ranking.specialEventsScore.toFixed(1)}% | Alliance: ${ranking.allianceContributionScore.toFixed(1)}%`;
             
@@ -2913,7 +2994,7 @@ class DailyRankingsApp {
                     <div class="season-ranking-header clickable" onclick="toggleRankingDetails('${uniqueId}')" title="${hoverSummary}">
                         <div>
                             <span class="season-rank">#${ranking.finalRank}</span>
-                            <span class="season-player-name">${ranking.playerName}</span>
+                            <span class="season-player-name ${removedClass}">${ranking.playerName}</span>
                             <span class="expand-icon" id="icon-${uniqueId}">▼</span>
                         </div>
                         <span class="season-total-score">${ranking.totalWeightedScore.toFixed(1)}</span>
@@ -3059,49 +3140,16 @@ class DailyRankingsApp {
         
         if (!kudosPlayerInput || !kudosAutocomplete) return;
 
-        kudosPlayerInput.addEventListener('input', async (e) => {
-            const query = e.target.value.trim();
-            
-            if (query.length < 2) {
-                kudosAutocomplete.style.display = 'none';
-                return;
-            }
-
-            try {
-                const suggestions = await this.autocompleteService.getPlayerSuggestions(query);
-                
-                if (suggestions.length === 0) {
-                    kudosAutocomplete.style.display = 'none';
-                    return;
-                }
-
-                const suggestionsHTML = suggestions.map(player => `
-                    <div class="autocomplete-item" data-player="${player}">${player}</div>
-                `).join('');
-
-                kudosAutocomplete.innerHTML = suggestionsHTML;
-                kudosAutocomplete.style.display = 'block';
-
-                // Add click handlers
-                kudosAutocomplete.querySelectorAll('.autocomplete-item').forEach(item => {
-                    item.addEventListener('click', () => {
-                        kudosPlayerInput.value = item.dataset.player;
-                        kudosAutocomplete.style.display = 'none';
-                    });
-                });
-
-            } catch (error) {
-                console.error('Error getting kudos player suggestions:', error);
-                kudosAutocomplete.style.display = 'none';
-            }
-        });
-
-        // Hide dropdown when clicking outside
-        document.addEventListener('click', (e) => {
-            if (!kudosPlayerInput.contains(e.target) && !kudosAutocomplete.contains(e.target)) {
-                kudosAutocomplete.style.display = 'none';
-            }
-        });
+        // Use the new autocomplete service that excludes removed players
+        this.autocompleteService.setupAutocomplete(
+            kudosPlayerInput,
+            kudosAutocomplete,
+            (selectedName) => {
+                kudosPlayerInput.value = selectedName;
+            },
+            false, // Don't exclude leaders for kudos
+            true   // Exclude removed players
+        );
     }
 
     setupEventDataTabs() {
@@ -4676,48 +4724,40 @@ class DailyRankingsApp {
             return;
         }
         
-        removedPlayerInput.addEventListener('input', async (e) => {
-            const query = e.target.value.trim();
-            
-            if (query.length < 2) {
-                autocompleteDropdown.innerHTML = '';
-                autocompleteDropdown.style.display = 'none';
-                return;
-            }
-            
-            try {
-                const suggestions = await this.autocompleteService.getPlayerSuggestions(query);
-                
-                if (suggestions.length === 0) {
-                    autocompleteDropdown.innerHTML = '';
-                    autocompleteDropdown.style.display = 'none';
-                    return;
-                }
-                
-                autocompleteDropdown.innerHTML = suggestions.map(player => 
-                    `<div class="autocomplete-suggestion" data-value="${player}">${player}</div>`
-                ).join('');
-                
-                autocompleteDropdown.style.display = 'block';
-                
-                // Add click event listeners
-                autocompleteDropdown.querySelectorAll('.autocomplete-suggestion').forEach(suggestion => {
-                    suggestion.addEventListener('click', (e) => {
-                        removedPlayerInput.value = e.target.dataset.value;
-                        autocompleteDropdown.style.display = 'none';
-                    });
-                });
-                
-            } catch (error) {
-                console.error('Error getting player suggestions for removed player:', error);
+        // Use the special removed player autocomplete that only shows already removed players
+        let debounceTimer;
+        
+        removedPlayerInput.addEventListener('input', (e) => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                this.autocompleteService.handleRemovedPlayerInput(
+                    e.target.value, 
+                    autocompleteDropdown, 
+                    (selectedName) => {
+                        removedPlayerInput.value = selectedName;
+                    }
+                );
+            }, 150);
+        });
+
+        // Focus event handler
+        removedPlayerInput.addEventListener('focus', () => {
+            if (removedPlayerInput.value.trim()) {
+                this.autocompleteService.handleRemovedPlayerInput(
+                    removedPlayerInput.value, 
+                    autocompleteDropdown, 
+                    (selectedName) => {
+                        removedPlayerInput.value = selectedName;
+                    }
+                );
             }
         });
-        
-        // Hide dropdown when clicking outside
-        document.addEventListener('click', (e) => {
-            if (!removedPlayerInput.contains(e.target) && !autocompleteDropdown.contains(e.target)) {
-                autocompleteDropdown.style.display = 'none';
-            }
+
+        // Blur event handler (close dropdown after a short delay)
+        removedPlayerInput.addEventListener('blur', () => {
+            setTimeout(() => {
+                this.autocompleteService.closeDropdown(autocompleteDropdown);
+            }, 200);
         });
     }
 
@@ -4755,7 +4795,8 @@ class DailyRankingsApp {
                     // Update VIP frequency info
                     this.updateVIPFrequencyDisplay('vipPlayer', selectedName);
                 },
-                true // Exclude leaders
+                true, // Exclude leaders
+                true  // Exclude removed players
             );
         } else {
             console.warn('VIP autocomplete elements not found');

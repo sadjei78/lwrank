@@ -1156,6 +1156,10 @@ export class RankingManager {
         return removedPlayers.some(p => p.playerName === playerName);
     }
 
+    getRemovedPlayersSync() {
+        return JSON.parse(localStorage.getItem('removedPlayers') || '[]');
+    }
+
     async toggleSpecialEventPinned(eventKey, pinned) {
         try {
             if (this.isOnline) {

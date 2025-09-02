@@ -35,21 +35,21 @@ export class AutocompleteService {
         }
     }
 
-    setupAutocomplete(inputElement, dropdownElement, onSelect, excludeLeaders = false) {
+    setupAutocomplete(inputElement, dropdownElement, onSelect, excludeLeaders = false, excludeRemoved = false) {
         let debounceTimer;
         
         // Input event handler
         inputElement.addEventListener('input', (e) => {
             clearTimeout(debounceTimer);
             debounceTimer = setTimeout(() => {
-                this.handleInput(e.target.value, dropdownElement, onSelect, excludeLeaders);
+                this.handleInput(e.target.value, dropdownElement, onSelect, excludeLeaders, excludeRemoved);
             }, 150); // Debounce for better performance
         });
 
         // Focus event handler
         inputElement.addEventListener('focus', () => {
             if (inputElement.value.trim()) {
-                this.handleInput(inputElement.value, dropdownElement, onSelect, excludeLeaders);
+                this.handleInput(inputElement.value, dropdownElement, onSelect, excludeLeaders, excludeRemoved);
             }
         });
 
@@ -80,7 +80,7 @@ export class AutocompleteService {
         });
     }
 
-    handleInput(value, dropdownElement, onSelect, excludeLeaders = false) {
+    handleInput(value, dropdownElement, onSelect, excludeLeaders = false, excludeRemoved = false) {
         const query = value.trim().toLowerCase();
         
         if (query.length === 0) {
@@ -88,7 +88,7 @@ export class AutocompleteService {
             return;
         }
 
-        // Get player names, optionally excluding leaders
+        // Get player names, optionally excluding leaders and removed players
         let availableNames = Array.from(this.allPlayerNames);
         
         if (excludeLeaders && this.leaderVIPManager) {
@@ -97,8 +97,46 @@ export class AutocompleteService {
             );
         }
 
+        if (excludeRemoved && this.rankingManager) {
+            availableNames = availableNames.filter(name => 
+                !this.rankingManager.isPlayerRemoved(name)
+            );
+        }
+
         // Filter player names based on input
         this.filteredNames = availableNames
+            .filter(name => name.toLowerCase().includes(query))
+            .sort((a, b) => {
+                // Prioritize names that start with the query
+                const aStartsWith = a.toLowerCase().startsWith(query);
+                const bStartsWith = b.toLowerCase().startsWith(query);
+                
+                if (aStartsWith && !bStartsWith) return -1;
+                if (!aStartsWith && bStartsWith) return 1;
+                
+                // Then sort alphabetically
+                return a.localeCompare(b);
+            })
+            .slice(0, 10); // Limit to 10 results
+
+        this.showDropdown(dropdownElement, this.filteredNames, onSelect);
+    }
+
+    // Special method for removed players form - only shows already removed players
+    handleRemovedPlayerInput(value, dropdownElement, onSelect) {
+        const query = value.trim().toLowerCase();
+        
+        if (query.length === 0) {
+            this.closeDropdown(dropdownElement);
+            return;
+        }
+
+        // Get only removed players
+        const removedPlayers = this.rankingManager ? this.rankingManager.getRemovedPlayersSync() : [];
+        const removedPlayerNames = removedPlayers.map(p => p.playerName);
+
+        // Filter removed player names based on input
+        this.filteredNames = removedPlayerNames
             .filter(name => name.toLowerCase().includes(query))
             .sort((a, b) => {
                 // Prioritize names that start with the query
