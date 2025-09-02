@@ -384,7 +384,13 @@ export class SeasonRankingManager {
     // Season Ranking Generation
     async generateSeasonRankings(seasonName, startDate, endDate, weights) {
         try {
+            console.log('=== SEASON RANKING MANAGER: generateSeasonRankings called ===');
+            console.log('Parameters:', { seasonName, startDate, endDate, weights });
+            
             const eligiblePlayers = await this.getEligiblePlayersInPeriod(startDate, endDate);
+            console.log('Eligible players found:', eligiblePlayers.length);
+            console.log('Eligible players:', eligiblePlayers);
+            
             const rankings = [];
 
             for (const playerName of eligiblePlayers) {
@@ -452,9 +458,17 @@ export class SeasonRankingManager {
                 rankings[originalIndex].allianceRank = index + 1;
             });
 
+            console.log('=== SEASON RANKING MANAGER: generateSeasonRankings completed ===');
+            console.log('Final rankings count:', rankings.length);
+            console.log('Sample final ranking:', rankings[0]);
             return rankings;
         } catch (error) {
             console.error('Error generating season rankings:', error);
+            console.error('Error details:', {
+                name: error.name,
+                message: error.message,
+                stack: error.stack
+            });
             throw error;
         }
     }

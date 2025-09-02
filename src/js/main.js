@@ -95,7 +95,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.72 loaded successfully!');
+        console.log('🚀 LWRank v1.1.73 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -474,7 +474,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.72';
+                versionElement.textContent = 'v1.1.73';
             }
         }
 
@@ -2855,19 +2855,32 @@ class DailyRankingsApp {
         console.log('Form values:', { seasonName, startDate, endDate });
 
         if (!seasonName) {
+            console.log('ERROR: No season name provided');
             this.uiManager.showError('Please enter a season name');
             return;
         }
 
-        if (!startDate || !endDate) {
-            this.uiManager.showError('Please select both start and end dates');
+        if (!startDate) {
+            console.log('ERROR: No start date provided');
+            this.uiManager.showError('Please select a start date');
             return;
         }
 
+        if (!endDate) {
+            console.log('ERROR: No end date provided');
+            this.uiManager.showError('Please select an end date');
+            return;
+        }
+
+        console.log('All form validation passed, proceeding with report generation...');
+
         if (new Date(startDate) >= new Date(endDate)) {
+            console.log('ERROR: End date must be after start date');
             this.uiManager.showError('End date must be after start date');
             return;
         }
+
+        console.log('Date validation passed, getting weights...');
 
         const weights = {
             kudos: parseInt(document.getElementById('kudosWeight')?.value || 0),
@@ -2875,11 +2888,16 @@ class DailyRankingsApp {
             specialEvents: parseInt(document.getElementById('specialEventsWeight')?.value || 0)
         };
 
+        console.log('Weights retrieved:', weights);
+
         // Validate that the main weights (excluding alliance contribution) total 100%
         if (weights.kudos + weights.vsPerformance + weights.specialEvents !== 100) {
+            console.log('ERROR: Weights do not total 100%:', weights.kudos + weights.vsPerformance + weights.specialEvents);
             this.uiManager.showError('Kudos, VS Performance, and Special Events weights must total exactly 100%');
             return;
         }
+
+        console.log('Weight validation passed, starting report generation...');
 
         // Show loading spinner and disable button
         const generateBtn = document.getElementById('generateSeasonReportBtn');
@@ -2914,6 +2932,11 @@ class DailyRankingsApp {
             
         } catch (error) {
             console.error('Error generating season report:', error);
+            console.error('Error details:', {
+                name: error.name,
+                message: error.message,
+                stack: error.stack
+            });
             this.uiManager.showError(`Error generating season report: ${error.message}`);
         } finally {
             // Restore button state
