@@ -556,8 +556,8 @@ export class RankingManager {
     }
 
     // Special Event Management
-    async createSpecialEvent(eventName, startDate, endDate) {
-        console.log('rankingManager.createSpecialEvent called with:', { eventName, startDate, endDate });
+    async createSpecialEvent(eventName, startDate, endDate, eventWeight = 10.0) {
+        console.log('rankingManager.createSpecialEvent called with:', { eventName, startDate, endDate, eventWeight });
         
         const eventKey = `event_${eventName.replace(/\s+/g, '_').toLowerCase()}_${startDate}_${endDate}`;
         console.log('Generated event key:', eventKey);
@@ -581,7 +581,8 @@ export class RankingManager {
                     start_date: startDate,
                     end_date: endDate,
                     key: eventKey,
-                    pinned: false // Default to not pinned
+                    pinned: false, // Default to not pinned
+                    event_weight: eventWeight // Add the event weight
                     // Note: created field has DEFAULT now() in database, so we don't need to specify it
                 };
                 
@@ -858,14 +859,21 @@ export class RankingManager {
         try {
             if (this.isOnline) {
                 // Update in database
+                const updateData = {
+                    name: updates.name,
+                    start_date: updates.start_date,
+                    end_date: updates.end_date,
+                    updated_at: new Date().toISOString()
+                };
+                
+                // Add event_weight if provided
+                if (updates.event_weight !== undefined) {
+                    updateData.event_weight = updates.event_weight;
+                }
+                
                 const { error } = await supabase
                     .from('special_events')
-                    .update({
-                        name: updates.name,
-                        start_date: updates.start_date,
-                        end_date: updates.end_date,
-                        updated_at: new Date().toISOString()
-                    })
+                    .update(updateData)
                     .eq('key', eventKey);
                 
                 if (error) {

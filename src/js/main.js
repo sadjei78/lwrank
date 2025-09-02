@@ -95,7 +95,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.65 loaded successfully!');
+        console.log('🚀 LWRank v1.1.66 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -474,7 +474,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.65';
+                versionElement.textContent = 'v1.1.66';
             }
         }
 
@@ -1258,11 +1258,13 @@ class DailyRankingsApp {
             const eventNameInput = document.getElementById('eventName');
             const startDateInput = document.getElementById('eventStartDate');
             const endDateInput = document.getElementById('eventEndDate');
+            const eventWeightInput = document.getElementById('eventWeight');
             
             console.log('Form elements found:', {
                 eventNameInput: !!eventNameInput,
                 startDateInput: !!startDateInput,
-                endDateInput: !!endDateInput
+                endDateInput: !!endDateInput,
+                eventWeightInput: !!eventWeightInput
             });
             
             // Get data upload inputs
@@ -1278,9 +1280,15 @@ class DailyRankingsApp {
             const eventName = eventNameInput.value.trim();
             const startDate = startDateInput.value;
             const endDate = endDateInput.value;
+            const eventWeight = parseFloat(eventWeightInput?.value) || 10.0; // Default to 10% if not specified
             
             if (!eventName || !startDate || !endDate) {
                 this.uiManager.showError('Please fill in all fields for the special event.');
+                return;
+            }
+            
+            if (eventWeight < 0 || eventWeight > 100) {
+                this.uiManager.showError('Event weight must be between 0 and 100 percent');
                 return;
             }
             
@@ -1314,8 +1322,8 @@ class DailyRankingsApp {
                 return;
             }
             
-            console.log('About to call rankingManager.createSpecialEvent with:', { eventName, startDate, endDate });
-            const success = await this.rankingManager.createSpecialEvent(eventName, startDate, endDate);
+            console.log('About to call rankingManager.createSpecialEvent with:', { eventName, startDate, endDate, eventWeight });
+            const success = await this.rankingManager.createSpecialEvent(eventName, startDate, endDate, eventWeight);
             console.log('createSpecialEvent result:', success);
             
             if (success) {
@@ -1822,6 +1830,11 @@ class DailyRankingsApp {
                             <label for="eventEndDate">End Date:</label>
                             <input type="date" id="eventEndDate" class="form-input">
                         </div>
+                        <div class="form-group">
+                            <label for="eventWeight">Event Weight (%):</label>
+                            <input type="number" id="eventWeight" placeholder="10" min="0" max="100" step="0.01" class="form-input">
+                            <small class="form-help">Weight percentage (0-100%) representing how much this event contributes to overall season ranking score</small>
+                        </div>
                         
                         <div class="event-data-section">
                             <h4>📊 Add Event Data (Optional)</h4>
@@ -2216,6 +2229,11 @@ class DailyRankingsApp {
                         <div class="form-group">
                             <label for="editEventEndDate">End Date:</label>
                             <input type="date" id="editEventEndDate" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editEventWeight">Event Weight (%):</label>
+                            <input type="number" id="editEventWeight" placeholder="10" min="0" max="100" step="0.01" class="form-input">
+                            <small class="form-help">Weight percentage (0-100%) representing how much this event contributes to overall season ranking score</small>
                         </div>
                         
                         <div class="event-data-section">
@@ -3327,7 +3345,7 @@ class DailyRankingsApp {
                     const rowCount = eventRankings ? eventRankings.length : 0;
                 
                 html += `
-                    <div class="event-entry ${event.pinned ? 'pinned-event' : ''}" data-event-key="${this.escapeHTML(event.key)}" data-event-name="${this.escapeHTML(event.name)}" data-start-date="${event.startDate}" data-end-date="${event.endDate}">
+                    <div class="event-entry ${event.pinned ? 'pinned-event' : ''}" data-event-key="${this.escapeHTML(event.key)}" data-event-name="${this.escapeHTML(event.name)}" data-start-date="${event.startDate}" data-end-date="${event.endDate}" data-event-weight="${event.event_weight || 10.0}">
                         <div class="event-info">
                             <div class="event-name">${this.escapeHTML(event.name)} ${event.pinned ? '📌' : ''}</div>
                             <div class="event-dates">${startDateStr} - ${endDateStr}</div>
@@ -3381,9 +3399,10 @@ class DailyRankingsApp {
                 const eventName = eventEntry.dataset.eventName;
                 const startDate = eventEntry.dataset.startDate;
                 const endDate = eventEntry.dataset.endDate;
+                const eventWeight = eventEntry.dataset.eventWeight;
                 
                 if (e.target.dataset.action === 'edit') {
-                    this.editSpecialEvent(eventKey, eventName, startDate, endDate);
+                    this.editSpecialEvent(eventKey, eventName, startDate, endDate, eventWeight);
                 } else if (e.target.dataset.action === 'delete') {
                     this.deleteSpecialEvent(eventKey);
                 } else if (e.target.dataset.action === 'pin') {
@@ -3395,9 +3414,9 @@ class DailyRankingsApp {
     }
 
     // Edit special event
-    editSpecialEvent(eventKey, eventName, startDate, endDate) {
+    editSpecialEvent(eventKey, eventName, startDate, endDate, eventWeight) {
         try {
-            console.log('Editing special event:', { eventKey, eventName, startDate, endDate });
+            console.log('Editing special event:', { eventKey, eventName, startDate, endDate, eventWeight });
             
             // Validate parameters
             if (!eventKey || !eventName || !startDate || !endDate) {
@@ -3410,11 +3429,13 @@ class DailyRankingsApp {
             const editEventName = document.getElementById('editEventName');
             const editEventStartDate = document.getElementById('editEventStartDate');
             const editEventEndDate = document.getElementById('editEventEndDate');
+            const editEventWeight = document.getElementById('editEventWeight');
             
             if (editEventKey) editEventKey.value = eventKey;
             if (editEventName) editEventName.value = eventName;
             if (editEventStartDate) editEventStartDate.value = startDate;
             if (editEventEndDate) editEventEndDate.value = endDate;
+            if (editEventWeight) editEventWeight.value = eventWeight || 10.0;
             
             // Show the modal
             const modal = document.getElementById('eventEditModal');
@@ -3664,6 +3685,7 @@ class DailyRankingsApp {
             const eventName = document.getElementById('editEventName')?.value?.trim();
             const startDate = document.getElementById('editEventStartDate')?.value;
             const endDate = document.getElementById('editEventEndDate')?.value;
+            const eventWeight = parseFloat(document.getElementById('editEventWeight')?.value) || 10.0;
             
             // Get data upload inputs
             const csvFile = document.getElementById('editEventCSVFile')?.files[0];
@@ -3671,6 +3693,11 @@ class DailyRankingsApp {
             
             if (!eventKey || !eventName || !startDate || !endDate) {
                 this.uiManager.showError('Please fill in all fields');
+                return;
+            }
+            
+            if (eventWeight < 0 || eventWeight > 100) {
+                this.uiManager.showError('Event weight must be between 0 and 100 percent');
                 return;
             }
             
@@ -3708,7 +3735,8 @@ class DailyRankingsApp {
             await this.rankingManager.updateSpecialEvent(eventKey, {
                 name: eventName,
                 startDate: startDate,
-                endDate: endDate
+                endDate: endDate,
+                event_weight: eventWeight
             });
             
             // Process data if provided
