@@ -2343,6 +2343,13 @@ header h1 {
     color: #374151;
 }
 
+.score-component-rank {
+    font-size: 12px;
+    color: #6b7280;
+    margin-top: 4px;
+    font-weight: 500;
+}
+
 .loading-kudos {
     padding: 20px;
     text-align: center;

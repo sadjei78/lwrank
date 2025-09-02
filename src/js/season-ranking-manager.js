@@ -194,27 +194,7 @@ export class SeasonRankingManager {
 
     async calculateVSPerformanceScore(playerName, startDate, endDate) {
         try {
-            // Get all unique days with data in the period
-            const { data: allDaysData, error: daysError } = await supabase
-                .from('rankings')
-                .select('date')
-                .gte('date', startDate)
-                .lte('date', endDate);
-
-            if (daysError) {
-                console.error('Error fetching days data:', daysError);
-                throw daysError;
-            }
-
-            // Get unique days with actual data
-            const uniqueDays = [...new Set(allDaysData.map(d => d.date))];
-            const totalRecordedDays = uniqueDays.length;
-
-            if (totalRecordedDays === 0) {
-                return 0;
-            }
-
-            // Get player's rankings for those days
+            // Get player's rankings for the period
             const { data: playerData, error: playerError } = await supabase
                 .from('rankings')
                 .select('*')
@@ -232,11 +212,19 @@ export class SeasonRankingManager {
                 return 0;
             }
 
-            // Count top 10 appearances
-            const top10Count = playerData.filter(ranking => ranking.ranking <= 10).length;
+            // New VS Points logic: 50 base points + 2 points per top 10 - 1 point per bottom 20
+            let vsPoints = 50; // Base points for everyone
             
-            // Calculate percentage of days in top 10 out of total recorded days
-            return (top10Count / totalRecordedDays) * 100;
+            playerData.forEach(ranking => {
+                if (ranking.ranking <= 10) {
+                    vsPoints += 2; // +2 points for each top 10 occurrence
+                }
+                if (ranking.ranking >= 21) { // Assuming bottom 20 means ranks 21+
+                    vsPoints -= 1; // -1 point for each bottom 20 occurrence
+                }
+            });
+
+            return Math.max(0, vsPoints); // Ensure non-negative score
         } catch (error) {
             console.error('Error calculating VS performance score:', error);
             return 0;
@@ -288,30 +276,32 @@ export class SeasonRankingManager {
                 return 0;
             }
 
-            // Calculate weighted score for each event
-            let totalWeightedScore = 0;
-            let totalWeight = 0;
+            // New Special Events Points logic: (total participants + 10) - actual rank
+            let totalSpecialEventsPoints = 0;
 
             for (const ranking of rankings) {
                 // Find the corresponding event to get its weight
                 const event = nonAllianceEvents.find(e => e.key === ranking.day);
                 if (!event) continue;
 
-                const eventWeight = event.event_weight || 10.0; // Default to 10% if not set
+                // Get total participants for this event (we'll need to count from rankings)
+                const { data: eventRankings, error: eventRankingsError } = await supabase
+                    .from('rankings')
+                    .select('commander')
+                    .eq('day', event.key);
+
+                if (eventRankingsError) {
+                    console.error('Error fetching event participants:', eventRankingsError);
+                    continue;
+                }
+
+                const totalParticipants = eventRankings.length;
+                const eventPoints = (totalParticipants + 10) - ranking.ranking;
                 
-                // Convert ranking to percentage (lower ranking = higher percentage)
-                // Assuming max 50 participants, 1st place = 100%, 50th place = 2%
-                const maxParticipants = 50;
-                const rankingPercentage = Math.max(0, ((maxParticipants - ranking.ranking + 1) / maxParticipants) * 100);
-                
-                // Weight this event's contribution
-                const weightedEventScore = (rankingPercentage * eventWeight) / 100;
-                totalWeightedScore += weightedEventScore;
-                totalWeight += eventWeight;
+                totalSpecialEventsPoints += Math.max(0, eventPoints); // Ensure non-negative
             }
 
-            // Return the total weighted score (sum of weighted scores, not normalized)
-            return Math.round(totalWeightedScore * 100) / 100;
+            return Math.round(totalSpecialEventsPoints * 100) / 100;
         } catch (error) {
             console.error('Error calculating special events score:', error);
             return 0;
@@ -416,7 +406,12 @@ export class SeasonRankingManager {
                     vsPerformanceScore: Math.round(vsScore * 100) / 100,
                     specialEventsScore: Math.round(specialEventsScore * 100) / 100,
                     allianceContributionScore: Math.round(allianceScore * 100) / 100,
-                    totalWeightedScore: Math.round(totalScore * 100) / 100
+                    totalWeightedScore: Math.round(totalScore * 100) / 100,
+                    // Store raw scores for ranking calculation
+                    rawKudosScore: kudosScore,
+                    rawVSScore: vsScore,
+                    rawSpecialEventsScore: specialEventsScore,
+                    rawAllianceScore: allianceScore
                 });
             }
 
@@ -426,6 +421,35 @@ export class SeasonRankingManager {
             // Add final ranks
             rankings.forEach((ranking, index) => {
                 ranking.finalRank = index + 1;
+            });
+
+            // Calculate individual category ranks
+            // Kudos ranks
+            const kudosSorted = [...rankings].sort((a, b) => b.rawKudosScore - a.rawKudosScore);
+            kudosSorted.forEach((ranking, index) => {
+                const originalIndex = rankings.findIndex(r => r.playerName === ranking.playerName);
+                rankings[originalIndex].kudosRank = index + 1;
+            });
+
+            // VS Performance ranks
+            const vsSorted = [...rankings].sort((a, b) => b.rawVSScore - a.rawVSScore);
+            vsSorted.forEach((ranking, index) => {
+                const originalIndex = rankings.findIndex(r => r.playerName === ranking.playerName);
+                rankings[originalIndex].vsRank = index + 1;
+            });
+
+            // Special Events ranks
+            const specialEventsSorted = [...rankings].sort((a, b) => b.rawSpecialEventsScore - a.rawSpecialEventsScore);
+            specialEventsSorted.forEach((ranking, index) => {
+                const originalIndex = rankings.findIndex(r => r.playerName === ranking.playerName);
+                rankings[originalIndex].specialEventsRank = index + 1;
+            });
+
+            // Alliance Contribution ranks
+            const allianceSorted = [...rankings].sort((a, b) => b.rawAllianceScore - a.rawAllianceScore);
+            allianceSorted.forEach((ranking, index) => {
+                const originalIndex = rankings.findIndex(r => r.playerName === ranking.playerName);
+                rankings[originalIndex].allianceRank = index + 1;
             });
 
             return rankings;

@@ -95,7 +95,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.70 loaded successfully!');
+        console.log('🚀 LWRank v1.1.71 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -474,7 +474,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.70';
+                versionElement.textContent = 'v1.1.71';
             }
         }
 
@@ -3003,18 +3003,22 @@ class DailyRankingsApp {
                         <div class="score-component">
                             <div class="score-component-label">Kudos</div>
                             <div class="score-component-value">${ranking.kudosScore.toFixed(1)}%</div>
+                            <div class="score-component-rank">Rank: #${ranking.kudosRank || 'N/A'}</div>
                         </div>
                         <div class="score-component">
                             <div class="score-component-label">VS Performance</div>
-                            <div class="score-component-value">${ranking.vsPerformanceScore.toFixed(1)}%</div>
+                            <div class="score-component-value">${ranking.vsPerformanceScore.toFixed(1)} pts</div>
+                            <div class="score-component-rank">Rank: #${ranking.vsRank || 'N/A'}</div>
                         </div>
                         <div class="score-component">
                             <div class="score-component-label">Special Events</div>
-                            <div class="score-component-value">${ranking.specialEventsScore.toFixed(1)}%</div>
+                            <div class="score-component-value">${ranking.specialEventsScore.toFixed(1)} pts</div>
+                            <div class="score-component-rank">Rank: #${ranking.specialEventsRank || 'N/A'}</div>
                         </div>
                         <div class="score-component">
                             <div class="score-component-label">Alliance Contribution</div>
                             <div class="score-component-value">${ranking.allianceContributionScore.toFixed(1)}%</div>
+                            <div class="score-component-rank">Rank: #${ranking.allianceRank || 'N/A'}</div>
                         </div>
                     </div>
                 </div>

@@ -122,7 +122,7 @@ export class AutocompleteService {
         this.showDropdown(dropdownElement, this.filteredNames, onSelect);
     }
 
-    // Special method for removed players form - only shows already removed players
+    // Special method for removed players form - shows all players except already removed ones
     handleRemovedPlayerInput(value, dropdownElement, onSelect) {
         const query = value.trim().toLowerCase();
         
@@ -131,12 +131,18 @@ export class AutocompleteService {
             return;
         }
 
-        // Get only removed players
-        const removedPlayers = this.rankingManager ? this.rankingManager.getRemovedPlayersSync() : [];
-        const removedPlayerNames = removedPlayers.map(p => p.playerName);
+        // Get all player names and filter out already removed players
+        let availableNames = Array.from(this.allPlayerNames);
+        
+        // Exclude already removed players
+        if (this.rankingManager) {
+            availableNames = availableNames.filter(name => 
+                !this.rankingManager.isPlayerRemoved(name)
+            );
+        }
 
-        // Filter removed player names based on input
-        this.filteredNames = removedPlayerNames
+        // Filter player names based on input
+        this.filteredNames = availableNames
             .filter(name => name.toLowerCase().includes(query))
             .sort((a, b) => {
                 // Prioritize names that start with the query
