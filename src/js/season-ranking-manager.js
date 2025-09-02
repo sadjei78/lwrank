@@ -501,6 +501,43 @@ export class SeasonRankingManager {
         }
     }
 
+    // Get all available season reports (unique combinations)
+    async getAllAvailableSeasonReports() {
+        try {
+            const { data, error } = await supabase
+                .from('season_rankings')
+                .select('season_name, start_date, end_date, created_at')
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                console.error('Error fetching available season reports:', error);
+                throw error;
+            }
+
+            // Group by unique combinations
+            const uniqueReports = [];
+            const seen = new Set();
+            
+            for (const record of data || []) {
+                const key = `${record.season_name}|${record.start_date}|${record.end_date}`;
+                if (!seen.has(key)) {
+                    seen.add(key);
+                    uniqueReports.push({
+                        season_name: record.season_name,
+                        start_date: record.start_date,
+                        end_date: record.end_date,
+                        created_at: record.created_at
+                    });
+                }
+            }
+
+            return uniqueReports;
+        } catch (error) {
+            console.error('Error in getAllAvailableSeasonReports:', error);
+            throw error;
+        }
+    }
+
     // Clear season data
     async clearSeasonData(seasonName, startDate, endDate) {
         try {

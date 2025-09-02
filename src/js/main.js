@@ -95,7 +95,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.68 loaded successfully!');
+        console.log('🚀 LWRank v1.1.69 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -474,7 +474,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.68';
+                versionElement.textContent = 'v1.1.69';
             }
         }
 
@@ -2105,6 +2105,8 @@ class DailyRankingsApp {
 
                             <div class="season-actions">
                                 <button type="button" id="generateSeasonReportBtn" class="season-btn primary">🏆 Generate Season Report</button>
+                                <button type="button" id="loadExistingReportBtn" class="season-btn secondary">📊 Load Existing Report</button>
+                                <button type="button" id="listAvailableReportsBtn" class="season-btn secondary">📋 List Available Reports</button>
                                 <button type="button" id="clearSeasonDataBtn" class="season-btn secondary">🗑️ Clear Season Data</button>
                             </div>
                         </div>
@@ -2480,15 +2482,45 @@ class DailyRankingsApp {
         console.log('Generate Season Report button found:', generateSeasonReportBtn);
         console.log('All buttons with "generate" in ID:', document.querySelectorAll('[id*="generate"]'));
         if (generateSeasonReportBtn) {
+            // Try multiple event binding approaches
+            generateSeasonReportBtn.onclick = (e) => {
+                e.preventDefault();
+                console.log('Generate Season Report button clicked via onclick!');
+                this.generateSeasonReport();
+            };
             generateSeasonReportBtn.addEventListener('click', (e) => {
                 e.preventDefault();
-                console.log('Generate Season Report button clicked!');
+                console.log('Generate Season Report button clicked via addEventListener!');
                 this.generateSeasonReport();
             });
-            console.log('Generate Season Report event listener attached');
+            console.log('Generate Season Report event listeners attached');
         } else {
             console.error('Generate Season Report button not found!');
             console.log('Available buttons in admin sections:', document.querySelectorAll('#adminSections button'));
+        }
+
+        // Load Existing Report button
+        const loadExistingReportBtn = document.getElementById('loadExistingReportBtn');
+        console.log('Load Existing Report button found:', loadExistingReportBtn);
+        if (loadExistingReportBtn) {
+            loadExistingReportBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                console.log('Load Existing Report button clicked!');
+                this.loadExistingSeasonReport();
+            });
+            console.log('Load Existing Report event listener attached');
+        } else {
+            console.error('Load Existing Report button not found!');
+        }
+
+        // List Available Reports button
+        const listReportsBtn = document.getElementById('listAvailableReportsBtn');
+        if (listReportsBtn) {
+            listReportsBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                console.log('List Available Reports button clicked!');
+                this.listAvailableSeasonReports();
+            });
         }
 
         // Clear Season Data button
@@ -2559,6 +2591,114 @@ class DailyRankingsApp {
         } catch (error) {
             console.error('Error awarding kudos:', error);
             this.uiManager.showError(`Error awarding kudos: ${error.message}`);
+        }
+    }
+
+    async loadExistingSeasonReport() {
+        console.log('loadExistingSeasonReport method called!');
+        const seasonName = document.getElementById('seasonName')?.value.trim();
+        const startDate = document.getElementById('seasonStartDate')?.value;
+        const endDate = document.getElementById('seasonEndDate')?.value;
+
+        if (!seasonName || !startDate || !endDate) {
+            this.uiManager.showError('Please fill in all season report fields');
+            return;
+        }
+
+        try {
+            // Get existing season rankings
+            const existingRankings = await this.seasonRankingManager.getSeasonRankings(seasonName, startDate, endDate);
+            
+            if (existingRankings.length === 0) {
+                this.uiManager.showError('No existing season report found for the specified criteria');
+                return;
+            }
+
+            // Get the weights from the first record (they should all be the same)
+            const sampleRecord = existingRankings[0];
+            const weights = {
+                kudos: sampleRecord.kudos_weight || 0,
+                vsPerformance: sampleRecord.vs_performance_weight || 0,
+                specialEvents: sampleRecord.special_events_weight || 0
+            };
+
+            console.log('Loading existing season report:', { seasonName, startDate, endDate, rankings: existingRankings.length, weights });
+            
+            // Display the existing report
+            await this.displaySeasonReport(seasonName, startDate, endDate, existingRankings, weights);
+            
+            this.uiManager.showSuccess(`Loaded existing season report with ${existingRankings.length} players`);
+            
+        } catch (error) {
+            console.error('Error loading existing season report:', error);
+            this.uiManager.showError(`Error loading existing season report: ${error.message}`);
+        }
+    }
+
+    async listAvailableSeasonReports() {
+        console.log('listAvailableSeasonReports method called!');
+        
+        try {
+            const availableReports = await this.seasonRankingManager.getAllAvailableSeasonReports();
+            
+            if (availableReports.length === 0) {
+                this.uiManager.showError('No season reports found in the database');
+                return;
+            }
+
+            // Create a modal to display available reports
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>📋 Available Season Reports</h3>
+                        <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="reports-list">
+                            ${availableReports.map((report, index) => `
+                                <div class="report-item" data-index="${index}">
+                                    <div class="report-info">
+                                        <strong>${report.season_name}</strong>
+                                        <div class="report-dates">${report.start_date} to ${report.end_date}</div>
+                                        <div class="report-created">Created: ${new Date(report.created_at).toLocaleString()}</div>
+                                    </div>
+                                    <button class="load-report-btn" data-season="${report.season_name}" data-start="${report.start_date}" data-end="${report.end_date}">
+                                        Load Report
+                                    </button>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+
+            // Add event listeners to load report buttons
+            modal.querySelectorAll('.load-report-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const seasonName = e.target.getAttribute('data-season');
+                    const startDate = e.target.getAttribute('data-start');
+                    const endDate = e.target.getAttribute('data-end');
+                    
+                    // Fill in the form fields
+                    document.getElementById('seasonName').value = seasonName;
+                    document.getElementById('seasonStartDate').value = startDate;
+                    document.getElementById('seasonEndDate').value = endDate;
+                    
+                    // Close modal and load the report
+                    modal.remove();
+                    await this.loadExistingSeasonReport();
+                });
+            });
+
+            this.uiManager.showSuccess(`Found ${availableReports.length} available season reports`);
+            
+        } catch (error) {
+            console.error('Error listing available season reports:', error);
+            this.uiManager.showError(`Error listing available season reports: ${error.message}`);
         }
     }
 

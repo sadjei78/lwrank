@@ -2384,6 +2384,53 @@ header h1 {
     }
 }
 
+/* Reports list modal styles */
+.reports-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.report-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    background-color: #f9fafb;
+}
+
+.report-info {
+    flex: 1;
+}
+
+.report-dates {
+    color: #6b7280;
+    font-size: 0.875rem;
+    margin: 4px 0;
+}
+
+.report-created {
+    color: #9ca3af;
+    font-size: 0.75rem;
+}
+
+.load-report-btn {
+    background-color: #3b82f6;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: background-color 0.2s ease;
+}
+
+.load-report-btn:hover {
+    background-color: #2563eb;
+}
+
 /* Removed Player Styling in Rankings and Reports */
 .player-removed {
     text-decoration: line-through;
