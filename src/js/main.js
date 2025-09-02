@@ -95,7 +95,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.66 loaded successfully!');
+        console.log('🚀 LWRank v1.1.67 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -474,7 +474,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.66';
+                versionElement.textContent = 'v1.1.67';
             }
         }
 
@@ -2595,8 +2595,9 @@ class DailyRankingsApp {
             allianceContribution: parseInt(document.getElementById('allianceContributionWeight')?.value || 0)
         };
 
-        if (weights.kudos + weights.vsPerformance + weights.specialEvents + weights.allianceContribution !== 100) {
-            this.uiManager.showError('Weights must total exactly 100%');
+        // Validate that the main weights (excluding alliance contribution) total 100%
+        if (weights.kudos + weights.vsPerformance + weights.specialEvents !== 100) {
+            this.uiManager.showError('Kudos, VS Performance, and Special Events weights must total exactly 100%');
             return;
         }
 

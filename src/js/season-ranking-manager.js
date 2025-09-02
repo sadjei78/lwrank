@@ -194,7 +194,28 @@ export class SeasonRankingManager {
 
     async calculateVSPerformanceScore(playerName, startDate, endDate) {
         try {
-            const { data, error } = await supabase
+            // Get all unique days with data in the period
+            const { data: allDaysData, error: daysError } = await supabase
+                .from('rankings')
+                .select('date')
+                .gte('date', startDate)
+                .lte('date', endDate);
+
+            if (daysError) {
+                console.error('Error fetching days data:', daysError);
+                throw daysError;
+            }
+
+            // Get unique days with actual data
+            const uniqueDays = [...new Set(allDaysData.map(d => d.date))];
+            const totalRecordedDays = uniqueDays.length;
+
+            if (totalRecordedDays === 0) {
+                return 0;
+            }
+
+            // Get player's rankings for those days
+            const { data: playerData, error: playerError } = await supabase
                 .from('rankings')
                 .select('*')
                 .eq('commander', playerName)
@@ -202,25 +223,20 @@ export class SeasonRankingManager {
                 .lte('date', endDate)
                 .order('date');
 
-            if (error) {
-                console.error('Error fetching VS performance data:', error);
-                throw error;
+            if (playerError) {
+                console.error('Error fetching VS performance data:', playerError);
+                throw playerError;
             }
 
-            if (data.length === 0) {
+            if (playerData.length === 0) {
                 return 0;
             }
 
             // Count top 10 appearances
-            const top10Count = data.filter(ranking => ranking.ranking <= 10).length;
+            const top10Count = playerData.filter(ranking => ranking.ranking <= 10).length;
             
-            // Calculate total days in the selected period
-            const start = new Date(startDate);
-            const end = new Date(endDate);
-            const totalDaysInPeriod = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
-            
-            // Calculate percentage of days in top 10 out of total period days
-            return (top10Count / totalDaysInPeriod) * 100;
+            // Calculate percentage of days in top 10 out of total recorded days
+            return (top10Count / totalRecordedDays) * 100;
         } catch (error) {
             console.error('Error calculating VS performance score:', error);
             return 0;
@@ -294,9 +310,8 @@ export class SeasonRankingManager {
                 totalWeight += eventWeight;
             }
 
-            // Return the total weighted score (normalized by total weight)
-            if (totalWeight === 0) return 0;
-            return Math.round((totalWeightedScore / totalWeight) * 100) / 100;
+            // Return the total weighted score (sum of weighted scores, not normalized)
+            return Math.round(totalWeightedScore * 100) / 100;
         } catch (error) {
             console.error('Error calculating special events score:', error);
             return 0;
@@ -305,7 +320,7 @@ export class SeasonRankingManager {
 
     async calculateAllianceContributionScore(playerName, startDate, endDate) {
         try {
-            // First, get all special events in the date range
+            // First, get all special events in the date range with their weights
             const { data: specialEvents, error: eventsError } = await supabase
                 .from('special_events')
                 .select('*')
@@ -350,7 +365,6 @@ export class SeasonRankingManager {
 
             // Calculate weighted score for each alliance contribution event
             let totalWeightedScore = 0;
-            let totalWeight = 0;
 
             for (const ranking of rankings) {
                 // Find the corresponding event to get its weight
@@ -367,12 +381,10 @@ export class SeasonRankingManager {
                 // Weight this event's contribution
                 const weightedEventScore = (rankingPercentage * eventWeight) / 100;
                 totalWeightedScore += weightedEventScore;
-                totalWeight += eventWeight;
             }
 
-            // Return the total weighted score (normalized by total weight)
-            if (totalWeight === 0) return 0;
-            return Math.round((totalWeightedScore / totalWeight) * 100) / 100;
+            // Return the total weighted score (sum of weighted scores, not normalized)
+            return Math.round(totalWeightedScore * 100) / 100;
         } catch (error) {
             console.error('Error calculating alliance contribution score:', error);
             return 0;
@@ -391,12 +403,12 @@ export class SeasonRankingManager {
                 const specialEventsScore = await this.calculateSpecialEventsScore(playerName, startDate, endDate);
                 const allianceScore = await this.calculateAllianceContributionScore(playerName, startDate, endDate);
 
-                // Calculate weighted total score
+                // Calculate weighted total score (excluding alliance contribution from weights)
                 const totalScore = 
                     (kudosScore * weights.kudos / 100) +
                     (vsScore * weights.vsPerformance / 100) +
                     (specialEventsScore * weights.specialEvents / 100) +
-                    (allianceScore * weights.allianceContribution / 100);
+                    allianceScore; // Alliance contribution is added directly, not weighted
 
                 rankings.push({
                     playerName,
