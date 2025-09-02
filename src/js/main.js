@@ -95,7 +95,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.74 loaded successfully!');
+        console.log('🚀 LWRank v1.1.75 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -474,7 +474,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.74';
+                versionElement.textContent = 'v1.1.75';
             }
         }
 
@@ -2811,31 +2811,46 @@ class DailyRankingsApp {
         }
 
         try {
-            // Check if there's an existing report to refresh
-            const existingRankings = await this.seasonRankingManager.getSeasonRankings(seasonName, startDate, endDate);
-            
-            if (existingRankings.length === 0) {
-                this.uiManager.showError('No existing season report found to refresh. Please generate a new report first.');
-                return;
-            }
-
-            // Get the weights from the first record
-            const sampleRecord = existingRankings[0];
+            // Get current weights from the form
             const weights = {
-                kudos: sampleRecord.kudos_weight || 0,
-                vsPerformance: sampleRecord.vs_performance_weight || 0,
-                specialEvents: sampleRecord.special_events_weight || 0
+                kudos: parseInt(document.getElementById('kudosWeight')?.value || 0),
+                vsPerformance: parseInt(document.getElementById('vsPerformanceWeight')?.value || 0),
+                specialEvents: parseInt(document.getElementById('specialEventsWeight')?.value || 0)
             };
 
-            console.log('Refreshing existing season report:', { seasonName, startDate, endDate, rankings: existingRankings.length, weights });
+            console.log('Refreshing season report with current weights:', weights);
+            
+            // Validate weights
+            const totalWeight = weights.kudos + weights.vsPerformance + weights.specialEvents;
+            if (totalWeight !== 100) {
+                const difference = 100 - totalWeight;
+                const message = `Weights must total exactly 100%. Current total: ${totalWeight}% (${difference > 0 ? 'need' : 'over by'} ${Math.abs(difference)}%)`;
+                this.uiManager.showError(message);
+                return;
+            }
+            
+            // Regenerate the report with current logic and weights
+            console.log('Regenerating season rankings...');
+            const rankings = await this.seasonRankingManager.generateSeasonRankings(seasonName, startDate, endDate, weights);
+            
+            console.log('Regenerated rankings:', rankings.length, 'players');
+            
+            // Save updated rankings to database
+            await this.seasonRankingManager.saveSeasonRankings(seasonName, startDate, endDate, rankings);
+            console.log('Updated rankings saved to database');
             
             // Display the refreshed report
-            await this.displaySeasonReport(seasonName, startDate, endDate, existingRankings, weights);
+            await this.displaySeasonReport(seasonName, startDate, endDate, rankings, weights);
             
-            this.uiManager.showSuccess(`Refreshed season report with ${existingRankings.length} players`);
+            this.uiManager.showSuccess(`Refreshed season report with ${rankings.length} players using current logic`);
             
         } catch (error) {
             console.error('Error refreshing season report:', error);
+            console.error('Error details:', {
+                name: error.name,
+                message: error.message,
+                stack: error.stack
+            });
             this.uiManager.showError(`Error refreshing season report: ${error.message}`);
         }
     }
@@ -2891,9 +2906,12 @@ class DailyRankingsApp {
         console.log('Weights retrieved:', weights);
 
         // Validate that the main weights (excluding alliance contribution) total 100%
-        if (weights.kudos + weights.vsPerformance + weights.specialEvents !== 100) {
-            console.log('ERROR: Weights do not total 100%:', weights.kudos + weights.vsPerformance + weights.specialEvents);
-            this.uiManager.showError('Kudos, VS Performance, and Special Events weights must total exactly 100%');
+        const totalWeight = weights.kudos + weights.vsPerformance + weights.specialEvents;
+        if (totalWeight !== 100) {
+            console.log('ERROR: Weights do not total 100%:', totalWeight);
+            const difference = 100 - totalWeight;
+            const message = `Weights must total exactly 100%. Current total: ${totalWeight}% (${difference > 0 ? 'need' : 'over by'} ${Math.abs(difference)}%)`;
+            this.uiManager.showError(message);
             return;
         }
 
