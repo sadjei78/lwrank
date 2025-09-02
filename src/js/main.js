@@ -3,6 +3,7 @@ import { CSVProcessor } from './csv-processor.js';
 import { UIManager } from './ui-manager.js';
 import { LeaderVIPManager } from './leader-vip-manager.js';
 import { AutocompleteService } from './autocomplete-service.js';
+import { SeasonRankingManager } from './season-ranking-manager.js';
 import { config } from './config.js';
 
 class DailyRankingsApp {
@@ -12,6 +13,7 @@ class DailyRankingsApp {
         this.uiManager = new UIManager();
         this.leaderVIPManager = new LeaderVIPManager();
         this.autocompleteService = new AutocompleteService(this.rankingManager, this.leaderVIPManager);
+        this.seasonRankingManager = new SeasonRankingManager(this.rankingManager, this.leaderVIPManager);
         this.selectedDate = new Date();
         this.currentTabDate = null;
         this.adminAuthenticated = false;
@@ -93,7 +95,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.48 loaded successfully!');
+        console.log('🚀 LWRank v1.1.49 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -2037,6 +2039,105 @@ class DailyRankingsApp {
                     </div>
                     </div>
                 </div>
+
+                <!-- Season Ranking System Section -->
+                <div class="admin-section collapsible">
+                    <div class="collapsible-header" data-target="seasonRankingContent">
+                        <h3>🏆 Season Ranking System</h3>
+                        <span class="collapsible-icon">▼</span>
+                    </div>
+                    <div id="seasonRankingContent" class="collapsible-content collapsed">
+                        <div class="season-ranking-form">
+                            <div class="season-config">
+                                <h4>📅 Season Configuration</h4>
+                                <div class="form-group">
+                                    <label for="seasonName">Season Name:</label>
+                                    <input type="text" id="seasonName" placeholder="e.g., Winter 2025 Season" class="form-input">
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="seasonStartDate">Start Date:</label>
+                                        <input type="date" id="seasonStartDate" class="form-input">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="seasonEndDate">End Date:</label>
+                                        <input type="date" id="seasonEndDate" class="form-input">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="weight-config">
+                                <h4>⚖️ Scoring Weights</h4>
+                                <div class="weight-inputs">
+                                    <div class="form-group">
+                                        <label for="kudosWeight">Kudos Points (1-10 scale):</label>
+                                        <input type="number" id="kudosWeight" value="25" min="0" max="100" class="form-input">
+                                        <span class="weight-percent">%</span>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="vsPerformanceWeight">VS Performance (Top 10 appearances):</label>
+                                        <input type="number" id="vsPerformanceWeight" value="35" min="0" max="100" class="form-input">
+                                        <span class="weight-percent">%</span>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="specialEventsWeight">Special Events (Rank in events):</label>
+                                        <input type="number" id="specialEventsWeight" value="25" min="0" max="100" class="form-input">
+                                        <span class="weight-percent">%</span>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="allianceContributionWeight">Alliance Contribution (Separate events):</label>
+                                        <input type="number" id="allianceContributionWeight" value="15" min="0" max="100" class="form-input">
+                                        <span class="weight-percent">%</span>
+                                    </div>
+                                </div>
+                                <div class="weight-total">
+                                    <span>Total: <span id="weightTotal">100</span>%</span>
+                                </div>
+                            </div>
+
+                            <div class="season-actions">
+                                <button id="generateSeasonReportBtn" class="season-btn primary">🏆 Generate Season Report</button>
+                                <button id="clearSeasonDataBtn" class="season-btn secondary">🗑️ Clear Season Data</button>
+                            </div>
+                        </div>
+
+                        <div class="kudos-management">
+                            <h4>⭐ Kudos Points Management</h4>
+                            <div class="kudos-form">
+                                <div class="form-group">
+                                    <label for="kudosPlayerName">Player Name:</label>
+                                    <div class="autocomplete-container">
+                                        <input type="text" id="kudosPlayerName" placeholder="Enter player name" class="form-input">
+                                        <div id="kudosPlayerAutocomplete" class="autocomplete-dropdown"></div>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="kudosPoints">Points (1-10):</label>
+                                    <input type="number" id="kudosPoints" min="1" max="10" value="5" class="form-input">
+                                </div>
+                                <div class="form-group">
+                                    <label for="kudosReason">Reason:</label>
+                                    <textarea id="kudosReason" placeholder="Why are you awarding these points?" class="form-input" rows="2"></textarea>
+                                </div>
+                                <button id="awardKudosBtn" class="kudos-btn">⭐ Award Kudos</button>
+                            </div>
+                            
+                            <div class="recent-kudos">
+                                <h5>Recent Kudos Awards</h5>
+                                <div id="recentKudosList" class="recent-kudos-list">
+                                    <p class="loading-kudos">Loading recent kudos...</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="season-report-display" id="seasonReportDisplay" style="display: none;">
+                            <h4>📊 Season Report Results</h4>
+                            <div id="seasonReportContent" class="season-report-content">
+                                <!-- Season report will be generated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         `;
         
@@ -2309,8 +2410,355 @@ class DailyRankingsApp {
                 }
             });
         }
+
+        // Season Ranking System Event Listeners
+        this.setupSeasonRankingEventListeners();
         
         console.log('Admin event listeners setup complete');
+    }
+
+    setupSeasonRankingEventListeners() {
+        console.log('Setting up season ranking event listeners...');
+
+        // Weight total calculation
+        const weightInputs = ['kudosWeight', 'vsPerformanceWeight', 'specialEventsWeight', 'allianceContributionWeight'];
+        weightInputs.forEach(inputId => {
+            const input = document.getElementById(inputId);
+            if (input) {
+                input.addEventListener('input', this.updateWeightTotal.bind(this));
+            }
+        });
+
+        // Award Kudos button
+        const awardKudosBtn = document.getElementById('awardKudosBtn');
+        if (awardKudosBtn) {
+            awardKudosBtn.addEventListener('click', () => {
+                this.awardKudos();
+            });
+        }
+
+        // Generate Season Report button
+        const generateSeasonReportBtn = document.getElementById('generateSeasonReportBtn');
+        if (generateSeasonReportBtn) {
+            generateSeasonReportBtn.addEventListener('click', () => {
+                this.generateSeasonReport();
+            });
+        }
+
+        // Clear Season Data button
+        const clearSeasonDataBtn = document.getElementById('clearSeasonDataBtn');
+        if (clearSeasonDataBtn) {
+            clearSeasonDataBtn.addEventListener('click', () => {
+                this.clearSeasonData();
+            });
+        }
+
+        // Setup autocomplete for kudos player input
+        this.setupKudosPlayerAutocomplete();
+
+        console.log('Season ranking event listeners setup complete');
+    }
+
+    updateWeightTotal() {
+        const kudosWeight = parseInt(document.getElementById('kudosWeight')?.value || 0);
+        const vsWeight = parseInt(document.getElementById('vsPerformanceWeight')?.value || 0);
+        const eventsWeight = parseInt(document.getElementById('specialEventsWeight')?.value || 0);
+        const allianceWeight = parseInt(document.getElementById('allianceContributionWeight')?.value || 0);
+        
+        const total = kudosWeight + vsWeight + eventsWeight + allianceWeight;
+        const totalElement = document.getElementById('weightTotal');
+        if (totalElement) {
+            totalElement.textContent = total;
+            totalElement.style.color = total === 100 ? '#059669' : '#ef4444';
+        }
+    }
+
+    async awardKudos() {
+        const playerName = document.getElementById('kudosPlayerName')?.value.trim();
+        const points = parseInt(document.getElementById('kudosPoints')?.value);
+        const reason = document.getElementById('kudosReason')?.value.trim();
+
+        if (!playerName) {
+            this.uiManager.showError('Please enter a player name');
+            return;
+        }
+
+        if (!points || points < 1 || points > 10) {
+            this.uiManager.showError('Please enter points between 1 and 10');
+            return;
+        }
+
+        try {
+            const awardedBy = 'Admin'; // You could get this from user context
+            await this.seasonRankingManager.awardKudos(playerName, points, reason, awardedBy);
+            
+            this.uiManager.showSuccess(`Successfully awarded ${points} kudos points to ${playerName}`);
+            
+            // Clear form
+            document.getElementById('kudosPlayerName').value = '';
+            document.getElementById('kudosPoints').value = '5';
+            document.getElementById('kudosReason').value = '';
+            
+            // Update recent kudos list
+            this.updateRecentKudosList();
+            
+        } catch (error) {
+            console.error('Error awarding kudos:', error);
+            this.uiManager.showError(`Error awarding kudos: ${error.message}`);
+        }
+    }
+
+    async generateSeasonReport() {
+        const seasonName = document.getElementById('seasonName')?.value.trim();
+        const startDate = document.getElementById('seasonStartDate')?.value;
+        const endDate = document.getElementById('seasonEndDate')?.value;
+
+        if (!seasonName) {
+            this.uiManager.showError('Please enter a season name');
+            return;
+        }
+
+        if (!startDate || !endDate) {
+            this.uiManager.showError('Please select both start and end dates');
+            return;
+        }
+
+        if (new Date(startDate) >= new Date(endDate)) {
+            this.uiManager.showError('End date must be after start date');
+            return;
+        }
+
+        const weights = {
+            kudos: parseInt(document.getElementById('kudosWeight')?.value || 0),
+            vsPerformance: parseInt(document.getElementById('vsPerformanceWeight')?.value || 0),
+            specialEvents: parseInt(document.getElementById('specialEventsWeight')?.value || 0),
+            allianceContribution: parseInt(document.getElementById('allianceContributionWeight')?.value || 0)
+        };
+
+        if (weights.kudos + weights.vsPerformance + weights.specialEvents + weights.allianceContribution !== 100) {
+            this.uiManager.showError('Weights must total exactly 100%');
+            return;
+        }
+
+        try {
+            this.uiManager.showMessage('Generating season report... This may take a moment.');
+            
+            // Generate rankings
+            const rankings = await this.seasonRankingManager.generateSeasonRankings(
+                seasonName, startDate, endDate, weights
+            );
+
+            // Save to database
+            await this.seasonRankingManager.saveSeasonRankings(seasonName, startDate, endDate, rankings);
+
+            // Display results
+            await this.displaySeasonReport(seasonName, startDate, endDate, rankings, weights);
+            
+            this.uiManager.showSuccess('Season report generated successfully!');
+            
+        } catch (error) {
+            console.error('Error generating season report:', error);
+            this.uiManager.showError(`Error generating season report: ${error.message}`);
+        }
+    }
+
+    async clearSeasonData() {
+        const seasonName = document.getElementById('seasonName')?.value.trim();
+        const startDate = document.getElementById('seasonStartDate')?.value;
+        const endDate = document.getElementById('seasonEndDate')?.value;
+
+        if (!seasonName || !startDate || !endDate) {
+            this.uiManager.showError('Please fill in season configuration before clearing data');
+            return;
+        }
+
+        if (!confirm(`Are you sure you want to clear all season data for "${seasonName}"? This action cannot be undone.`)) {
+            return;
+        }
+
+        try {
+            await this.seasonRankingManager.clearSeasonData(seasonName, startDate, endDate);
+            this.uiManager.showSuccess('Season data cleared successfully');
+            
+            // Hide report display
+            const reportDisplay = document.getElementById('seasonReportDisplay');
+            if (reportDisplay) {
+                reportDisplay.style.display = 'none';
+            }
+            
+        } catch (error) {
+            console.error('Error clearing season data:', error);
+            this.uiManager.showError(`Error clearing season data: ${error.message}`);
+        }
+    }
+
+    async displaySeasonReport(seasonName, startDate, endDate, rankings, weights) {
+        const reportDisplay = document.getElementById('seasonReportDisplay');
+        const reportContent = document.getElementById('seasonReportContent');
+        
+        if (!reportDisplay || !reportContent) {
+            console.error('Season report display elements not found');
+            return;
+        }
+
+        const eligiblePlayers = rankings.length;
+        const excludedPlayers = await this.getExcludedPlayersInfo(startDate, endDate);
+
+        const summaryHTML = `
+            <div class="season-summary">
+                <h5>📊 Season Summary</h5>
+                <p><strong>Season:</strong> ${seasonName}</p>
+                <p><strong>Period:</strong> ${startDate} to ${endDate}</p>
+                <p><strong>Eligible Players:</strong> ${eligiblePlayers}</p>
+                <p><strong>Excluded:</strong> ${excludedPlayers.leaders} Leaders, ${excludedPlayers.removed} Removed</p>
+                <p><strong>Weights:</strong> Kudos ${weights.kudos}%, VS ${weights.vsPerformance}%, Events ${weights.specialEvents}%, Alliance ${weights.allianceContribution}%</p>
+            </div>
+        `;
+
+        const rankingsHTML = rankings.map((ranking, index) => {
+            const isTop3 = index < 3;
+            const itemClass = isTop3 ? 'season-ranking-item top-3' : 'season-ranking-item';
+            
+            return `
+                <div class="${itemClass}">
+                    <div class="season-ranking-header">
+                        <div>
+                            <span class="season-rank">#${ranking.finalRank}</span>
+                            <span class="season-player-name">${ranking.playerName}</span>
+                        </div>
+                        <span class="season-total-score">${ranking.totalWeightedScore.toFixed(1)}</span>
+                    </div>
+                    <div class="season-score-breakdown">
+                        <div class="score-component">
+                            <div class="score-component-label">Kudos</div>
+                            <div class="score-component-value">${ranking.kudosScore.toFixed(1)}</div>
+                        </div>
+                        <div class="score-component">
+                            <div class="score-component-label">VS Performance</div>
+                            <div class="score-component-value">${ranking.vsPerformanceScore.toFixed(1)}</div>
+                        </div>
+                        <div class="score-component">
+                            <div class="score-component-label">Special Events</div>
+                            <div class="score-component-value">${ranking.specialEventsScore.toFixed(1)}</div>
+                        </div>
+                        <div class="score-component">
+                            <div class="score-component-label">Alliance Contribution</div>
+                            <div class="score-component-value">${ranking.allianceContributionScore.toFixed(1)}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        reportContent.innerHTML = summaryHTML + `
+            <div class="season-rankings-list">
+                ${rankingsHTML}
+            </div>
+        `;
+
+        reportDisplay.style.display = 'block';
+    }
+
+    async getExcludedPlayersInfo(startDate, endDate) {
+        try {
+            const allPlayers = await this.seasonRankingManager.getAllPlayersInPeriod(startDate, endDate);
+            const eligiblePlayers = await this.seasonRankingManager.getEligiblePlayersInPeriod(startDate, endDate);
+            
+            const excludedCount = allPlayers.length - eligiblePlayers.length;
+            
+            // This is a simplified count - in a real implementation you'd want to separate leaders vs removed
+            return {
+                leaders: Math.floor(excludedCount / 2), // Rough estimate
+                removed: Math.ceil(excludedCount / 2)   // Rough estimate
+            };
+        } catch (error) {
+            console.error('Error getting excluded players info:', error);
+            return { leaders: 0, removed: 0 };
+        }
+    }
+
+    async updateRecentKudosList() {
+        const kudosList = document.getElementById('recentKudosList');
+        if (!kudosList) return;
+
+        try {
+            const recentKudos = await this.seasonRankingManager.getRecentKudos(10);
+            
+            if (recentKudos.length === 0) {
+                kudosList.innerHTML = '<p class="no-kudos">No kudos awarded yet</p>';
+                return;
+            }
+
+            const kudosHTML = recentKudos.map(kudos => `
+                <div class="kudos-item">
+                    <div class="kudos-info">
+                        <span class="kudos-player">${kudos.player_name}</span>
+                        <span class="kudos-details">
+                            ${kudos.reason ? kudos.reason : 'No reason provided'} • 
+                            Awarded by ${kudos.awarded_by} on ${kudos.date_awarded}
+                        </span>
+                    </div>
+                    <span class="kudos-points">${kudos.points}</span>
+                </div>
+            `).join('');
+
+            kudosList.innerHTML = kudosHTML;
+            
+        } catch (error) {
+            console.error('Error updating recent kudos list:', error);
+            kudosList.innerHTML = '<p class="loading-kudos">Error loading kudos</p>';
+        }
+    }
+
+    setupKudosPlayerAutocomplete() {
+        const kudosPlayerInput = document.getElementById('kudosPlayerName');
+        const kudosAutocomplete = document.getElementById('kudosPlayerAutocomplete');
+        
+        if (!kudosPlayerInput || !kudosAutocomplete) return;
+
+        kudosPlayerInput.addEventListener('input', async (e) => {
+            const query = e.target.value.trim();
+            
+            if (query.length < 2) {
+                kudosAutocomplete.style.display = 'none';
+                return;
+            }
+
+            try {
+                const suggestions = await this.autocompleteService.getPlayerSuggestions(query);
+                
+                if (suggestions.length === 0) {
+                    kudosAutocomplete.style.display = 'none';
+                    return;
+                }
+
+                const suggestionsHTML = suggestions.map(player => `
+                    <div class="autocomplete-item" data-player="${player}">${player}</div>
+                `).join('');
+
+                kudosAutocomplete.innerHTML = suggestionsHTML;
+                kudosAutocomplete.style.display = 'block';
+
+                // Add click handlers
+                kudosAutocomplete.querySelectorAll('.autocomplete-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        kudosPlayerInput.value = item.dataset.player;
+                        kudosAutocomplete.style.display = 'none';
+                    });
+                });
+
+            } catch (error) {
+                console.error('Error getting kudos player suggestions:', error);
+                kudosAutocomplete.style.display = 'none';
+            }
+        });
+
+        // Hide dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!kudosPlayerInput.contains(e.target) && !kudosAutocomplete.contains(e.target)) {
+                kudosAutocomplete.style.display = 'none';
+            }
+        });
     }
 
     setupEventDataTabs() {
@@ -3637,6 +4085,9 @@ class DailyRankingsApp {
         
         // Update recent VIPs list
         this.updateRecentVIPsList();
+        
+        // Update recent kudos list
+        this.updateRecentKudosList();
         
         // Setup train conductor rotation management
         this.setupRotationManagement();

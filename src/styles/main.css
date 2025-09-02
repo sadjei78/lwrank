@@ -1871,6 +1871,343 @@ header h1 {
     display: inline-block;
 }
 
+/* Season Ranking System Styles */
+.season-ranking-form {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.season-config, .weight-config, .kudos-management {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border: 1px solid #e5e7eb;
+}
+
+.season-config h4, .weight-config h4, .kudos-management h4 {
+    margin: 0 0 15px 0;
+    color: #1f2937;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.form-row {
+    display: flex;
+    gap: 15px;
+}
+
+.form-row .form-group {
+    flex: 1;
+}
+
+.weight-inputs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.weight-inputs .form-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.weight-inputs .form-group label {
+    flex: 1;
+    margin-bottom: 0;
+    font-size: 14px;
+}
+
+.weight-inputs .form-input {
+    width: 80px;
+    text-align: center;
+}
+
+.weight-percent {
+    font-weight: 600;
+    color: #6b7280;
+    min-width: 20px;
+}
+
+.weight-total {
+    text-align: center;
+    padding: 10px;
+    background: #f3f4f6;
+    border-radius: 6px;
+    font-weight: 600;
+    color: #374151;
+}
+
+.season-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.season-btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 14px;
+}
+
+.season-btn.primary {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+}
+
+.season-btn.primary:hover {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.season-btn.secondary {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+}
+
+.season-btn.secondary:hover {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.kudos-form {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 6px;
+    margin-bottom: 15px;
+}
+
+.kudos-btn {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.kudos-btn:hover {
+    background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+.recent-kudos {
+    margin-top: 15px;
+}
+
+.recent-kudos-list {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    background: white;
+}
+
+.kudos-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    border-bottom: 1px solid #f3f4f6;
+    transition: background-color 0.2s;
+}
+
+.kudos-item:last-child {
+    border-bottom: none;
+}
+
+.kudos-item:hover {
+    background: #f9fafb;
+}
+
+.kudos-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.kudos-player {
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.kudos-details {
+    font-size: 0.85rem;
+    color: #6b7280;
+}
+
+.kudos-points {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.season-report-display {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    margin-top: 20px;
+}
+
+.season-report-content {
+    margin-top: 15px;
+}
+
+.season-summary {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border-left: 4px solid #3b82f6;
+}
+
+.season-summary h5 {
+    margin: 0 0 10px 0;
+    color: #1e40af;
+    font-size: 16px;
+}
+
+.season-summary p {
+    margin: 5px 0;
+    color: #1e40af;
+    font-size: 14px;
+}
+
+.season-rankings-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.season-ranking-item {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 15px;
+    transition: all 0.2s ease;
+}
+
+.season-ranking-item:hover {
+    border-color: #3b82f6;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+}
+
+.season-ranking-item.top-3 {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border-color: #f59e0b;
+}
+
+.season-ranking-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.season-rank {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.season-player-name {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.season-total-score {
+    font-size: 16px;
+    font-weight: 700;
+    color: #059669;
+}
+
+.season-score-breakdown {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.score-component {
+    background: #f9fafb;
+    padding: 8px 12px;
+    border-radius: 6px;
+    text-align: center;
+    border: 1px solid #e5e7eb;
+}
+
+.score-component-label {
+    font-size: 12px;
+    color: #6b7280;
+    margin-bottom: 4px;
+}
+
+.score-component-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+}
+
+.loading-kudos {
+    padding: 20px;
+    text-align: center;
+    color: #6b7280;
+    font-style: italic;
+}
+
+.no-kudos {
+    padding: 20px;
+    text-align: center;
+    color: #6b7280;
+    font-style: italic;
+}
+
+/* Mobile responsiveness for season ranking */
+@media (max-width: 768px) {
+    .weight-inputs {
+        grid-template-columns: 1fr;
+    }
+    
+    .form-row {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .season-actions {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .season-score-breakdown {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .season-ranking-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+}
+
 /* Removed Player Styling in Rankings and Reports */
 .player-removed {
     text-decoration: line-through;
