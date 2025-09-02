@@ -95,10 +95,10 @@ export class SeasonRankingManager {
         try {
             const { data, error } = await supabase
                 .from('rankings')
-                .select('player_name')
+                .select('commander')
                 .gte('date', startDate)
                 .lte('date', endDate)
-                .order('player_name');
+                .order('commander');
 
             if (error) {
                 console.error('Error fetching players in period:', error);
@@ -106,7 +106,7 @@ export class SeasonRankingManager {
             }
 
             // Get unique player names
-            const uniquePlayers = [...new Set(data.map(item => item.player_name))];
+            const uniquePlayers = [...new Set(data.map(item => item.commander))];
             return uniquePlayers;
         } catch (error) {
             console.error('Error in getAllPlayersInPeriod:', error);
@@ -153,7 +153,7 @@ export class SeasonRankingManager {
             const { data, error } = await supabase
                 .from('rankings')
                 .select('*')
-                .eq('player_name', playerName)
+                .eq('commander', playerName)
                 .gte('date', startDate)
                 .lte('date', endDate)
                 .order('date');
@@ -184,7 +184,7 @@ export class SeasonRankingManager {
             const { data, error } = await supabase
                 .from('rankings')
                 .select('*')
-                .eq('player_name', playerName)
+                .eq('commander', playerName)
                 .gte('date', startDate)
                 .lte('date', endDate)
                 .not('event_name', 'is', null)
@@ -231,7 +231,7 @@ export class SeasonRankingManager {
             const { data, error } = await supabase
                 .from('rankings')
                 .select('*')
-                .eq('player_name', playerName)
+                .eq('commander', playerName)
                 .gte('date', startDate)
                 .lte('date', endDate)
                 .not('event_name', 'is', null)
