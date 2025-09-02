@@ -95,7 +95,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.64 loaded successfully!');
+        console.log('🚀 LWRank v1.1.65 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -474,7 +474,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.64';
+                versionElement.textContent = 'v1.1.65';
             }
         }
 
@@ -2748,32 +2748,37 @@ class DailyRankingsApp {
         const rankingsHTML = rankings.map((ranking, index) => {
             const isTop3 = index < 3;
             const itemClass = isTop3 ? 'season-ranking-item top-3' : 'season-ranking-item';
+            const uniqueId = `ranking-${index}`;
+            
+            // Create hover summary
+            const hoverSummary = `Kudos: ${ranking.kudosScore.toFixed(1)}% | VS: ${ranking.vsPerformanceScore.toFixed(1)}% | Events: ${ranking.specialEventsScore.toFixed(1)}% | Alliance: ${ranking.allianceContributionScore.toFixed(1)}%`;
             
             return `
-                <div class="${itemClass}">
-                    <div class="season-ranking-header">
+                <div class="${itemClass}" data-ranking-id="${uniqueId}">
+                    <div class="season-ranking-header clickable" onclick="toggleRankingDetails('${uniqueId}')" title="${hoverSummary}">
                         <div>
                             <span class="season-rank">#${ranking.finalRank}</span>
                             <span class="season-player-name">${ranking.playerName}</span>
+                            <span class="expand-icon" id="icon-${uniqueId}">▼</span>
                         </div>
                         <span class="season-total-score">${ranking.totalWeightedScore.toFixed(1)}</span>
                     </div>
-                    <div class="season-score-breakdown">
+                    <div class="season-score-breakdown collapsed" id="details-${uniqueId}">
                         <div class="score-component">
                             <div class="score-component-label">Kudos</div>
-                            <div class="score-component-value">${ranking.kudosScore.toFixed(1)}</div>
+                            <div class="score-component-value">${ranking.kudosScore.toFixed(1)}%</div>
                         </div>
                         <div class="score-component">
                             <div class="score-component-label">VS Performance</div>
-                            <div class="score-component-value">${ranking.vsPerformanceScore.toFixed(1)}</div>
+                            <div class="score-component-value">${ranking.vsPerformanceScore.toFixed(1)}%</div>
                         </div>
                         <div class="score-component">
                             <div class="score-component-label">Special Events</div>
-                            <div class="score-component-value">${ranking.specialEventsScore.toFixed(1)}</div>
+                            <div class="score-component-value">${ranking.specialEventsScore.toFixed(1)}%</div>
                         </div>
                         <div class="score-component">
                             <div class="score-component-label">Alliance Contribution</div>
-                            <div class="score-component-value">${ranking.allianceContributionScore.toFixed(1)}</div>
+                            <div class="score-component-value">${ranking.allianceContributionScore.toFixed(1)}%</div>
                         </div>
                     </div>
                 </div>
@@ -2785,6 +2790,22 @@ class DailyRankingsApp {
                 ${rankingsHTML}
             </div>
         `;
+        
+        // Add the toggle function to the global scope
+        window.toggleRankingDetails = function(rankingId) {
+            const detailsElement = document.getElementById(`details-${rankingId}`);
+            const iconElement = document.getElementById(`icon-${rankingId}`);
+            
+            if (detailsElement && iconElement) {
+                if (detailsElement.classList.contains('collapsed')) {
+                    detailsElement.classList.remove('collapsed');
+                    iconElement.textContent = '▲';
+                } else {
+                    detailsElement.classList.add('collapsed');
+                    iconElement.textContent = '▼';
+                }
+            }
+        };
 
         console.log('Setting report display to block...');
         reportDisplay.style.display = 'block';
@@ -2843,11 +2864,33 @@ class DailyRankingsApp {
                             Awarded by ${kudos.awarded_by} on ${kudos.date_awarded}
                         </span>
                     </div>
-                    <span class="kudos-points">${kudos.points}</span>
+                    <div class="kudos-actions">
+                        <span class="kudos-points">${kudos.points}</span>
+                        <button class="delete-kudos-btn" data-kudos-id="${kudos.id}" title="Delete kudos">🗑️</button>
+                    </div>
                 </div>
             `).join('');
 
             kudosList.innerHTML = kudosHTML;
+            
+            // Add event listeners for delete buttons
+            const deleteButtons = kudosList.querySelectorAll('.delete-kudos-btn');
+            deleteButtons.forEach(button => {
+                button.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    const kudosId = button.getAttribute('data-kudos-id');
+                    if (confirm('Are you sure you want to delete this kudos entry?')) {
+                        try {
+                            await this.seasonRankingManager.deleteKudos(kudosId);
+                            this.uiManager.showSuccess('Kudos deleted successfully');
+                            this.updateRecentKudosList(); // Refresh the list
+                        } catch (error) {
+                            console.error('Error deleting kudos:', error);
+                            this.uiManager.showError('Error deleting kudos: ' + error.message);
+                        }
+                    }
+                });
+            });
             
         } catch (error) {
             console.error('Error updating recent kudos list:', error);

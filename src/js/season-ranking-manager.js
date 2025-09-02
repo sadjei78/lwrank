@@ -81,6 +81,25 @@ export class SeasonRankingManager {
         }
     }
 
+    async deleteKudos(kudosId) {
+        try {
+            const { error } = await supabase
+                .from('kudos_points')
+                .delete()
+                .eq('id', kudosId);
+
+            if (error) {
+                console.error('Error deleting kudos:', error);
+                throw error;
+            }
+
+            return true;
+        } catch (error) {
+            console.error('Error in deleteKudos:', error);
+            throw error;
+        }
+    }
+
     async getKudosForPlayer(playerName, startDate, endDate) {
         try {
             const { data, error } = await supabase

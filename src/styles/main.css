@@ -2149,6 +2149,31 @@ header h1 {
     transition: background-color 0.2s;
 }
 
+.kudos-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.delete-kudos-btn {
+    background: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background-color 0.2s ease;
+}
+
+.delete-kudos-btn:hover {
+    background: #c82333;
+}
+
+.delete-kudos-btn:active {
+    transform: scale(0.95);
+}
+
 .kudos-item:last-child {
     border-bottom: none;
 }
@@ -2228,6 +2253,25 @@ header h1 {
     transition: all 0.2s ease;
 }
 
+.season-ranking-header.clickable {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    border-radius: 4px;
+    padding: 5px;
+    margin: -5px;
+}
+
+.season-ranking-header.clickable:hover {
+    background-color: #f8f9fa;
+}
+
+.expand-icon {
+    margin-left: 8px;
+    font-size: 12px;
+    color: #6b7280;
+    transition: transform 0.2s ease;
+}
+
 .season-ranking-item:hover {
     border-color: #3b82f6;
     box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
@@ -2268,6 +2312,15 @@ header h1 {
     grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
     gap: 10px;
     margin-top: 10px;
+    transition: all 0.3s ease;
+    max-height: 200px;
+    overflow: hidden;
+}
+
+.season-score-breakdown.collapsed {
+    max-height: 0;
+    margin-top: 0;
+    opacity: 0;
 }
 
 .score-component {
