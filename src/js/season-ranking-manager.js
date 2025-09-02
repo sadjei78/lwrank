@@ -181,38 +181,52 @@ export class SeasonRankingManager {
 
     async calculateSpecialEventsScore(playerName, startDate, endDate) {
         try {
-            const { data, error } = await supabase
-                .from('rankings')
+            // First, get all special events in the date range
+            const { data: specialEvents, error: eventsError } = await supabase
+                .from('special_events')
                 .select('*')
-                .eq('commander', playerName)
-                .gte('date', startDate)
-                .lte('date', endDate)
-                .not('event_name', 'is', null)
-                .neq('event_name', '');
+                .gte('start_date', startDate)
+                .lte('end_date', endDate);
 
-            if (error) {
-                console.error('Error fetching special events data:', error);
-                throw error;
-            }
-
-            if (data.length === 0) {
+            if (eventsError) {
+                console.error('Error fetching special events:', eventsError);
                 return 0;
             }
-
-            // Get unique special events (exclude alliance contribution events)
-            const specialEvents = data.filter(ranking => 
-                ranking.event_name && 
-                !ranking.event_name.toLowerCase().includes('alliance') &&
-                !ranking.event_name.toLowerCase().includes('contribution')
-            );
 
             if (specialEvents.length === 0) {
                 return 0;
             }
 
+            // Filter out alliance contribution events
+            const nonAllianceEvents = specialEvents.filter(event => 
+                !event.name.toLowerCase().includes('alliance') &&
+                !event.name.toLowerCase().includes('contribution')
+            );
+
+            if (nonAllianceEvents.length === 0) {
+                return 0;
+            }
+
+            // Get player's rankings in these special events
+            const eventKeys = nonAllianceEvents.map(event => event.key);
+            const { data: rankings, error: rankingsError } = await supabase
+                .from('rankings')
+                .select('*')
+                .eq('commander', playerName)
+                .in('day', eventKeys);
+
+            if (rankingsError) {
+                console.error('Error fetching special event rankings:', rankingsError);
+                return 0;
+            }
+
+            if (rankings.length === 0) {
+                return 0;
+            }
+
             // Calculate average rank in special events
-            const totalRank = specialEvents.reduce((sum, event) => sum + event.ranking, 0);
-            const averageRank = totalRank / specialEvents.length;
+            const totalRank = rankings.reduce((sum, ranking) => sum + ranking.ranking, 0);
+            const averageRank = totalRank / rankings.length;
             
             // Convert rank to score (lower rank = higher score)
             // Assuming max participants is around 50, adjust as needed
@@ -228,38 +242,52 @@ export class SeasonRankingManager {
 
     async calculateAllianceContributionScore(playerName, startDate, endDate) {
         try {
-            const { data, error } = await supabase
-                .from('rankings')
+            // First, get all special events in the date range
+            const { data: specialEvents, error: eventsError } = await supabase
+                .from('special_events')
                 .select('*')
-                .eq('commander', playerName)
-                .gte('date', startDate)
-                .lte('date', endDate)
-                .not('event_name', 'is', null)
-                .neq('event_name', '');
+                .gte('start_date', startDate)
+                .lte('end_date', endDate);
 
-            if (error) {
-                console.error('Error fetching alliance contribution data:', error);
-                throw error;
-            }
-
-            if (data.length === 0) {
+            if (eventsError) {
+                console.error('Error fetching special events:', eventsError);
                 return 0;
             }
 
-            // Get alliance contribution events only
-            const allianceEvents = data.filter(ranking => 
-                ranking.event_name && 
-                (ranking.event_name.toLowerCase().includes('alliance') ||
-                 ranking.event_name.toLowerCase().includes('contribution'))
+            if (specialEvents.length === 0) {
+                return 0;
+            }
+
+            // Filter for alliance contribution events only
+            const allianceEvents = specialEvents.filter(event => 
+                event.name.toLowerCase().includes('alliance') ||
+                event.name.toLowerCase().includes('contribution')
             );
 
             if (allianceEvents.length === 0) {
                 return 0;
             }
 
+            // Get player's rankings in these alliance contribution events
+            const eventKeys = allianceEvents.map(event => event.key);
+            const { data: rankings, error: rankingsError } = await supabase
+                .from('rankings')
+                .select('*')
+                .eq('commander', playerName)
+                .in('day', eventKeys);
+
+            if (rankingsError) {
+                console.error('Error fetching alliance contribution rankings:', rankingsError);
+                return 0;
+            }
+
+            if (rankings.length === 0) {
+                return 0;
+            }
+
             // Calculate average rank in alliance contribution events
-            const totalRank = allianceEvents.reduce((sum, event) => sum + event.ranking, 0);
-            const averageRank = totalRank / allianceEvents.length;
+            const totalRank = rankings.reduce((sum, ranking) => sum + ranking.ranking, 0);
+            const averageRank = totalRank / rankings.length;
             
             // Convert rank to score (lower rank = higher score)
             const maxParticipants = 50;
