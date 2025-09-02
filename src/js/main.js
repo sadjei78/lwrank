@@ -95,7 +95,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.57 loaded successfully!');
+        console.log('🚀 LWRank v1.1.58 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -474,7 +474,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.57';
+                versionElement.textContent = 'v1.1.58';
             }
         }
 
@@ -2158,6 +2158,9 @@ class DailyRankingsApp {
         const adminSectionsContainer = document.getElementById('adminSections');
         if (adminSectionsContainer) {
             adminSectionsContainer.innerHTML += seasonReportSection;
+            console.log('Season report section added to admin sections');
+        } else {
+            console.error('Admin sections container not found');
         }
         
         // Add modals for editing
@@ -2629,13 +2632,19 @@ class DailyRankingsApp {
     async displaySeasonReport(seasonName, startDate, endDate, rankings, weights) {
         console.log('displaySeasonReport called with:', { seasonName, startDate, endDate, rankings: rankings.length, weights });
         
+        // Wait a moment for DOM to be ready
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
         const reportDisplay = document.getElementById('seasonReportDisplay');
         const reportContent = document.getElementById('seasonReportContent');
         
         console.log('Report display elements:', { reportDisplay, reportContent });
+        console.log('All elements with seasonReportDisplay ID:', document.querySelectorAll('#seasonReportDisplay'));
+        console.log('All elements with seasonReportContent ID:', document.querySelectorAll('#seasonReportContent'));
         
         if (!reportDisplay || !reportContent) {
             console.error('Season report display elements not found');
+            console.log('Available elements in admin sections:', document.getElementById('adminSections')?.innerHTML.substring(0, 500));
             return;
         }
 
@@ -4925,6 +4934,65 @@ class DailyRankingsApp {
                     </div>
                 </div>
                 
+                ${performance.specialEventsAnalysis && performance.specialEventsAnalysis.totalEvents > 0 ? `
+                <div class="special-events-analysis">
+                    <div class="performance-card">
+                        <h4>🎯 Special Events Analysis</h4>
+                        <div class="metric-grid">
+                            <div class="metric">
+                                <span class="metric-label">Total Events</span>
+                                <span class="metric-value">${performance.specialEventsAnalysis.totalEvents}</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Average Ranking</span>
+                                <span class="metric-value">${performance.specialEventsAnalysis.averageRanking}</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Best Event Ranking</span>
+                                <span class="metric-value">🏆 ${performance.specialEventsAnalysis.bestRanking}</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Performance Level</span>
+                                <span class="metric-value">${this.getPerformanceLevelEmoji(performance.specialEventsAnalysis.performanceLevel)} ${performance.specialEventsAnalysis.performanceLevel}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="metric-grid">
+                            <div class="metric">
+                                <span class="metric-label">Top 10 Events</span>
+                                <span class="metric-value">${performance.specialEventsAnalysis.top10Events} (${performance.specialEventsAnalysis.top10Percentage}%)</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Top 25 Events</span>
+                                <span class="metric-value">${performance.specialEventsAnalysis.top25Events} (${performance.specialEventsAnalysis.top25Percentage}%)</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Alliance Events</span>
+                                <span class="metric-value">${performance.specialEventsAnalysis.allianceEvents.count} (Avg: ${performance.specialEventsAnalysis.allianceEvents.averageRanking})</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Non-Alliance Events</span>
+                                <span class="metric-value">${performance.specialEventsAnalysis.nonAllianceEvents.count} (Avg: ${performance.specialEventsAnalysis.nonAllianceEvents.averageRanking})</span>
+                            </div>
+                        </div>
+                        
+                        <div class="event-details">
+                            <h5>📋 Recent Event Details</h5>
+                            <div class="event-list">
+                                ${performance.specialEventsAnalysis.eventDetails.slice(0, 5).map(event => `
+                                    <div class="event-item">
+                                        <span class="event-name">${event.eventName}</span>
+                                        <span class="event-date">${this.formatDateDisplay(new Date(event.eventDate))}</span>
+                                        <span class="event-ranking">#${event.ranking}</span>
+                                        <span class="event-type">${event.isAllianceEvent ? '🏛️ Alliance' : '🎯 Regular'}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                ` : ''}
+                
                 <div class="performance-timeline">
                     <div class="performance-card">
                         <h4>📅 Participation Timeline</h4>
@@ -5343,9 +5411,12 @@ class DailyRankingsApp {
             const recentAvgRanking = recentRankings.length > 0 ? 
                 recentRankings.reduce((sum, r) => sum + (r.ranking || 0), 0) / recentRankings.length : 0;
             
-            // Special events participation
+            // Special events participation - enhanced analysis
             const specialEventRankings = rankings.filter(r => r.day.startsWith('event_'));
             const specialEventCount = specialEventRankings.length;
+            
+            // Get detailed special events analysis
+            const specialEventsAnalysis = await this.analyzePlayerSpecialEvents(playerName, specialEventRankings);
             
             // Performance trends
             const firstHalf = rankings.slice(0, Math.ceil(rankings.length / 2));
@@ -5375,6 +5446,7 @@ class DailyRankingsApp {
                 top25Percentage: Math.round((top25Count / totalAppearances) * 100),
                 recentPerformance: Math.round(recentAvgRanking * 100) / 100,
                 specialEventAppearances: specialEventCount,
+                specialEventsAnalysis: specialEventsAnalysis,
                 performanceTrend: isImproving ? 'Improving' : 'Declining',
                 trendIndicator: isImproving ? '📈' : '📉',
                 consistency: this.calculateConsistencyScore(rankings),
@@ -5388,6 +5460,128 @@ class DailyRankingsApp {
         } catch (error) {
             console.error('Error calculating player performance metrics:', error);
             throw new Error(`Failed to calculate performance metrics: ${error.message}`);
+        }
+    }
+
+    // Analyze player's performance in special events
+    async analyzePlayerSpecialEvents(playerName, specialEventRankings) {
+        try {
+            if (specialEventRankings.length === 0) {
+                return {
+                    totalEvents: 0,
+                    averageRanking: 0,
+                    bestRanking: 0,
+                    worstRanking: 0,
+                    top10Events: 0,
+                    top25Events: 0,
+                    eventDetails: [],
+                    performanceLevel: 'No Events'
+                };
+            }
+
+            // Get special events details from the database
+            const eventKeys = specialEventRankings.map(r => r.day);
+            const { data: specialEvents, error } = await supabase
+                .from('special_events')
+                .select('*')
+                .in('key', eventKeys);
+
+            if (error) {
+                console.error('Error fetching special events details:', error);
+                return {
+                    totalEvents: specialEventRankings.length,
+                    averageRanking: 0,
+                    bestRanking: 0,
+                    worstRanking: 0,
+                    top10Events: 0,
+                    top25Events: 0,
+                    eventDetails: [],
+                    performanceLevel: 'Unknown'
+                };
+            }
+
+            // Create event details with rankings
+            const eventDetails = specialEventRankings.map(ranking => {
+                const event = specialEvents.find(e => e.key === ranking.day);
+                return {
+                    eventName: event ? event.name : ranking.day,
+                    eventDate: event ? event.start_date : 'Unknown',
+                    ranking: ranking.ranking,
+                    points: ranking.points,
+                    isAllianceEvent: event ? event.name.toLowerCase().includes('alliance') || event.name.toLowerCase().includes('contribution') : false
+                };
+            });
+
+            // Calculate metrics
+            const rankings = specialEventRankings.map(r => r.ranking);
+            const averageRanking = rankings.reduce((sum, r) => sum + r, 0) / rankings.length;
+            const bestRanking = Math.min(...rankings);
+            const worstRanking = Math.max(...rankings);
+            const top10Events = rankings.filter(r => r <= 10).length;
+            const top25Events = rankings.filter(r => r <= 25).length;
+
+            // Determine performance level
+            let performanceLevel = 'Average';
+            if (averageRanking <= 10) {
+                performanceLevel = 'Excellent';
+            } else if (averageRanking <= 20) {
+                performanceLevel = 'Good';
+            } else if (averageRanking <= 35) {
+                performanceLevel = 'Average';
+            } else {
+                performanceLevel = 'Needs Improvement';
+            }
+
+            // Separate alliance vs non-alliance events
+            const allianceEvents = eventDetails.filter(e => e.isAllianceEvent);
+            const nonAllianceEvents = eventDetails.filter(e => !e.isAllianceEvent);
+
+            return {
+                totalEvents: specialEventRankings.length,
+                averageRanking: Math.round(averageRanking * 100) / 100,
+                bestRanking: bestRanking,
+                worstRanking: worstRanking,
+                top10Events: top10Events,
+                top25Events: top25Events,
+                top10Percentage: Math.round((top10Events / specialEventRankings.length) * 100),
+                top25Percentage: Math.round((top25Events / specialEventRankings.length) * 100),
+                performanceLevel: performanceLevel,
+                allianceEvents: {
+                    count: allianceEvents.length,
+                    averageRanking: allianceEvents.length > 0 ? 
+                        Math.round((allianceEvents.reduce((sum, e) => sum + e.ranking, 0) / allianceEvents.length) * 100) / 100 : 0
+                },
+                nonAllianceEvents: {
+                    count: nonAllianceEvents.length,
+                    averageRanking: nonAllianceEvents.length > 0 ? 
+                        Math.round((nonAllianceEvents.reduce((sum, e) => sum + e.ranking, 0) / nonAllianceEvents.length) * 100) / 100 : 0
+                },
+                eventDetails: eventDetails.sort((a, b) => new Date(b.eventDate) - new Date(a.eventDate))
+            };
+        } catch (error) {
+            console.error('Error analyzing special events:', error);
+            return {
+                totalEvents: specialEventRankings.length,
+                averageRanking: 0,
+                bestRanking: 0,
+                worstRanking: 0,
+                top10Events: 0,
+                top25Events: 0,
+                eventDetails: [],
+                performanceLevel: 'Error'
+            };
+        }
+    }
+
+    // Get emoji for performance level
+    getPerformanceLevelEmoji(level) {
+        switch (level) {
+            case 'Excellent': return '🌟';
+            case 'Good': return '👍';
+            case 'Average': return '📊';
+            case 'Needs Improvement': return '📈';
+            case 'No Events': return '❌';
+            default: return '❓';
         }
     }
 
