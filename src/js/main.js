@@ -95,7 +95,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.54 loaded successfully!');
+        console.log('🚀 LWRank v1.1.55 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -474,7 +474,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.54';
+                versionElement.textContent = 'v1.1.55';
             }
         }
 
@@ -2549,18 +2549,25 @@ class DailyRankingsApp {
         }
 
         try {
+            console.log('Starting season report generation...');
             this.uiManager.showSuccess('Generating season report... This may take a moment.');
             
             // Generate rankings
+            console.log('Calling generateSeasonRankings...');
             const rankings = await this.seasonRankingManager.generateSeasonRankings(
                 seasonName, startDate, endDate, weights
             );
+            console.log('Generated rankings:', rankings);
 
             // Save to database
+            console.log('Saving rankings to database...');
             await this.seasonRankingManager.saveSeasonRankings(seasonName, startDate, endDate, rankings);
+            console.log('Rankings saved successfully');
 
             // Display results
+            console.log('Displaying season report...');
             await this.displaySeasonReport(seasonName, startDate, endDate, rankings, weights);
+            console.log('Season report displayed');
             
             this.uiManager.showSuccess('Season report generated successfully!');
             
@@ -2601,8 +2608,12 @@ class DailyRankingsApp {
     }
 
     async displaySeasonReport(seasonName, startDate, endDate, rankings, weights) {
+        console.log('displaySeasonReport called with:', { seasonName, startDate, endDate, rankings: rankings.length, weights });
+        
         const reportDisplay = document.getElementById('seasonReportDisplay');
         const reportContent = document.getElementById('seasonReportContent');
+        
+        console.log('Report display elements:', { reportDisplay, reportContent });
         
         if (!reportDisplay || !reportContent) {
             console.error('Season report display elements not found');
@@ -2664,7 +2675,9 @@ class DailyRankingsApp {
             </div>
         `;
 
+        console.log('Setting report display to block...');
         reportDisplay.style.display = 'block';
+        console.log('Report display should now be visible');
     }
 
     async getExcludedPlayersInfo(startDate, endDate) {
