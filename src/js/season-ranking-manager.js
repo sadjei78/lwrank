@@ -162,12 +162,11 @@ export class SeasonRankingManager {
                 return 0;
             }
 
-            // Calculate average kudos points (1-10 scale)
-            const totalPoints = kudosData.reduce((sum, kudos) => sum + kudos.points, 0);
-            const averagePoints = totalPoints / kudosData.length;
+            // Use the most recent kudos points (unique value per player)
+            const mostRecentKudos = kudosData.sort((a, b) => new Date(b.date_awarded) - new Date(a.date_awarded))[0];
             
-            // Convert to percentage (0-100)
-            return (averagePoints / 10) * 100;
+            // Convert to percentage (0-100) from 1-10 scale
+            return (mostRecentKudos.points / 10) * 100;
         } catch (error) {
             console.error('Error calculating kudos score:', error);
             return 0;
@@ -195,10 +194,14 @@ export class SeasonRankingManager {
 
             // Count top 10 appearances
             const top10Count = data.filter(ranking => ranking.ranking <= 10).length;
-            const totalDays = data.length;
             
-            // Calculate percentage of days in top 10
-            return (top10Count / totalDays) * 100;
+            // Calculate total days in the selected period
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            const totalDaysInPeriod = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+            
+            // Calculate percentage of days in top 10 out of total period days
+            return (top10Count / totalDaysInPeriod) * 100;
         } catch (error) {
             console.error('Error calculating VS performance score:', error);
             return 0;
@@ -207,7 +210,7 @@ export class SeasonRankingManager {
 
     async calculateSpecialEventsScore(playerName, startDate, endDate) {
         try {
-            // First, get all special events in the date range
+            // First, get all special events in the date range with their weights
             const { data: specialEvents, error: eventsError } = await supabase
                 .from('special_events')
                 .select('*')
@@ -250,16 +253,31 @@ export class SeasonRankingManager {
                 return 0;
             }
 
-            // Calculate average rank in special events
-            const totalRank = rankings.reduce((sum, ranking) => sum + ranking.ranking, 0);
-            const averageRank = totalRank / rankings.length;
-            
-            // Convert rank to score (lower rank = higher score)
-            // Assuming max participants is around 50, adjust as needed
-            const maxParticipants = 50;
-            const score = ((maxParticipants - averageRank + 1) / maxParticipants) * 100;
-            
-            return Math.max(0, score);
+            // Calculate weighted score for each event
+            let totalWeightedScore = 0;
+            let totalWeight = 0;
+
+            for (const ranking of rankings) {
+                // Find the corresponding event to get its weight
+                const event = nonAllianceEvents.find(e => e.key === ranking.day);
+                if (!event) continue;
+
+                const eventWeight = event.event_weight || 10.0; // Default to 10% if not set
+                
+                // Convert ranking to percentage (lower ranking = higher percentage)
+                // Assuming max 50 participants, 1st place = 100%, 50th place = 2%
+                const maxParticipants = 50;
+                const rankingPercentage = Math.max(0, ((maxParticipants - ranking.ranking + 1) / maxParticipants) * 100);
+                
+                // Weight this event's contribution
+                const weightedEventScore = (rankingPercentage * eventWeight) / 100;
+                totalWeightedScore += weightedEventScore;
+                totalWeight += eventWeight;
+            }
+
+            // Return the total weighted score (normalized by total weight)
+            if (totalWeight === 0) return 0;
+            return Math.round((totalWeightedScore / totalWeight) * 100) / 100;
         } catch (error) {
             console.error('Error calculating special events score:', error);
             return 0;
@@ -311,15 +329,31 @@ export class SeasonRankingManager {
                 return 0;
             }
 
-            // Calculate average rank in alliance contribution events
-            const totalRank = rankings.reduce((sum, ranking) => sum + ranking.ranking, 0);
-            const averageRank = totalRank / rankings.length;
-            
-            // Convert rank to score (lower rank = higher score)
-            const maxParticipants = 50;
-            const score = ((maxParticipants - averageRank + 1) / maxParticipants) * 100;
-            
-            return Math.max(0, score);
+            // Calculate weighted score for each alliance contribution event
+            let totalWeightedScore = 0;
+            let totalWeight = 0;
+
+            for (const ranking of rankings) {
+                // Find the corresponding event to get its weight
+                const event = allianceEvents.find(e => e.key === ranking.day);
+                if (!event) continue;
+
+                const eventWeight = event.event_weight || 10.0; // Default to 10% if not set
+                
+                // Convert ranking to percentage (lower ranking = higher percentage)
+                // Assuming max 50 participants, 1st place = 100%, 50th place = 2%
+                const maxParticipants = 50;
+                const rankingPercentage = Math.max(0, ((maxParticipants - ranking.ranking + 1) / maxParticipants) * 100);
+                
+                // Weight this event's contribution
+                const weightedEventScore = (rankingPercentage * eventWeight) / 100;
+                totalWeightedScore += weightedEventScore;
+                totalWeight += eventWeight;
+            }
+
+            // Return the total weighted score (normalized by total weight)
+            if (totalWeight === 0) return 0;
+            return Math.round((totalWeightedScore / totalWeight) * 100) / 100;
         } catch (error) {
             console.error('Error calculating alliance contribution score:', error);
             return 0;
