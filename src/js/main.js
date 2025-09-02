@@ -95,7 +95,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.71 loaded successfully!');
+        console.log('🚀 LWRank v1.1.72 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -474,7 +474,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.71';
+                versionElement.textContent = 'v1.1.72';
             }
         }
 
@@ -2474,7 +2474,10 @@ class DailyRankingsApp {
     }
 
     setupSeasonRankingEventListeners() {
+        console.log('=== SETUP SEASON RANKING EVENT LISTENERS CALLED ===');
         console.log('Setting up season ranking event listeners...');
+        console.log('Current time:', new Date().toISOString());
+        console.log('Admin sections element exists:', !!document.querySelector('.admin-sections'));
 
         // Weight total calculation
         const weightInputs = ['kudosWeight', 'vsPerformanceWeight', 'specialEventsWeight'];
@@ -2493,27 +2496,89 @@ class DailyRankingsApp {
             });
         }
 
-        // Generate Season Report button
+        // Generate Season Report button - Enhanced debugging
+        console.log('=== DEBUGGING GENERATE SEASON REPORT BUTTON ===');
+        console.log('Current DOM state:', document.readyState);
+        console.log('Admin sections element:', document.querySelector('.admin-sections'));
+        console.log('Admin sections innerHTML length:', document.querySelector('.admin-sections')?.innerHTML?.length);
+        
         const generateSeasonReportBtn = document.getElementById('generateSeasonReportBtn');
         console.log('Generate Season Report button found:', generateSeasonReportBtn);
+        console.log('Button element details:', {
+            exists: !!generateSeasonReportBtn,
+            id: generateSeasonReportBtn?.id,
+            className: generateSeasonReportBtn?.className,
+            type: generateSeasonReportBtn?.type,
+            disabled: generateSeasonReportBtn?.disabled,
+            innerHTML: generateSeasonReportBtn?.innerHTML
+        });
+        
         console.log('All buttons with "generate" in ID:', document.querySelectorAll('[id*="generate"]'));
+        console.log('All buttons in admin sections:', document.querySelectorAll('.admin-sections button'));
+        console.log('All season buttons:', document.querySelectorAll('.season-btn'));
+        
         if (generateSeasonReportBtn) {
+            console.log('Button found, setting up event listeners...');
+            
             // Try multiple event binding approaches
             generateSeasonReportBtn.onclick = (e) => {
                 e.preventDefault();
+                e.stopPropagation();
                 console.log('Generate Season Report button clicked via onclick!');
+                console.log('Event details:', e);
                 this.generateSeasonReport();
             };
+            
             generateSeasonReportBtn.addEventListener('click', (e) => {
                 e.preventDefault();
+                e.stopPropagation();
                 console.log('Generate Season Report button clicked via addEventListener!');
+                console.log('Event details:', e);
                 this.generateSeasonReport();
             });
-            console.log('Generate Season Report event listeners attached');
+            
+            // Also try mousedown and mouseup events
+            generateSeasonReportBtn.addEventListener('mousedown', (e) => {
+                console.log('Generate Season Report button mousedown!');
+            });
+            
+            generateSeasonReportBtn.addEventListener('mouseup', (e) => {
+                console.log('Generate Season Report button mouseup!');
+            });
+            
+            console.log('Generate Season Report event listeners attached successfully');
         } else {
             console.error('Generate Season Report button not found!');
-            console.log('Available buttons in admin sections:', document.querySelectorAll('#adminSections button'));
+            console.log('Available elements in admin sections:', document.querySelectorAll('.admin-sections *'));
+            console.log('Looking for button by class:', document.querySelectorAll('.season-btn'));
         }
+        
+        console.log('=== END GENERATE SEASON REPORT BUTTON DEBUG ===');
+        
+        // Add global click handler for debugging
+        document.addEventListener('click', (e) => {
+            if (e.target.id === 'generateSeasonReportBtn' || e.target.closest('#generateSeasonReportBtn')) {
+                console.log('Global click handler detected Generate Season Report button click!');
+                console.log('Click event details:', e);
+                console.log('Target element:', e.target);
+            }
+        });
+        
+        // Delayed check to see if button appears later
+        setTimeout(() => {
+            console.log('=== DELAYED BUTTON CHECK (2 seconds) ===');
+            const delayedBtn = document.getElementById('generateSeasonReportBtn');
+            console.log('Delayed button check - found:', !!delayedBtn);
+            if (delayedBtn) {
+                console.log('Button found in delayed check, re-attaching event listeners...');
+                delayedBtn.onclick = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Delayed onclick handler triggered!');
+                    this.generateSeasonReport();
+                };
+            }
+        }, 2000);
 
         // Load Existing Report button
         const loadExistingReportBtn = document.getElementById('loadExistingReportBtn');
@@ -2776,10 +2841,16 @@ class DailyRankingsApp {
     }
 
     async generateSeasonReport() {
+        console.log('=== GENERATE SEASON REPORT METHOD CALLED ===');
+        console.log('Method execution started at:', new Date().toISOString());
+        console.log('this context:', this);
         console.log('generateSeasonReport method called!');
+        
         const seasonName = document.getElementById('seasonName')?.value.trim();
         const startDate = document.getElementById('seasonStartDate')?.value;
         const endDate = document.getElementById('seasonEndDate')?.value;
+        
+        console.log('Form values retrieved:', { seasonName, startDate, endDate });
         
         console.log('Form values:', { seasonName, startDate, endDate });
 
