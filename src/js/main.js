@@ -95,7 +95,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.67 loaded successfully!');
+        console.log('🚀 LWRank v1.1.68 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -474,7 +474,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.67';
+                versionElement.textContent = 'v1.1.68';
             }
         }
 
@@ -2097,11 +2097,6 @@ class DailyRankingsApp {
                                         <input type="number" id="specialEventsWeight" value="25" min="0" max="100" class="form-input">
                                         <span class="weight-percent">%</span>
                                     </div>
-                                    <div class="form-group">
-                                        <label for="allianceContributionWeight">Alliance Contribution (Separate events):</label>
-                                        <input type="number" id="allianceContributionWeight" value="15" min="0" max="100" class="form-input">
-                                        <span class="weight-percent">%</span>
-                                    </div>
                                 </div>
                                 <div class="weight-total">
                                     <span>Total: <span id="weightTotal">100</span>%</span>
@@ -2109,8 +2104,8 @@ class DailyRankingsApp {
                             </div>
 
                             <div class="season-actions">
-                                <button id="generateSeasonReportBtn" class="season-btn primary">🏆 Generate Season Report</button>
-                                <button id="clearSeasonDataBtn" class="season-btn secondary">🗑️ Clear Season Data</button>
+                                <button type="button" id="generateSeasonReportBtn" class="season-btn primary">🏆 Generate Season Report</button>
+                                <button type="button" id="clearSeasonDataBtn" class="season-btn secondary">🗑️ Clear Season Data</button>
                             </div>
                         </div>
 
@@ -2464,7 +2459,7 @@ class DailyRankingsApp {
         console.log('Setting up season ranking event listeners...');
 
         // Weight total calculation
-        const weightInputs = ['kudosWeight', 'vsPerformanceWeight', 'specialEventsWeight', 'allianceContributionWeight'];
+        const weightInputs = ['kudosWeight', 'vsPerformanceWeight', 'specialEventsWeight'];
         weightInputs.forEach(inputId => {
             const input = document.getElementById(inputId);
             if (input) {
@@ -2483,14 +2478,17 @@ class DailyRankingsApp {
         // Generate Season Report button
         const generateSeasonReportBtn = document.getElementById('generateSeasonReportBtn');
         console.log('Generate Season Report button found:', generateSeasonReportBtn);
+        console.log('All buttons with "generate" in ID:', document.querySelectorAll('[id*="generate"]'));
         if (generateSeasonReportBtn) {
-            generateSeasonReportBtn.addEventListener('click', () => {
+            generateSeasonReportBtn.addEventListener('click', (e) => {
+                e.preventDefault();
                 console.log('Generate Season Report button clicked!');
                 this.generateSeasonReport();
             });
             console.log('Generate Season Report event listener attached');
         } else {
             console.error('Generate Season Report button not found!');
+            console.log('Available buttons in admin sections:', document.querySelectorAll('#adminSections button'));
         }
 
         // Clear Season Data button
@@ -2511,9 +2509,8 @@ class DailyRankingsApp {
         const kudosWeight = parseInt(document.getElementById('kudosWeight')?.value || 0);
         const vsWeight = parseInt(document.getElementById('vsPerformanceWeight')?.value || 0);
         const eventsWeight = parseInt(document.getElementById('specialEventsWeight')?.value || 0);
-        const allianceWeight = parseInt(document.getElementById('allianceContributionWeight')?.value || 0);
         
-        const total = kudosWeight + vsWeight + eventsWeight + allianceWeight;
+        const total = kudosWeight + vsWeight + eventsWeight;
         const totalElement = document.getElementById('weightTotal');
         if (totalElement) {
             totalElement.textContent = total;
@@ -2591,8 +2588,7 @@ class DailyRankingsApp {
         const weights = {
             kudos: parseInt(document.getElementById('kudosWeight')?.value || 0),
             vsPerformance: parseInt(document.getElementById('vsPerformanceWeight')?.value || 0),
-            specialEvents: parseInt(document.getElementById('specialEventsWeight')?.value || 0),
-            allianceContribution: parseInt(document.getElementById('allianceContributionWeight')?.value || 0)
+            specialEvents: parseInt(document.getElementById('specialEventsWeight')?.value || 0)
         };
 
         // Validate that the main weights (excluding alliance contribution) total 100%
