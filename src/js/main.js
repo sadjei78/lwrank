@@ -95,7 +95,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.58 loaded successfully!');
+        console.log('🚀 LWRank v1.1.59 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -474,7 +474,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.58';
+                versionElement.textContent = 'v1.1.59';
             }
         }
 
@@ -4934,7 +4934,7 @@ class DailyRankingsApp {
                     </div>
                 </div>
                 
-                ${performance.specialEventsAnalysis && performance.specialEventsAnalysis.totalEvents > 0 ? `
+                ${performance.specialEventsAnalysis && performance.specialEventsAnalysis.totalEvents > 0 && performance.specialEventsAnalysis.allianceEvents && performance.specialEventsAnalysis.nonAllianceEvents ? `
                 <div class="special-events-analysis">
                     <div class="performance-card">
                         <h4>🎯 Special Events Analysis</h4>
@@ -5416,7 +5416,26 @@ class DailyRankingsApp {
             const specialEventCount = specialEventRankings.length;
             
             // Get detailed special events analysis
-            const specialEventsAnalysis = await this.analyzePlayerSpecialEvents(playerName, specialEventRankings);
+            let specialEventsAnalysis;
+            try {
+                specialEventsAnalysis = await this.analyzePlayerSpecialEvents(playerName, specialEventRankings);
+            } catch (error) {
+                console.error('Error in special events analysis, using fallback:', error);
+                specialEventsAnalysis = {
+                    totalEvents: specialEventRankings.length,
+                    averageRanking: 0,
+                    bestRanking: 0,
+                    worstRanking: 0,
+                    top10Events: 0,
+                    top25Events: 0,
+                    top10Percentage: 0,
+                    top25Percentage: 0,
+                    performanceLevel: 'Unknown',
+                    allianceEvents: { count: 0, averageRanking: 0 },
+                    nonAllianceEvents: { count: 0, averageRanking: 0 },
+                    eventDetails: []
+                };
+            }
             
             // Performance trends
             const firstHalf = rankings.slice(0, Math.ceil(rankings.length / 2));
@@ -5481,7 +5500,7 @@ class DailyRankingsApp {
 
             // Get special events details from the database
             const eventKeys = specialEventRankings.map(r => r.day);
-            const { data: specialEvents, error } = await supabase
+            const { data: specialEvents, error } = await this.supabase
                 .from('special_events')
                 .select('*')
                 .in('key', eventKeys);
@@ -5536,7 +5555,7 @@ class DailyRankingsApp {
             const allianceEvents = eventDetails.filter(e => e.isAllianceEvent);
             const nonAllianceEvents = eventDetails.filter(e => !e.isAllianceEvent);
 
-            return {
+            const result = {
                 totalEvents: specialEventRankings.length,
                 averageRanking: Math.round(averageRanking * 100) / 100,
                 bestRanking: bestRanking,
@@ -5558,6 +5577,9 @@ class DailyRankingsApp {
                 },
                 eventDetails: eventDetails.sort((a, b) => new Date(b.eventDate) - new Date(a.eventDate))
             };
+
+            console.log('Special events analysis result:', result);
+            return result;
         } catch (error) {
             console.error('Error analyzing special events:', error);
             return {
