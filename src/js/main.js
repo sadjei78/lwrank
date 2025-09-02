@@ -95,7 +95,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.60 loaded successfully!');
+        console.log('🚀 LWRank v1.1.61 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -474,7 +474,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.60';
+                versionElement.textContent = 'v1.1.61';
             }
         }
 
@@ -2163,6 +2163,9 @@ class DailyRankingsApp {
             console.error('Admin sections container not found');
         }
         
+        // Ensure season report elements are available
+        this.ensureSeasonReportElements();
+        
         // Add modals for editing
         this.addAdminModals();
         
@@ -2599,6 +2602,47 @@ class DailyRankingsApp {
         }
     }
 
+    ensureSeasonReportElements() {
+        console.log('Ensuring season report elements exist...');
+        
+        // Check if elements already exist
+        let reportDisplay = document.getElementById('seasonReportDisplay');
+        let reportContent = document.getElementById('seasonReportContent');
+        
+        if (reportDisplay && reportContent) {
+            console.log('Season report elements already exist');
+            return;
+        }
+        
+        // Create the season report section if it doesn't exist
+        const seasonReportSection = `
+            <div class="admin-section">
+                <div class="collapsible">
+                    <div class="collapsible-header">
+                        <h3>📊 Season Report Results</h3>
+                        <span class="collapsible-toggle">▼</span>
+                    </div>
+                    <div class="collapsible-content collapsed">
+                        <div class="season-report-display" id="seasonReportDisplay" style="display: none;">
+                            <div id="seasonReportContent" class="season-report-content">
+                                <!-- Season report will be generated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Find the admin sections container and append the season report section
+        const adminSectionsContainer = document.getElementById('adminSections');
+        if (adminSectionsContainer) {
+            adminSectionsContainer.innerHTML += seasonReportSection;
+            console.log('Season report section created and added to admin sections');
+        } else {
+            console.error('Admin sections container not found when trying to create season report elements');
+        }
+    }
+
     async clearSeasonData() {
         const seasonName = document.getElementById('seasonName')?.value.trim();
         const startDate = document.getElementById('seasonStartDate')?.value;
@@ -2632,19 +2676,34 @@ class DailyRankingsApp {
     async displaySeasonReport(seasonName, startDate, endDate, rankings, weights) {
         console.log('displaySeasonReport called with:', { seasonName, startDate, endDate, rankings: rankings.length, weights });
         
-        // Wait a moment for DOM to be ready
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Wait longer for DOM to be ready and retry if elements not found
+        let reportDisplay = document.getElementById('seasonReportDisplay');
+        let reportContent = document.getElementById('seasonReportContent');
         
-        const reportDisplay = document.getElementById('seasonReportDisplay');
-        const reportContent = document.getElementById('seasonReportContent');
+        // If elements not found, wait and retry
+        if (!reportDisplay || !reportContent) {
+            console.log('Elements not found, waiting and retrying...');
+            await new Promise(resolve => setTimeout(resolve, 500));
+            reportDisplay = document.getElementById('seasonReportDisplay');
+            reportContent = document.getElementById('seasonReportContent');
+        }
+        
+        // If still not found, try to create them
+        if (!reportDisplay || !reportContent) {
+            console.log('Elements still not found, attempting to create them...');
+            this.ensureSeasonReportElements();
+            reportDisplay = document.getElementById('seasonReportDisplay');
+            reportContent = document.getElementById('seasonReportContent');
+        }
         
         console.log('Report display elements:', { reportDisplay, reportContent });
         console.log('All elements with seasonReportDisplay ID:', document.querySelectorAll('#seasonReportDisplay'));
         console.log('All elements with seasonReportContent ID:', document.querySelectorAll('#seasonReportContent'));
         
         if (!reportDisplay || !reportContent) {
-            console.error('Season report display elements not found');
+            console.error('Season report display elements not found after retries');
             console.log('Available elements in admin sections:', document.getElementById('adminSections')?.innerHTML.substring(0, 500));
+            this.uiManager.showError('Could not display season report - elements not found');
             return;
         }
 
