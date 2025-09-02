@@ -95,7 +95,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.62 loaded successfully!');
+        console.log('🚀 LWRank v1.1.63 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -474,7 +474,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.62';
+                versionElement.textContent = 'v1.1.63';
             }
         }
 
@@ -2520,9 +2520,18 @@ class DailyRankingsApp {
 
         try {
             const awardedBy = 'Admin'; // You could get this from user context
+            
+            // Check if player already has kudos for today
+            const today = new Date().toISOString().split('T')[0];
+            const existingKudos = await this.seasonRankingManager.getKudosForPlayerAndDate(playerName, today);
+            
             await this.seasonRankingManager.awardKudos(playerName, points, reason, awardedBy);
             
-            this.uiManager.showSuccess(`Successfully awarded ${points} kudos points to ${playerName}`);
+            if (existingKudos && existingKudos.length > 0) {
+                this.uiManager.showSuccess(`Updated kudos for ${playerName} to ${points} points (was ${existingKudos[0].points} points)`);
+            } else {
+                this.uiManager.showSuccess(`Successfully awarded ${points} kudos points to ${playerName}`);
+            }
             
             // Clear form
             document.getElementById('kudosPlayerName').value = '';

@@ -9,17 +9,23 @@ export class SeasonRankingManager {
     // Kudos Points Management
     async awardKudos(playerName, points, reason, awardedBy) {
         try {
+            const today = new Date().toISOString().split('T')[0];
+            
+            // Use upsert to update existing kudos or insert new one
             const { data, error } = await supabase
                 .from('kudos_points')
-                .insert([
+                .upsert([
                     {
                         player_name: playerName,
                         points: points,
                         reason: reason,
                         awarded_by: awardedBy,
-                        date_awarded: new Date().toISOString().split('T')[0]
+                        date_awarded: today
                     }
-                ])
+                ], { 
+                    onConflict: 'player_name,date_awarded',
+                    ignoreDuplicates: false 
+                })
                 .select();
 
             if (error) {
@@ -51,6 +57,26 @@ export class SeasonRankingManager {
             return data || [];
         } catch (error) {
             console.error('Error in getRecentKudos:', error);
+            throw error;
+        }
+    }
+
+    async getKudosForPlayerAndDate(playerName, date) {
+        try {
+            const { data, error } = await supabase
+                .from('kudos_points')
+                .select('*')
+                .eq('player_name', playerName)
+                .eq('date_awarded', date);
+
+            if (error) {
+                console.error('Error getting kudos for player and date:', error);
+                throw error;
+            }
+
+            return data || [];
+        } catch (error) {
+            console.error('Error in getKudosForPlayerAndDate:', error);
             throw error;
         }
     }
