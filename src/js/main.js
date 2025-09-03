@@ -99,7 +99,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.83 loaded successfully!');
+        console.log('🚀 LWRank v1.1.84 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -478,7 +478,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.83';
+                versionElement.textContent = 'v1.1.84';
             }
         }
 
@@ -5313,6 +5313,12 @@ class DailyRankingsApp {
         const excusedPlayerInput = document.getElementById('excusedPlayerName');
         const autocompleteDropdown = document.getElementById('excusedPlayerAutocomplete');
         
+        console.log('Setting up excused player autocomplete...');
+        console.log('Input element found:', !!excusedPlayerInput);
+        console.log('Dropdown element found:', !!autocompleteDropdown);
+        console.log('Autocomplete service available:', !!this.autocompleteService);
+        console.log('All player names count:', this.autocompleteService?.allPlayerNames?.size || 0);
+        
         if (!excusedPlayerInput || !autocompleteDropdown) {
             console.error('Excused player autocomplete elements not found');
             return;
@@ -5322,6 +5328,7 @@ class DailyRankingsApp {
         let debounceTimer;
         
         excusedPlayerInput.addEventListener('input', (e) => {
+            console.log('Excused player input event:', e.target.value);
             clearTimeout(debounceTimer);
             debounceTimer = setTimeout(() => {
                 this.autocompleteService.handleInput(

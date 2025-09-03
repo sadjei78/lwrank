@@ -83,6 +83,10 @@ export class AutocompleteService {
     handleInput(value, dropdownElement, onSelect, excludeLeaders = false, excludeRemoved = false) {
         const query = value.trim().toLowerCase();
         
+        console.log('Autocomplete handleInput called:', { value, query, excludeLeaders, excludeRemoved });
+        console.log('All player names count:', this.allPlayerNames.size);
+        console.log('Dropdown element:', dropdownElement);
+        
         if (query.length === 0) {
             this.closeDropdown(dropdownElement);
             return;
@@ -90,6 +94,7 @@ export class AutocompleteService {
 
         // Get player names, optionally excluding leaders and removed players
         let availableNames = Array.from(this.allPlayerNames);
+        console.log('Available names before filtering:', availableNames.length);
         
         if (excludeLeaders && this.leaderVIPManager) {
             availableNames = availableNames.filter(name => 
@@ -161,9 +166,13 @@ export class AutocompleteService {
     }
 
     showDropdown(dropdownElement, names, onSelect) {
+        console.log('showDropdown called:', { namesCount: names.length, dropdownElement });
+        
         if (names.length === 0) {
+            console.log('No names to show, displaying no results message');
             dropdownElement.innerHTML = '<div class="autocomplete-no-results">No matching players found</div>';
         } else {
+            console.log('Showing dropdown with names:', names);
             let html = '';
             names.forEach((name, index) => {
                 html += `<div class="autocomplete-item" data-index="${index}" data-value="${name}">${name}</div>`;
