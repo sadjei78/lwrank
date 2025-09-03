@@ -1,5 +1,9 @@
--- Create excused_players table
-CREATE TABLE IF NOT EXISTS excused_players (
+-- Fix excused_players table to use UUID instead of SERIAL
+-- First, drop the existing table if it exists with SERIAL
+DROP TABLE IF EXISTS excused_players CASCADE;
+
+-- Recreate the table with UUID
+CREATE TABLE excused_players (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     player_name TEXT NOT NULL,
     reason TEXT NOT NULL,
