@@ -121,11 +121,13 @@ export class LeaderVIPManager {
                         .from('alliance_leaders')
                         .upsert({
                             player_name: leader.player_name,
-                            is_active: leader.is_active || true
+                            is_active: leader.is_active !== undefined ? leader.is_active : true
                         }, { onConflict: 'player_name' });
                     
                     if (error) {
                         console.error(`Error syncing leader ${leader.player_name}:`, error);
+                    } else {
+                        console.log(`Successfully synced alliance leader: ${leader.player_name} (is_active: ${leader.is_active})`);
                     }
                 }
             }
@@ -226,13 +228,13 @@ export class LeaderVIPManager {
                         .from('alliance_leaders')
                         .upsert({
                             player_name: leader.player_name,
-                            is_active: leader.is_active || true
+                            is_active: leader.is_active !== undefined ? leader.is_active : true
                         }, { onConflict: 'player_name' });
                     
                     if (error) {
                         console.error(`Error saving alliance leader ${leader.player_name}:`, error);
                     } else {
-                        console.log(`Successfully saved alliance leader: ${leader.player_name}`);
+                        console.log(`Successfully saved alliance leader: ${leader.player_name} (is_active: ${leader.is_active})`);
                     }
                 }
             }

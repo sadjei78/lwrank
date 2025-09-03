@@ -99,7 +99,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.81 loaded successfully!');
+        console.log('🚀 LWRank v1.1.82 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -478,7 +478,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.81';
+                versionElement.textContent = 'v1.1.82';
             }
         }
 
@@ -2195,7 +2195,9 @@ class DailyRankingsApp {
                         </div>
                         <div class="form-group">
                             <label for="excusedApprovedBy">Approved By:</label>
-                            <input type="text" id="excusedApprovedBy" placeholder="Leader name" class="form-input">
+                            <select id="excusedApprovedBy" class="form-input">
+                                <option value="">Select approving leader...</option>
+                            </select>
                         </div>
                         <div class="form-group">
                             <label for="excusedDate">Date Excused:</label>
@@ -4415,6 +4417,29 @@ class DailyRankingsApp {
         
         // Update current leaders display
         this.updateCurrentLeadersList();
+        
+        // Also update the excused approved by dropdown
+        this.updateExcusedApprovedByDropdown();
+    }
+
+    updateExcusedApprovedByDropdown() {
+        const excusedApprovedBySelect = document.getElementById('excusedApprovedBy');
+        if (!excusedApprovedBySelect) {
+            console.log('Excused approved by select not found - admin content not loaded yet');
+            return;
+        }
+        
+        // Clear existing options except the first one
+        excusedApprovedBySelect.innerHTML = '<option value="">Select approving leader...</option>';
+        
+        // Add active leaders to the dropdown
+        const activeLeaders = this.leaderVIPManager.allianceLeaders.filter(leader => leader.is_active);
+        activeLeaders.forEach(leader => {
+            const option = document.createElement('option');
+            option.value = leader.player_name;
+            option.textContent = leader.player_name;
+            excusedApprovedBySelect.appendChild(option);
+        });
     }
 
     updateCurrentLeadersList() {
