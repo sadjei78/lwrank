@@ -954,6 +954,16 @@ header h1 {
     font-weight: 500;
 }
 
+.info {
+    background: linear-gradient(135deg, #eff6ff, #dbeafe);
+    color: #1d4ed8;
+    padding: 16px 20px;
+    border-radius: 12px;
+    margin: 20px 0;
+    border: 1px solid #93c5fd;
+    font-weight: 500;
+}
+
 .messages {
     position: fixed;
     top: 20px;

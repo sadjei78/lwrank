@@ -296,6 +296,20 @@ export class UIManager {
         }, 5000);
     }
 
+    showInfo(message) {
+        const tabContentsContainer = document.getElementById('tabContents');
+        const infoDiv = document.createElement('div');
+        infoDiv.className = 'info';
+        infoDiv.innerHTML = `<strong>Info:</strong> ${this.escapeHTML(message)}`;
+        tabContentsContainer.appendChild(infoDiv);
+        
+        setTimeout(() => {
+            if (infoDiv.parentNode) {
+                infoDiv.remove();
+            }
+        }, 4000);
+    }
+
     escapeHTML(str) {
         // Handle null, undefined, or non-string values
         if (str == null) return '';

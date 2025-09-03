@@ -59,7 +59,11 @@ class DailyRankingsApp {
         }
         
         try {
+            console.log('Initializing leader VIP manager connection...');
             await this.leaderVIPManager.initializeConnection();
+            console.log('Leader VIP manager connection completed');
+            console.log('Loaded leaders:', this.leaderVIPManager.allianceLeaders.length);
+            console.log('Loaded rotation:', this.leaderVIPManager.trainConductorRotation.length);
         } catch (error) {
             console.warn('Leader VIP manager connection failed:', error);
         }
@@ -95,7 +99,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.80 loaded successfully!');
+        console.log('🚀 LWRank v1.1.81 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -474,7 +478,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.80';
+                versionElement.textContent = 'v1.1.81';
             }
         }
 
@@ -2088,7 +2092,8 @@ class DailyRankingsApp {
                             </div>
                             <div class="form-group">
                                 <button id="forceSyncLeadersBtn" class="leader-btn secondary">🔄 Force Sync to Database</button>
-                                <small class="form-help">Use this to manually sync leader data to Supabase if updates aren't appearing</small>
+                                <button id="reloadDataBtn" class="leader-btn secondary">📥 Reload from Database</button>
+                                <small class="form-help">Use Force Sync to save data to Supabase, or Reload to refresh from database</small>
                             </div>
                         </div>
                         
@@ -2600,6 +2605,23 @@ class DailyRankingsApp {
             });
         } else {
             console.error('Force sync leaders button not found');
+        }
+
+        // Add a reload data button for debugging
+        const reloadDataBtn = document.getElementById('reloadDataBtn');
+        if (reloadDataBtn) {
+            reloadDataBtn.addEventListener('click', async () => {
+                try {
+                    this.uiManager.showInfo('Reloading leader data from database...');
+                    await this.leaderVIPManager.loadFromDatabase();
+                    this.updateLeaderDropdowns();
+                    this.updateRotationOrderList();
+                    this.uiManager.showSuccess('Leader data reloaded successfully!');
+                } catch (error) {
+                    console.error('Error reloading leaders:', error);
+                    this.uiManager.showError(`Error reloading leaders: ${error.message}`);
+                }
+            });
         }
         
         // Add removed player button
@@ -3799,15 +3821,19 @@ class DailyRankingsApp {
     // Check if we need to create sample data for testing
     async checkAndCreateSampleData() {
         try {
+            // Wait a bit for data to load from database
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
             const hasLeaders = this.leaderVIPManager.allianceLeaders.length > 0;
             const hasRotation = this.leaderVIPManager.trainConductorRotation.length > 0;
             
-            console.log('Data check:', { hasLeaders, hasRotation });
+            console.log('Data check after delay:', { hasLeaders, hasRotation });
             console.log('Alliance leaders:', this.leaderVIPManager.allianceLeaders);
             console.log('Train conductor rotation:', this.leaderVIPManager.trainConductorRotation);
             
-            if (!hasLeaders && !hasRotation) {
-                console.log('No data found, creating sample alliance leaders...');
+            // Only create sample data if we truly have no data AND we're in development mode
+            if (!hasLeaders && !hasRotation && window.location.hostname === 'localhost') {
+                console.log('No data found in development mode, creating sample alliance leaders...');
                 
                 // Create some sample alliance leaders for testing
                 const sampleLeaders = ['Alice', 'Bob', 'Charlie', 'Diana', 'Eve'];
@@ -3823,8 +3849,10 @@ class DailyRankingsApp {
                 
                 // Refresh the rotation display
                 this.updateRotationOrderList();
-                
-
+            } else if (!hasLeaders && !hasRotation) {
+                console.log('No data found in production mode - not creating sample data');
+            } else {
+                console.log('Data found - skipping sample data creation');
             }
         } catch (error) {
             console.error('Error in checkAndCreateSampleData:', error);
