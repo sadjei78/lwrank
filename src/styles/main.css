@@ -3008,8 +3008,10 @@ header h1 {
     padding: 12px;
     border-bottom: 1px solid #f3f4f6;
     background: white;
-    cursor: move;
-    transition: background-color 0.2s;
+    cursor: grab;
+    transition: all 0.2s ease;
+    user-select: none;
+    position: relative;
 }
 
 .rotation-item:last-child {
@@ -3018,15 +3020,53 @@ header h1 {
 
 .rotation-item:hover {
     background-color: #f9fafb;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .rotation-item.dragging {
-    opacity: 0.5;
-    background-color: #f3f4f6;
+    opacity: 0.6;
+    background-color: #e5e7eb;
+    transform: rotate(2deg);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    cursor: grabbing;
 }
 
 .rotation-item.drag-over {
-    border-top: 2px solid #667eea;
+    border-top: 3px solid #667eea;
+    background-color: #f0f4ff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(102, 126, 234, 0.2);
+}
+
+.rotation-item.drag-over::before {
+    content: '';
+    position: absolute;
+    top: -3px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    border-radius: 2px;
+}
+
+/* Add a drag handle indicator */
+.rotation-item::after {
+    content: '⋮⋮';
+    color: #9ca3af;
+    font-size: 12px;
+    margin-left: 8px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.rotation-item:hover::after {
+    opacity: 1;
+}
+
+.rotation-item.dragging::after {
+    opacity: 0;
 }
 
 .rotation-order {

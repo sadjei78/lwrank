@@ -95,7 +95,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.77 loaded successfully!');
+        console.log('🚀 LWRank v1.1.78 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -474,7 +474,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.77';
+                versionElement.textContent = 'v1.1.78';
             }
         }
 
@@ -4931,43 +4931,144 @@ class DailyRankingsApp {
 
     setupDragAndDrop() {
         const rotationContainer = document.getElementById('rotationOrderList');
-        if (!rotationContainer) return;
+        if (!rotationContainer) {
+            console.error('Rotation container not found for drag and drop setup');
+            return;
+        }
+
+        // Clear any existing event listeners to prevent duplicates
+        this.clearDragAndDropListeners(rotationContainer);
+
+        // Make the container a drop zone
+        rotationContainer.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+        });
+
+        rotationContainer.addEventListener('drop', (e) => {
+            e.preventDefault();
+            // Clear all drag-over classes
+            rotationContainer.querySelectorAll('.drag-over').forEach(item => {
+                item.classList.remove('drag-over');
+            });
+        });
 
         const items = rotationContainer.querySelectorAll('.rotation-item');
+        console.log(`Setting up drag and drop for ${items.length} rotation items`);
         
-        items.forEach(item => {
+        items.forEach((item, index) => {
+            // Ensure draggable attribute is set
+            item.draggable = true;
+            
+            // Store the index in dataset if not already set
+            if (!item.dataset.index) {
+                item.dataset.index = index.toString();
+            }
+
+            // Drag start
             item.addEventListener('dragstart', (e) => {
+                console.log('Drag start:', item.dataset.index);
                 e.dataTransfer.setData('text/plain', item.dataset.index);
+                e.dataTransfer.effectAllowed = 'move';
                 item.classList.add('dragging');
+                
+                // Add a small delay to ensure the drag image is set
+                setTimeout(() => {
+                    item.style.opacity = '0.5';
+                }, 0);
             });
 
-            item.addEventListener('dragend', () => {
+            // Drag end
+            item.addEventListener('dragend', (e) => {
+                console.log('Drag end');
                 item.classList.remove('dragging');
+                item.style.opacity = '';
+                
+                // Clear all drag-over classes
+                rotationContainer.querySelectorAll('.drag-over').forEach(dragItem => {
+                    dragItem.classList.remove('drag-over');
+                });
             });
 
+            // Drag over
             item.addEventListener('dragover', (e) => {
                 e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                
                 const draggingItem = rotationContainer.querySelector('.dragging');
                 if (draggingItem && draggingItem !== item) {
+                    // Remove drag-over from all other items
+                    rotationContainer.querySelectorAll('.drag-over').forEach(dragItem => {
+                        if (dragItem !== item) {
+                            dragItem.classList.remove('drag-over');
+                        }
+                    });
+                    
+                    // Add drag-over to current item
                     item.classList.add('drag-over');
                 }
             });
 
-            item.addEventListener('dragleave', () => {
-                item.classList.remove('drag-over');
+            // Drag leave
+            item.addEventListener('dragleave', (e) => {
+                // Only remove drag-over if we're actually leaving the item
+                if (!item.contains(e.relatedTarget)) {
+                    item.classList.remove('drag-over');
+                }
             });
 
+            // Drop
             item.addEventListener('drop', async (e) => {
                 e.preventDefault();
+                e.stopPropagation();
+                
+                console.log('Drop event on item:', item.dataset.index);
+                
                 item.classList.remove('drag-over');
                 
                 const draggedIndex = parseInt(e.dataTransfer.getData('text/plain'));
                 const dropIndex = parseInt(item.dataset.index);
                 
-                if (draggedIndex !== dropIndex) {
-                    await this.reorderRotationByDrag(draggedIndex, dropIndex);
+                console.log(`Dragged from index ${draggedIndex} to index ${dropIndex}`);
+                
+                if (draggedIndex !== dropIndex && !isNaN(draggedIndex) && !isNaN(dropIndex)) {
+                    try {
+                        await this.reorderRotationByDrag(draggedIndex, dropIndex);
+                    } catch (error) {
+                        console.error('Error reordering rotation:', error);
+                        this.uiManager.showError('Failed to reorder rotation. Please try again.');
+                    }
                 }
             });
+
+            // Add visual feedback for better UX
+            item.addEventListener('mouseenter', () => {
+                if (!item.classList.contains('dragging')) {
+                    item.style.cursor = 'grab';
+                }
+            });
+
+            item.addEventListener('mousedown', () => {
+                item.style.cursor = 'grabbing';
+            });
+
+            item.addEventListener('mouseup', () => {
+                item.style.cursor = 'grab';
+            });
+
+            item.addEventListener('mouseleave', () => {
+                item.style.cursor = '';
+            });
+        });
+    }
+
+    clearDragAndDropListeners(container) {
+        // Remove all existing drag and drop event listeners
+        const items = container.querySelectorAll('.rotation-item');
+        items.forEach(item => {
+            // Clone the element to remove all event listeners
+            const newItem = item.cloneNode(true);
+            item.parentNode.replaceChild(newItem, item);
         });
     }
 
