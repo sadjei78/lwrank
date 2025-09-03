@@ -35,11 +35,10 @@ export class LeaderVIPManager {
         }
 
         try {
-            // Load alliance leaders
+            // Load ALL alliance leaders (both active and inactive for proper management)
             const { data: leaders, error: leadersError } = await supabase
                 .from('alliance_leaders')
                 .select('*')
-                .eq('is_active', true)
                 .order('player_name');
 
             if (leadersError) {
@@ -48,11 +47,10 @@ export class LeaderVIPManager {
                 return;
             }
 
-            // Load train conductor rotation
+            // Load ALL train conductor rotation entries (both active and inactive for proper management)
             const { data: rotation, error: rotationError } = await supabase
                 .from('train_conductor_rotation')
                 .select('*')
-                .eq('is_active', true)
                 .order('rotation_order');
 
             if (rotationError) {
@@ -218,6 +216,47 @@ export class LeaderVIPManager {
         }
 
         try {
+            console.log('Saving leader system to database...');
+            
+            // Save alliance leaders
+            if (this.allianceLeaders.length > 0) {
+                console.log(`Saving ${this.allianceLeaders.length} alliance leaders...`);
+                for (const leader of this.allianceLeaders) {
+                    const { error } = await supabase
+                        .from('alliance_leaders')
+                        .upsert({
+                            player_name: leader.player_name,
+                            is_active: leader.is_active || true
+                        }, { onConflict: 'player_name' });
+                    
+                    if (error) {
+                        console.error(`Error saving alliance leader ${leader.player_name}:`, error);
+                    } else {
+                        console.log(`Successfully saved alliance leader: ${leader.player_name}`);
+                    }
+                }
+            }
+
+            // Save train conductor rotation
+            if (this.trainConductorRotation.length > 0) {
+                console.log(`Saving ${this.trainConductorRotation.length} rotation entries...`);
+                for (const rotation of this.trainConductorRotation) {
+                    const { error } = await supabase
+                        .from('train_conductor_rotation')
+                        .upsert({
+                            player_name: rotation.player_name,
+                            rotation_order: rotation.rotation_order,
+                            is_active: rotation.is_active || true
+                        }, { onConflict: 'player_name' });
+                    
+                    if (error) {
+                        console.error(`Error saving rotation for ${rotation.player_name}:`, error);
+                    } else {
+                        console.log(`Successfully saved rotation entry: ${rotation.player_name} (order: ${rotation.rotation_order})`);
+                    }
+                }
+            }
+
             // Save VIP selections
             for (const [date, vipData] of Object.entries(this.vipSelections)) {
                 const { error } = await supabase
@@ -229,7 +268,12 @@ export class LeaderVIPManager {
                 }
             }
 
-            console.log('Saved leader system to database');
+            console.log('Successfully saved all leader system data to database');
+            console.log('Final state after save:', {
+                allianceLeaders: this.allianceLeaders.length,
+                trainConductorRotation: this.trainConductorRotation.length,
+                vipSelections: Object.keys(this.vipSelections).length
+            });
             this.saveToStorage();
         } catch (error) {
             console.error('Database save error:', error);
@@ -576,6 +620,28 @@ export class LeaderVIPManager {
     parseDateString(dateString) {
         const [year, month, day] = dateString.split('-').map(Number);
         return new Date(year, month - 1, day);
+    }
+
+    // Force sync all data to database (useful for debugging)
+    async forceSyncToDatabase() {
+        console.log('Force syncing all leader system data to database...');
+        console.log('Current state before sync:', {
+            allianceLeaders: this.allianceLeaders.length,
+            trainConductorRotation: this.trainConductorRotation.length,
+            vipSelections: Object.keys(this.vipSelections).length
+        });
+        
+        await this.saveToDatabase();
+        
+        // Also try to reload from database to verify
+        console.log('Reloading from database to verify...');
+        await this.loadFromDatabase();
+        
+        console.log('State after reload:', {
+            allianceLeaders: this.allianceLeaders.length,
+            trainConductorRotation: this.trainConductorRotation.length,
+            vipSelections: Object.keys(this.vipSelections).length
+        });
     }
 
     // Update player name across all leader and VIP tables

@@ -95,7 +95,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.78 loaded successfully!');
+        console.log('🚀 LWRank v1.1.79 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -474,7 +474,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.78';
+                versionElement.textContent = 'v1.1.79';
             }
         }
 
@@ -2086,6 +2086,10 @@ class DailyRankingsApp {
                                 </select>
                                 <button id="removeLeaderBtn" class="leader-btn">Remove Leader</button>
                             </div>
+                            <div class="form-group">
+                                <button id="forceSyncLeadersBtn" class="leader-btn secondary">🔄 Force Sync to Database</button>
+                                <small class="form-help">Use this to manually sync leader data to Supabase if updates aren't appearing</small>
+                            </div>
                         </div>
                         
                         <div class="current-leaders">
@@ -2573,6 +2577,25 @@ class DailyRankingsApp {
             });
         } else {
             console.error('Remove leader button not found');
+        }
+
+        // Force sync leaders button
+        const forceSyncLeadersBtn = document.getElementById('forceSyncLeadersBtn');
+        if (forceSyncLeadersBtn) {
+            forceSyncLeadersBtn.addEventListener('click', async () => {
+                try {
+                    this.uiManager.showInfo('Force syncing leader data to database...');
+                    await this.leaderVIPManager.forceSyncToDatabase();
+                    this.updateLeaderDropdowns();
+                    this.updateRotationOrderList();
+                    this.uiManager.showSuccess('Leader data successfully synced to database!');
+                } catch (error) {
+                    console.error('Error force syncing leaders:', error);
+                    this.uiManager.showError(`Error syncing leaders: ${error.message}`);
+                }
+            });
+        } else {
+            console.error('Force sync leaders button not found');
         }
         
         // Add removed player button
