@@ -2992,6 +2992,47 @@ header h1 {
 }
 
 /* Train Conductor Rotation Management */
+.rotation-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.rotation-header label {
+    margin: 0;
+    font-weight: 600;
+    color: #374151;
+    font-size: 14px;
+}
+
+.rotation-refresh-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 2px 4px rgba(102, 126, 234, 0.2);
+}
+
+.rotation-refresh-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+}
+
+.rotation-refresh-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
+}
+
 .rotation-order-list {
     border: 1px solid #e5e7eb;
     border-radius: 12px;

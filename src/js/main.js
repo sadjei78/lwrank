@@ -95,7 +95,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.79 loaded successfully!');
+        console.log('🚀 LWRank v1.1.80 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -474,7 +474,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.79';
+                versionElement.textContent = 'v1.1.80';
             }
         }
 
@@ -2110,7 +2110,10 @@ class DailyRankingsApp {
                     <div id="trainRotationContent" class="collapsible-content collapsed">
                         <div class="rotation-form">
                             <div class="form-group">
-                                <label>Rotation Order (drag to reorder):</label>
+                                <div class="rotation-header">
+                                    <label>Rotation Order (drag to reorder):</label>
+                                    <button id="refreshRotationBtn" class="rotation-refresh-btn" title="Rebuild rotation list from active leaders">🔄 Refresh</button>
+                                </div>
                                 <div id="rotationOrderList" class="rotation-order-list">
                                     <p class="loading-rotation">Loading rotation order...</p>
                                 </div>
@@ -2119,6 +2122,7 @@ class DailyRankingsApp {
                                 <small class="form-help">
                                     The train conductor rotates daily based on this order. 
                                     Drag leaders to reorder them, use the buttons to move them up/down, or click the ❌ button to remove them from rotation.
+                                    Use the Refresh button to rebuild the list from current active leaders.
                                 </small>
                             </div>
                         </div>
@@ -4950,6 +4954,21 @@ class DailyRankingsApp {
                 }
             }
         });
+
+        // Handle refresh rotation button
+        const refreshRotationBtn = document.getElementById('refreshRotationBtn');
+        if (refreshRotationBtn) {
+            refreshRotationBtn.addEventListener('click', async () => {
+                try {
+                    this.uiManager.showInfo('Rebuilding train conductor rotation from active leaders...');
+                    await this.refreshTrainConductorRotation();
+                    this.uiManager.showSuccess('Train conductor rotation refreshed successfully!');
+                } catch (error) {
+                    console.error('Error refreshing rotation:', error);
+                    this.uiManager.showError(`Error refreshing rotation: ${error.message}`);
+                }
+            });
+        }
     }
 
     setupDragAndDrop() {
@@ -5154,6 +5173,40 @@ class DailyRankingsApp {
             this.uiManager.showSuccess('Train conductor rotation updated successfully!');
         } catch (error) {
             this.uiManager.showError(`Error updating rotation: ${error.message}`);
+        }
+    }
+
+    async refreshTrainConductorRotation() {
+        try {
+            console.log('Refreshing train conductor rotation from active leaders...');
+            
+            // Get all active alliance leaders
+            const activeLeaders = this.leaderVIPManager.allianceLeaders.filter(leader => leader.is_active);
+            console.log('Active leaders found:', activeLeaders.map(l => l.player_name));
+            
+            if (activeLeaders.length === 0) {
+                throw new Error('No active alliance leaders found. Add some leaders first.');
+            }
+            
+            // Create new rotation list based on active leaders
+            const newRotation = activeLeaders.map((leader, index) => ({
+                player_name: leader.player_name,
+                rotation_order: index + 1,
+                is_active: true
+            }));
+            
+            console.log('New rotation list:', newRotation);
+            
+            // Update the rotation in the manager
+            await this.leaderVIPManager.updateTrainConductorRotation(newRotation);
+            
+            // Refresh the display
+            this.updateRotationOrderList();
+            
+            console.log('Train conductor rotation refreshed successfully');
+        } catch (error) {
+            console.error('Error refreshing train conductor rotation:', error);
+            throw error;
         }
     }
 
