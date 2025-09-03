@@ -3243,7 +3243,7 @@ header h1 {
     border-radius: 0 0 6px 6px;
     max-height: 200px;
     overflow-y: auto;
-    z-index: 1000;
+    z-index: 9999;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     display: none;
     -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
@@ -3251,6 +3251,11 @@ header h1 {
 
 .autocomplete-dropdown.show {
     display: block;
+}
+
+/* Ensure form groups with autocomplete are positioned relatively */
+.form-group {
+    position: relative;
 }
 
 .autocomplete-item {

@@ -179,6 +179,13 @@ export class AutocompleteService {
             });
             dropdownElement.innerHTML = html;
         }
+        
+        // Make sure the dropdown is visible
+        dropdownElement.classList.add('show');
+        console.log('Dropdown classes after show:', dropdownElement.className);
+        console.log('Dropdown computed style display:', window.getComputedStyle(dropdownElement).display);
+        console.log('Dropdown computed style position:', window.getComputedStyle(dropdownElement).position);
+        console.log('Dropdown computed style z-index:', window.getComputedStyle(dropdownElement).zIndex);
 
         // Add click handlers to items
         dropdownElement.querySelectorAll('.autocomplete-item').forEach(item => {
