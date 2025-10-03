@@ -155,11 +155,12 @@ export class LeaderVIPManager {
             }
 
             // Sync VIP selections
-            const vipDates = Object.keys(this.vipSelections);
-            if (vipDates.length > 0) {
-                console.log(`Syncing ${vipDates.length} VIP selections...`);
-                for (const date of vipDates) {
-                    const vip = this.vipSelections[date];
+            const vipKeys = Object.keys(this.vipSelections);
+            if (vipKeys.length > 0) {
+                console.log(`Syncing ${vipKeys.length} VIP selections...`);
+                for (const key of vipKeys) {
+                    const vip = this.vipSelections[key];
+                    console.log(`Syncing VIP selection: ${key}`, vip);
                     const { error } = await supabase
                         .from('vip_selections')
                         .upsert({
@@ -171,7 +172,9 @@ export class LeaderVIPManager {
                         }, { onConflict: 'date,train_time' });
                     
                     if (error) {
-                        console.error(`Error syncing VIP for ${date}:`, error);
+                        console.error(`Error syncing VIP for ${key}:`, error);
+                    } else {
+                        console.log(`Successfully synced VIP selection: ${key}`);
                     }
                 }
             }
@@ -268,7 +271,8 @@ export class LeaderVIPManager {
             }
 
             // Save VIP selections
-            for (const [date, vipData] of Object.entries(this.vipSelections)) {
+            for (const [key, vipData] of Object.entries(this.vipSelections)) {
+                console.log(`Saving VIP selection: ${key}`, vipData);
                 const { error } = await supabase
                     .from('vip_selections')
                     .upsert({
@@ -281,6 +285,8 @@ export class LeaderVIPManager {
                 
                 if (error) {
                     console.error('Error saving VIP selection:', error);
+                } else {
+                    console.log(`Successfully saved VIP selection: ${key}`);
                 }
             }
 

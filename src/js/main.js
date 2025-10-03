@@ -99,7 +99,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.93 loaded successfully!');
+        console.log('🚀 LWRank v1.1.94 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -478,7 +478,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.93';
+                versionElement.textContent = 'v1.1.94';
             }
         }
 
@@ -2714,9 +2714,15 @@ class DailyRankingsApp {
         // Bulk entry buttons
         const checkMissingDatesBtn = document.getElementById('checkMissingDatesBtn');
         if (checkMissingDatesBtn) {
-            checkMissingDatesBtn.addEventListener('click', () => {
+            console.log('Setting up checkMissingDatesBtn event listener');
+            checkMissingDatesBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Check Missing Dates button clicked');
                 this.checkMissingDates();
             });
+        } else {
+            console.error('checkMissingDatesBtn not found');
         }
 
         const bulkEntryBtn = document.getElementById('bulkEntryBtn');
@@ -5690,17 +5696,29 @@ class DailyRankingsApp {
 
     // Bulk entry functionality for missing train dates
     async checkMissingDates() {
+        console.log('checkMissingDates method called');
         const missingDates = this.leaderVIPManager.getMissingDates();
+        console.log('Missing dates found:', missingDates);
+        
         const missingDatesList = document.getElementById('missingDatesList');
         const missingDatesContainer = document.getElementById('missingDatesContainer');
         const checkMissingDatesBtn = document.getElementById('checkMissingDatesBtn');
         const bulkEntryBtn = document.getElementById('bulkEntryBtn');
         
+        console.log('UI elements found:', {
+            missingDatesList: !!missingDatesList,
+            missingDatesContainer: !!missingDatesContainer,
+            checkMissingDatesBtn: !!checkMissingDatesBtn,
+            bulkEntryBtn: !!bulkEntryBtn
+        });
+        
         if (missingDates.length === 0) {
+            console.log('No missing dates found');
             this.uiManager.showInfo('No missing dates found! All train dates are up to date.');
             return;
         }
         
+        console.log(`Found ${missingDates.length} missing train dates`);
         this.uiManager.showInfo(`Found ${missingDates.length} missing train dates. Click "Bulk Entry Mode" to fill them in.`);
         
         // Show the bulk entry button
