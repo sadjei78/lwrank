@@ -99,7 +99,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.89 loaded successfully!');
+        console.log('🚀 LWRank v1.1.90 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -478,7 +478,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.89';
+                versionElement.textContent = 'v1.1.90';
             }
         }
 
@@ -2179,6 +2179,9 @@ class DailyRankingsApp {
                             <small class="form-help">Manual conductor selection (replaces automatic rotation)</small>
                         </div>
                         <div class="form-group">
+                            <button type="button" id="swapVIPConductorBtn" class="swap-btn" title="Swap VIP and Conductor">🔄 Swap VIP ↔ Conductor</button>
+                        </div>
+                        <div class="form-group">
                             <label for="vipTrainTime">Train Time:</label>
                             <select id="vipTrainTime" class="form-input">
                                 <option value="04:00:00">4:00 AM</option>
@@ -2731,6 +2734,14 @@ class DailyRankingsApp {
         if (cancelBulkEntryBtn) {
             cancelBulkEntryBtn.addEventListener('click', () => {
                 this.cancelBulkEntry();
+            });
+        }
+
+        // Swap VIP and Conductor button
+        const swapVIPConductorBtn = document.getElementById('swapVIPConductorBtn');
+        if (swapVIPConductorBtn) {
+            swapVIPConductorBtn.addEventListener('click', () => {
+                this.swapVIPConductor();
             });
         }
         
@@ -4629,8 +4640,14 @@ class DailyRankingsApp {
                 <div class="vip-entry">
                     <div class="vip-date">${date}</div>
                     <div class="vip-details">
-                        <div class="vip-player">${this.escapeHTML(vip.vip_player)}</div>
-                        <div class="vip-conductor">Conductor: ${this.escapeHTML(vip.train_conductor)}</div>
+                        <div class="vip-player">
+                            <span class="vip-label">VIP:</span>
+                            <span class="vip-name">${this.escapeHTML(vip.vip_player)}</span>
+                        </div>
+                        <div class="vip-conductor">
+                            <span class="conductor-label">Conductor:</span>
+                            <span class="conductor-name">${this.escapeHTML(vip.train_conductor)}</span>
+                        </div>
                         ${vip.notes ? `<div class="vip-notes">${this.escapeHTML(vip.notes)}</div>` : ''}
                     </div>
                     <div class="vip-actions">
@@ -5801,6 +5818,37 @@ class DailyRankingsApp {
         }
         
         this.missingDates = null;
+    }
+
+    swapVIPConductor() {
+        const vipPlayerInput = document.getElementById('vipPlayer');
+        const conductorInput = document.getElementById('vipConductor');
+        
+        if (!vipPlayerInput || !conductorInput) {
+            console.error('VIP or Conductor input elements not found');
+            return;
+        }
+        
+        // Get current values
+        const vipValue = vipPlayerInput.value.trim();
+        const conductorValue = conductorInput.value.trim();
+        
+        // Swap the values
+        vipPlayerInput.value = conductorValue;
+        conductorInput.value = vipValue;
+        
+        // Update frequency displays for both fields
+        if (conductorValue) {
+            this.updateVIPFrequencyDisplay('vipPlayer', conductorValue);
+        }
+        if (vipValue) {
+            this.updateVIPFrequencyDisplay('vipConductor', vipValue);
+        }
+        
+        // Show success message
+        this.uiManager.showSuccess('VIP and Conductor swapped successfully!');
+        
+        console.log(`Swapped VIP: "${vipValue}" ↔ Conductor: "${conductorValue}"`);
     }
 
     setupVIPEditListeners() {

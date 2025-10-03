@@ -3438,6 +3438,51 @@ header h1 {
     text-align: right;
 }
 
+/* Swap Button Styles */
+.swap-btn {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.swap-btn:hover {
+    background: #5a6268;
+}
+
+/* VIP Display Styling - Match Screenshot */
+.vip-player {
+    margin-bottom: 8px;
+}
+
+.vip-conductor {
+    margin-bottom: 8px;
+}
+
+.vip-label,
+.conductor-label {
+    font-weight: 600;
+    color: #495057;
+    margin-right: 8px;
+}
+
+.vip-name,
+.conductor-name {
+    font-weight: 500;
+    color: #212529;
+}
+
+/* Ensure VIP and Conductor names are same size */
+.vip-name,
+.conductor-name {
+    font-size: 16px;
+    line-height: 1.4;
+}
+
 .autocomplete-item {
     padding: 10px 12px;
     cursor: pointer;
