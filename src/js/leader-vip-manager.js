@@ -141,7 +141,10 @@ export class LeaderVIPManager {
                         .upsert({
                             player_name: rotation.player_name,
                             rotation_order: rotation.rotation_order,
-                            is_active: rotation.is_active || true
+                            is_active: rotation.is_active || true,
+                            conductor_name: rotation.conductor_name || null,
+                            train_date: rotation.train_date || null,
+                            train_time: rotation.train_time || '04:00:00'
                         }, { onConflict: 'rotation_order' });
                     
                     if (error) {
@@ -162,7 +165,8 @@ export class LeaderVIPManager {
                             date: vip.date,
                             train_conductor: vip.train_conductor,
                             vip_player: vip.vip_player,
-                            notes: vip.notes || ''
+                            notes: vip.notes || '',
+                            train_time: vip.train_time || '04:00:00'
                         }, { onConflict: 'date' });
                     
                     if (error) {
@@ -248,8 +252,11 @@ export class LeaderVIPManager {
                         .upsert({
                             player_name: rotation.player_name,
                             rotation_order: rotation.rotation_order,
-                            is_active: rotation.is_active || true
-                        }, { onConflict: 'player_name' });
+                            is_active: rotation.is_active || true,
+                            conductor_name: rotation.conductor_name || null,
+                            train_date: rotation.train_date || null,
+                            train_time: rotation.train_time || '04:00:00'
+                        }, { onConflict: 'rotation_order' });
                     
                     if (error) {
                         console.error(`Error saving rotation for ${rotation.player_name}:`, error);
