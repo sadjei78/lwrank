@@ -270,7 +270,13 @@ export class LeaderVIPManager {
             for (const [date, vipData] of Object.entries(this.vipSelections)) {
                 const { error } = await supabase
                     .from('vip_selections')
-                    .upsert(vipData, { onConflict: 'date' });
+                    .upsert({
+                        date: vipData.date,
+                        train_conductor: vipData.train_conductor,
+                        vip_player: vipData.vip_player,
+                        notes: vipData.notes || '',
+                        train_time: vipData.train_time || '04:00:00'
+                    }, { onConflict: 'date' });
                 
                 if (error) {
                     console.error('Error saving VIP selection:', error);

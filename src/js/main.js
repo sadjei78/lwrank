@@ -99,7 +99,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.87 loaded successfully!');
+        console.log('🚀 LWRank v1.1.88 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -478,7 +478,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.87';
+                versionElement.textContent = 'v1.1.88';
             }
         }
 
@@ -4634,7 +4634,7 @@ class DailyRankingsApp {
                         ${vip.notes ? `<div class="vip-notes">${this.escapeHTML(vip.notes)}</div>` : ''}
                     </div>
                     <div class="vip-actions">
-                        <button class="edit-vip-btn" data-date="${vip.date}" data-vip="${vip.vip_player}" data-notes="${vip.notes || ''}" data-conductor="${vip.train_conductor}">✏️ Edit</button>
+                        <button class="edit-vip-btn" data-date="${vip.date}" data-vip="${vip.vip_player}" data-notes="${vip.notes || ''}" data-conductor="${vip.train_conductor}" data-train-time="${vip.train_time || '04:00:00'}">✏️ Edit</button>
                     </div>
                 </div>
                 `;
@@ -5670,7 +5670,7 @@ class DailyRankingsApp {
         if (missingDatesContainer) {
             missingDatesContainer.innerHTML = this.missingDates.map((date, index) => `
                 <div class="bulk-entry-item" data-index="${index}">
-                    <div class="bulk-date">${this.formatDateForDisplay(this.formatDateForStorage(date))}</div>
+                    <div class="bulk-date">${this.formatDateForDisplay(this.leaderVIPManager.formatDateForStorage(date))}</div>
                     <div class="bulk-fields">
                         <div class="bulk-field">
                             <label>VIP Player:</label>
@@ -5816,20 +5816,22 @@ class DailyRankingsApp {
     // Handler for edit VIP button clicks (bound to this instance)
     handleEditVIPClick = (event) => {
         const button = event.currentTarget;
-        this.openVIPEditModal(button.dataset.date, button.dataset.vip, button.dataset.notes, button.dataset.conductor);
+        this.openVIPEditModal(button.dataset.date, button.dataset.vip, button.dataset.notes, button.dataset.conductor, button.dataset.trainTime);
     }
 
-    openVIPEditModal(date, vipPlayer, notes, conductor) {
+    openVIPEditModal(date, vipPlayer, notes, conductor, trainTime = '04:00:00') {
         const modal = document.getElementById('vipEditModal');
         const editVipDate = document.getElementById('editVipDate');
         const editVipPlayer = document.getElementById('editVipPlayer');
         const editVipConductor = document.getElementById('editVipConductor');
+        const editVipTrainTime = document.getElementById('editVipTrainTime');
         const editVipNotes = document.getElementById('editVipNotes');
         
         // Populate the form
         editVipDate.value = date;
         editVipPlayer.value = vipPlayer;
         editVipConductor.value = conductor || '';
+        editVipTrainTime.value = trainTime || '04:00:00';
         editVipNotes.value = notes;
         
         // Show frequency info for current VIP player
@@ -5844,7 +5846,7 @@ class DailyRankingsApp {
                 (selectedName) => {
                     editVipPlayer.value = selectedName;
                 },
-                true // Exclude leaders from VIP selection
+                false // Don't exclude leaders anymore
             );
         }
         
@@ -5926,6 +5928,7 @@ class DailyRankingsApp {
         const date = document.getElementById('editVipDate').value;
         const vipPlayer = document.getElementById('editVipPlayer').value;
         const conductor = document.getElementById('editVipConductor').value;
+        const trainTime = document.getElementById('editVipTrainTime').value;
         const notes = document.getElementById('editVipNotes').value;
         
         if (!vipPlayer.trim()) {
@@ -5941,7 +5944,7 @@ class DailyRankingsApp {
         try {
             // Update the VIP entry with manually selected conductor
             const vipDate = this.createLocalDate(date);
-            await this.leaderVIPManager.setVIPForDate(vipDate, conductor, vipPlayer, notes);
+            await this.leaderVIPManager.setVIPForDate(vipDate, conductor, vipPlayer, trainTime, notes);
             
             // Close modal and refresh lists
             document.getElementById('vipEditModal').classList.remove('show');
