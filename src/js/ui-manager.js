@@ -494,29 +494,25 @@ export class UIManager {
         
         try {
             console.log('createTrainConductorVIPDisplay: Processing date', date);
-            const conductor = this.leaderVIPManager.getCurrentTrainConductor(new Date(date));
             const trains = this.leaderVIPManager.getVIPForDate(new Date(date));
             
-            console.log('createTrainConductorVIPDisplay: Results', { conductor, trains });
+            console.log('createTrainConductorVIPDisplay: Results', { trains });
             
-            if (!conductor) {
-                console.log('createTrainConductorVIPDisplay: No conductor found for date', date);
+            if (!trains || trains.length === 0) {
+                console.log('createTrainConductorVIPDisplay: No trains found for date', date);
                 return '';
             }
             
             let html = '<div class="day-tab-conductor-info">';
-            html += `<div class="conductor-badge">🚂 <strong>Train Conductor:</strong> ${this.escapeHTML(conductor)}</div>`;
             
-            if (trains && trains.length > 0) {
-                // Display all trains for this date
-                trains.forEach((train, index) => {
-                    const timeDisplay = this.formatTrainTime(train.train_time);
-                    html += `<div class="vip-badge">⭐ <strong>VIP Rider (${timeDisplay}):</strong> ${this.escapeHTML(train.vip_player)}</div>`;
-                });
-            } else {
-                // Show VIP section as empty when no VIP is selected
-                html += `<div class="vip-badge empty">⭐ <strong>VIP Rider:</strong> <em>Not selected yet</em></div>`;
-            }
+            // Display each train with its conductor and VIP
+            trains.forEach((train, index) => {
+                const trainNumber = index + 1;
+                html += `<div class="train-entry">`;
+                html += `<div class="conductor-badge">🚂 <strong>Train ${trainNumber} Conductor:</strong> ${this.escapeHTML(train.train_conductor)}</div>`;
+                html += `<div class="vip-badge">⭐ <strong>Train ${trainNumber} VIP:</strong> ${this.escapeHTML(train.vip_player)}</div>`;
+                html += `</div>`;
+            });
             
             html += '</div>';
             console.log('createTrainConductorVIPDisplay: Generated HTML', html);

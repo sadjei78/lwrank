@@ -3494,6 +3494,28 @@ header h1 {
     letter-spacing: 0.5px;
 }
 
+/* Train entry styling for day tabs */
+.train-entry {
+    margin-bottom: 12px;
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    border-left: 3px solid #007bff;
+}
+
+.train-entry:last-child {
+    margin-bottom: 0;
+}
+
+.train-entry .conductor-badge,
+.train-entry .vip-badge {
+    margin-bottom: 4px;
+}
+
+.train-entry .vip-badge:last-child {
+    margin-bottom: 0;
+}
+
 .autocomplete-item {
     padding: 10px 12px;
     cursor: pointer;
