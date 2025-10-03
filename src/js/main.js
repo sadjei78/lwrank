@@ -99,7 +99,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.90 loaded successfully!');
+        console.log('🚀 LWRank v1.1.91 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -478,7 +478,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.90';
+                versionElement.textContent = 'v1.1.91';
             }
         }
 
@@ -2527,6 +2527,9 @@ class DailyRankingsApp {
                             <small class="form-help">Manual conductor selection (replaces automatic rotation)</small>
                         </div>
                         <div class="form-group">
+                            <button type="button" id="editSwapVIPConductorBtn" class="swap-btn" title="Swap VIP and Conductor">🔄 Swap VIP ↔ Conductor</button>
+                        </div>
+                        <div class="form-group">
                             <label for="editVipTrainTime">Train Time:</label>
                             <select id="editVipTrainTime" class="form-input">
                                 <option value="04:00:00">4:00 AM</option>
@@ -2742,6 +2745,14 @@ class DailyRankingsApp {
         if (swapVIPConductorBtn) {
             swapVIPConductorBtn.addEventListener('click', () => {
                 this.swapVIPConductor();
+            });
+        }
+
+        // Edit form swap VIP and Conductor button
+        const editSwapVIPConductorBtn = document.getElementById('editSwapVIPConductorBtn');
+        if (editSwapVIPConductorBtn) {
+            editSwapVIPConductorBtn.addEventListener('click', () => {
+                this.swapEditVIPConductor();
             });
         }
         
@@ -5849,6 +5860,37 @@ class DailyRankingsApp {
         this.uiManager.showSuccess('VIP and Conductor swapped successfully!');
         
         console.log(`Swapped VIP: "${vipValue}" ↔ Conductor: "${conductorValue}"`);
+    }
+
+    swapEditVIPConductor() {
+        const editVipPlayerInput = document.getElementById('editVipPlayer');
+        const editConductorInput = document.getElementById('editVipConductor');
+        
+        if (!editVipPlayerInput || !editConductorInput) {
+            console.error('Edit VIP or Conductor input elements not found');
+            return;
+        }
+        
+        // Get current values
+        const vipValue = editVipPlayerInput.value.trim();
+        const conductorValue = editConductorInput.value.trim();
+        
+        // Swap the values
+        editVipPlayerInput.value = conductorValue;
+        editConductorInput.value = vipValue;
+        
+        // Update frequency displays for both fields
+        if (conductorValue) {
+            this.updateVIPFrequencyDisplay('editVipPlayer', conductorValue);
+        }
+        if (vipValue) {
+            this.updateVIPFrequencyDisplay('editVipConductor', vipValue);
+        }
+        
+        // Show success message
+        this.uiManager.showSuccess('VIP and Conductor swapped successfully!');
+        
+        console.log(`Edit form - Swapped VIP: "${vipValue}" ↔ Conductor: "${conductorValue}"`);
     }
 
     setupVIPEditListeners() {

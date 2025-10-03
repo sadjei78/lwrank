@@ -167,7 +167,7 @@ export class LeaderVIPManager {
                             vip_player: vip.vip_player,
                             notes: vip.notes || '',
                             train_time: vip.train_time || '04:00:00'
-                        }, { onConflict: 'date' });
+                        }, { onConflict: 'date,train_time' });
                     
                     if (error) {
                         console.error(`Error syncing VIP for ${date}:`, error);
@@ -276,7 +276,7 @@ export class LeaderVIPManager {
                         vip_player: vipData.vip_player,
                         notes: vipData.notes || '',
                         train_time: vipData.train_time || '04:00:00'
-                    }, { onConflict: 'date' });
+                    }, { onConflict: 'date,train_time' });
                 
                 if (error) {
                     console.error('Error saving VIP selection:', error);
