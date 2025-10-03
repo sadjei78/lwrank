@@ -99,7 +99,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.91 loaded successfully!');
+        console.log('🚀 LWRank v1.1.92 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -478,7 +478,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.91';
+                versionElement.textContent = 'v1.1.92';
             }
         }
 
@@ -4630,6 +4630,18 @@ class DailyRankingsApp {
         });
     }
 
+    formatTrainTime(trainTime) {
+        if (!trainTime) return '4:00 AM';
+        
+        const timeMap = {
+            '04:00:00': '4:00 AM',
+            '12:00:00': '12:00 PM',
+            '20:00:00': '8:00 PM'
+        };
+        
+        return timeMap[trainTime] || trainTime;
+    }
+
     updateRecentVIPsList() {
         const recentVIPsContainer = document.getElementById('recentVIPsList');
         if (!recentVIPsContainer) {
@@ -4637,35 +4649,61 @@ class DailyRankingsApp {
             return;
         }
         
-        const recentVIPs = this.leaderVIPManager.getRecentVIPs(10);
+        // Get all VIP selections and sort by date (most recent first)
+        const allVIPs = Object.values(this.leaderVIPManager.vipSelections);
+        allVIPs.sort((a, b) => {
+            const dateA = new Date(a.date);
+            const dateB = new Date(b.date);
+            return dateB - dateA; // Most recent first
+        });
         
-        if (recentVIPs.length === 0) {
+        // Group by date to handle multiple trains per day
+        const groupedVIPs = {};
+        allVIPs.forEach(vip => {
+            if (!groupedVIPs[vip.date]) {
+                groupedVIPs[vip.date] = [];
+            }
+            groupedVIPs[vip.date].push(vip);
+        });
+        
+        // Get the 10 most recent dates
+        const recentDates = Object.keys(groupedVIPs).slice(0, 10);
+        
+        if (recentDates.length === 0) {
             recentVIPsContainer.innerHTML = '<p class="no-vips">No VIP selections found</p>';
             return;
         }
         
         let html = '';
-        recentVIPs.forEach(vip => {
-            const date = this.formatDateForDisplay(vip.date);
-            html += `
-                <div class="vip-entry">
-                    <div class="vip-date">${date}</div>
-                    <div class="vip-details">
-                        <div class="vip-player">
-                            <span class="vip-label">VIP:</span>
-                            <span class="vip-name">${this.escapeHTML(vip.vip_player)}</span>
+        recentDates.forEach(date => {
+            const trains = groupedVIPs[date];
+            const displayDate = this.formatDateForDisplay(date);
+            
+            trains.forEach((vip, index) => {
+                const timeDisplay = this.formatTrainTime(vip.train_time);
+                const isFirstTrain = index === 0;
+                
+                html += `
+                    <div class="vip-entry">
+                        ${isFirstTrain ? `<div class="vip-date">${displayDate}</div>` : ''}
+                        <div class="vip-details">
+                            <div class="vip-train-time">🚂 ${timeDisplay}</div>
+                            <div class="vip-player">
+                                <span class="vip-label">VIP:</span>
+                                <span class="vip-name">${this.escapeHTML(vip.vip_player)}</span>
+                            </div>
+                            <div class="vip-conductor">
+                                <span class="conductor-label">Conductor:</span>
+                                <span class="conductor-name">${this.escapeHTML(vip.train_conductor)}</span>
+                            </div>
+                            ${vip.notes ? `<div class="vip-notes">${this.escapeHTML(vip.notes)}</div>` : ''}
                         </div>
-                        <div class="vip-conductor">
-                            <span class="conductor-label">Conductor:</span>
-                            <span class="conductor-name">${this.escapeHTML(vip.train_conductor)}</span>
+                        <div class="vip-actions">
+                            <button class="edit-vip-btn" data-date="${vip.date}" data-vip="${vip.vip_player}" data-notes="${vip.notes || ''}" data-conductor="${vip.train_conductor}" data-train-time="${vip.train_time || '04:00:00'}">✏️ Edit</button>
                         </div>
-                        ${vip.notes ? `<div class="vip-notes">${this.escapeHTML(vip.notes)}</div>` : ''}
                     </div>
-                    <div class="vip-actions">
-                        <button class="edit-vip-btn" data-date="${vip.date}" data-vip="${vip.vip_player}" data-notes="${vip.notes || ''}" data-conductor="${vip.train_conductor}" data-train-time="${vip.train_time || '04:00:00'}">✏️ Edit</button>
-                    </div>
-                </div>
-                `;
+                    `;
+            });
         });
         
         recentVIPsContainer.innerHTML = html;

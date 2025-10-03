@@ -81,9 +81,10 @@ export class LeaderVIPManager {
             this.allianceLeaders = leaders || [];
             this.trainConductorRotation = rotation || [];
             
-            // Convert VIP data to date-keyed object
+            // Convert VIP data to date_time-keyed object for multiple trains per day
             (vipData || []).forEach(vip => {
-                this.vipSelections[vip.date] = vip;
+                const key = `${vip.date}_${vip.train_time || '04:00:00'}`;
+                this.vipSelections[key] = vip;
             });
 
             console.log('Loaded leader system data:', {
@@ -358,10 +359,22 @@ export class LeaderVIPManager {
         }
     }
 
-    // Get VIP for a specific date
+    // Get VIP for a specific date (returns all trains for that date)
     getVIPForDate(date) {
         const dateString = date.toISOString().split('T')[0];
-        return this.vipSelections[dateString] || null;
+        const trains = [];
+        
+        // Find all trains for this date
+        for (const [key, vipData] of Object.entries(this.vipSelections)) {
+            if (vipData.date === dateString) {
+                trains.push(vipData);
+            }
+        }
+        
+        // Sort by train time
+        trains.sort((a, b) => a.train_time.localeCompare(b.train_time));
+        
+        return trains.length > 0 ? trains : null;
     }
 
     // Check if a player is an active alliance leader
@@ -406,17 +419,19 @@ export class LeaderVIPManager {
     async setVIPForDate(date, conductorName, vipPlayer, trainTime = '04:00:00', notes = '') {
         // Format date as YYYY-MM-DD in local timezone to avoid timezone shift
         const dateString = this.formatDateForStorage(date);
+        const timeString = trainTime || '04:00:00';
+        const key = `${dateString}_${timeString}`;
         
-        this.vipSelections[dateString] = {
+        this.vipSelections[key] = {
             date: dateString,
             train_conductor: conductorName,
             vip_player: vipPlayer,
-            train_time: trainTime,
+            train_time: timeString,
             notes: notes
         };
 
         await this.saveToDatabase();
-        return this.vipSelections[dateString];
+        return this.vipSelections[key];
     }
 
     // Helper function to format date for storage (local timezone)
@@ -463,7 +478,9 @@ export class LeaderVIPManager {
         
         while (currentDate <= today) {
             const dateString = this.formatDateForStorage(currentDate);
-            if (!this.vipSelections[dateString]) {
+            // Check if there are any trains for this date
+            const hasTrainsForDate = Object.values(this.vipSelections).some(vip => vip.date === dateString);
+            if (!hasTrainsForDate) {
                 missingDates.push(new Date(currentDate));
             }
             currentDate.setDate(currentDate.getDate() + 1);
@@ -618,12 +635,32 @@ export class LeaderVIPManager {
     }
 
     // Delete VIP for a specific date
-    async deleteVIPForDate(date) {
+    async deleteVIPForDate(date, trainTime = null) {
         const dateString = this.formatDateForStorage(date);
         
-        if (this.vipSelections[dateString]) {
-            delete this.vipSelections[dateString];
-            await this.saveToDatabase();
+        if (trainTime) {
+            // Delete specific train
+            const key = `${dateString}_${trainTime}`;
+            if (this.vipSelections[key]) {
+                delete this.vipSelections[key];
+                await this.saveToDatabase();
+            }
+        } else {
+            // Delete all trains for this date
+            const keysToDelete = [];
+            for (const [key, vipData] of Object.entries(this.vipSelections)) {
+                if (vipData.date === dateString) {
+                    keysToDelete.push(key);
+                }
+            }
+            
+            keysToDelete.forEach(key => {
+                delete this.vipSelections[key];
+            });
+            
+            if (keysToDelete.length > 0) {
+                await this.saveToDatabase();
+            }
         }
     }
 
@@ -701,14 +738,16 @@ export class LeaderVIPManager {
                 return;
             }
             
-            // Convert to the expected format
+            // Convert to the expected format with composite keys
             this.vipSelections = {};
             if (vipData) {
                 vipData.forEach(vip => {
-                    this.vipSelections[vip.date] = {
+                    const key = `${vip.date}_${vip.train_time || '04:00:00'}`;
+                    this.vipSelections[key] = {
                         vip_player: vip.vip_player,
                         train_conductor: vip.train_conductor,
                         date: vip.date,
+                        train_time: vip.train_time || '04:00:00',
                         notes: vip.notes
                     };
                 });

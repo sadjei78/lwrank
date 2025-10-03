@@ -469,6 +469,19 @@ export class UIManager {
         });
     }
 
+    // Helper method to format train time for display
+    formatTrainTime(trainTime) {
+        if (!trainTime) return '4:00 AM';
+        
+        const timeMap = {
+            '04:00:00': '4:00 AM',
+            '12:00:00': '12:00 PM',
+            '20:00:00': '8:00 PM'
+        };
+        
+        return timeMap[trainTime] || trainTime;
+    }
+
     // Create train conductor and VIP display for individual day tabs
     createTrainConductorVIPDisplay(date) {
         if (!this.leaderVIPManager || !date) {
@@ -482,9 +495,9 @@ export class UIManager {
         try {
             console.log('createTrainConductorVIPDisplay: Processing date', date);
             const conductor = this.leaderVIPManager.getCurrentTrainConductor(new Date(date));
-            const vip = this.leaderVIPManager.getVIPForDate(new Date(date));
+            const trains = this.leaderVIPManager.getVIPForDate(new Date(date));
             
-            console.log('createTrainConductorVIPDisplay: Results', { conductor, vip });
+            console.log('createTrainConductorVIPDisplay: Results', { conductor, trains });
             
             if (!conductor) {
                 console.log('createTrainConductorVIPDisplay: No conductor found for date', date);
@@ -494,8 +507,12 @@ export class UIManager {
             let html = '<div class="day-tab-conductor-info">';
             html += `<div class="conductor-badge">🚂 <strong>Train Conductor:</strong> ${this.escapeHTML(conductor)}</div>`;
             
-            if (vip) {
-                html += `<div class="vip-badge">⭐ <strong>VIP Rider:</strong> ${this.escapeHTML(vip.vip_player)}</div>`;
+            if (trains && trains.length > 0) {
+                // Display all trains for this date
+                trains.forEach((train, index) => {
+                    const timeDisplay = this.formatTrainTime(train.train_time);
+                    html += `<div class="vip-badge">⭐ <strong>VIP Rider (${timeDisplay}):</strong> ${this.escapeHTML(train.vip_player)}</div>`;
+                });
             } else {
                 // Show VIP section as empty when no VIP is selected
                 html += `<div class="vip-badge empty">⭐ <strong>VIP Rider:</strong> <em>Not selected yet</em></div>`;
