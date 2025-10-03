@@ -471,12 +471,20 @@ export class LeaderVIPManager {
 
     // Get missing dates between last entry and today (for bulk entry)
     getMissingDates() {
-        const vipDates = Object.keys(this.vipSelections);
-        if (vipDates.length === 0) return [];
+        const vipEntries = Object.values(this.vipSelections);
+        if (vipEntries.length === 0) return [];
         
-        const latestDateString = vipDates.sort((a, b) => b.localeCompare(a))[0];
+        // Get all unique dates from VIP entries
+        const uniqueDates = [...new Set(vipEntries.map(vip => vip.date))];
+        if (uniqueDates.length === 0) return [];
+        
+        // Find the latest date
+        const latestDateString = uniqueDates.sort((a, b) => b.localeCompare(a))[0];
         const latestDate = this.parseDateString(latestDateString);
         const today = new Date();
+        
+        console.log('getMissingDates: Latest date found:', latestDateString);
+        console.log('getMissingDates: Today:', today.toISOString().split('T')[0]);
         
         const missingDates = [];
         const currentDate = new Date(latestDate);
@@ -486,12 +494,15 @@ export class LeaderVIPManager {
             const dateString = this.formatDateForStorage(currentDate);
             // Check if there are any trains for this date
             const hasTrainsForDate = Object.values(this.vipSelections).some(vip => vip.date === dateString);
+            console.log(`getMissingDates: Checking ${dateString}, hasTrains: ${hasTrainsForDate}`);
             if (!hasTrainsForDate) {
                 missingDates.push(new Date(currentDate));
+                console.log(`getMissingDates: Added missing date: ${dateString}`);
             }
             currentDate.setDate(currentDate.getDate() + 1);
         }
         
+        console.log('getMissingDates: Final missing dates:', missingDates.map(d => d.toISOString().split('T')[0]));
         return missingDates;
     }
 
