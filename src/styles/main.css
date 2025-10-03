@@ -3258,6 +3258,186 @@ header h1 {
     position: relative;
 }
 
+/* Rotation Status Indicator */
+.rotation-status {
+    margin-bottom: 20px;
+    padding: 15px;
+    border-radius: 8px;
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+}
+
+.rotation-status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 500;
+}
+
+.rotation-status-indicator.paused {
+    color: #dc3545;
+    background: #f8d7da;
+    padding: 10px 15px;
+    border-radius: 6px;
+    border: 1px solid #f5c6cb;
+}
+
+.rotation-status-indicator.active {
+    color: #28a745;
+    background: #d4edda;
+    padding: 10px 15px;
+    border-radius: 6px;
+    border: 1px solid #c3e6cb;
+}
+
+.status-icon {
+    font-size: 18px;
+}
+
+.status-text {
+    font-weight: 600;
+}
+
+.status-details {
+    font-size: 14px;
+    opacity: 0.8;
+}
+
+/* Bulk Entry Styles */
+.bulk-entry-section {
+    margin-top: 30px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.bulk-entry-controls {
+    margin-bottom: 20px;
+}
+
+.bulk-btn {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-right: 10px;
+    font-size: 14px;
+}
+
+.bulk-btn:hover {
+    background: #5a6268;
+}
+
+.bulk-btn.primary {
+    background: #007bff;
+}
+
+.bulk-btn.primary:hover {
+    background: #0056b3;
+}
+
+.bulk-btn.secondary {
+    background: #6c757d;
+}
+
+.bulk-btn.secondary:hover {
+    background: #5a6268;
+}
+
+.missing-dates-list {
+    background: white;
+    border-radius: 6px;
+    padding: 20px;
+    border: 1px solid #dee2e6;
+}
+
+.missing-dates-header {
+    font-weight: 600;
+    margin-bottom: 15px;
+    color: #495057;
+}
+
+.missing-dates-container {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.bulk-entry-item {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 15px;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    background: #f8f9fa;
+}
+
+.bulk-date {
+    min-width: 120px;
+    font-weight: 600;
+    color: #495057;
+}
+
+.bulk-fields {
+    display: flex;
+    gap: 15px;
+    flex: 1;
+}
+
+.bulk-field {
+    flex: 1;
+    min-width: 150px;
+}
+
+.bulk-field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: #6c757d;
+    margin-bottom: 5px;
+}
+
+.bulk-field input,
+.bulk-field select {
+    width: 100%;
+    padding: 6px 10px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.bulk-field .autocomplete-container {
+    position: relative;
+}
+
+.bulk-field .autocomplete-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background: white;
+    border: 1px solid #ced4da;
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    max-height: 150px;
+    overflow-y: auto;
+    display: none;
+}
+
+.bulk-field .autocomplete-dropdown.show {
+    display: block;
+}
+
+.bulk-entry-actions {
+    margin-top: 20px;
+    text-align: right;
+}
+
 .autocomplete-item {
     padding: 10px 12px;
     cursor: pointer;

@@ -99,7 +99,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.85 loaded successfully!');
+        console.log('🚀 LWRank v1.1.86 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -478,7 +478,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.85';
+                versionElement.textContent = 'v1.1.86';
             }
         }
 
@@ -2113,6 +2113,13 @@ class DailyRankingsApp {
                         <span class="collapsible-icon">▼</span>
                     </div>
                     <div id="trainRotationContent" class="collapsible-content collapsed">
+                        <div class="rotation-status">
+                            <div id="rotationStatusIndicator" class="rotation-status-indicator">
+                                <span class="status-icon">⏸️</span>
+                                <span class="status-text">Rotation Paused</span>
+                                <span class="status-details">Leader due not selected</span>
+                            </div>
+                        </div>
                         <div class="rotation-form">
                             <div class="form-group">
                                 <div class="rotation-header">
@@ -2157,14 +2164,53 @@ class DailyRankingsApp {
                                 <span class="frequency-badge count-30-days"></span>
                                 <button type="button" id="refreshVIPFrequencyBtn" class="refresh-btn" title="Refresh VIP frequency info">🔄</button>
                             </div>
-
-                            <small class="form-help">Note: Alliance leaders are excluded from VIP selection</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="vipConductor">Train Conductor:</label>
+                            <div class="autocomplete-container">
+                                <input type="text" id="vipConductor" placeholder="Enter train conductor name" class="form-input">
+                                <div id="vipConductorAutocomplete" class="autocomplete-dropdown"></div>
+                            </div>
+                            <div id="conductorFrequencyInfo" class="vip-frequency-info" style="display: none;">
+                                <span class="frequency-badge days-ago"></span>
+                                <span class="frequency-badge count-30-days"></span>
+                                <button type="button" id="refreshConductorFrequencyBtn" class="refresh-btn" title="Refresh conductor frequency info">🔄</button>
+                            </div>
+                            <small class="form-help">Manual conductor selection (replaces automatic rotation)</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="vipTrainTime">Train Time:</label>
+                            <select id="vipTrainTime" class="form-input">
+                                <option value="04:00:00">4:00 AM</option>
+                                <option value="12:00:00">12:00 PM</option>
+                                <option value="20:00:00">8:00 PM</option>
+                            </select>
+                            <small class="form-help">Select train departure time</small>
                         </div>
                         <div class="form-group">
                             <label for="vipNotes">Notes (optional):</label>
                             <input type="text" id="vipNotes" placeholder="Any additional notes" class="form-input">
                         </div>
                         <button id="setVIPBtn" class="vip-btn">Set VIP</button>
+                    </div>
+                    
+                    <!-- Bulk Entry for Missing Dates -->
+                    <div class="bulk-entry-section">
+                        <h4>📅 Bulk Entry for Missing Dates</h4>
+                        <div class="bulk-entry-controls">
+                            <button id="checkMissingDatesBtn" class="bulk-btn">Check Missing Dates</button>
+                            <button id="bulkEntryBtn" class="bulk-btn" style="display: none;">Bulk Entry Mode</button>
+                        </div>
+                        <div id="missingDatesList" class="missing-dates-list" style="display: none;">
+                            <p class="missing-dates-header">Missing train dates detected:</p>
+                            <div id="missingDatesContainer" class="missing-dates-container">
+                                <!-- Missing dates will be populated here -->
+                            </div>
+                            <div class="bulk-entry-actions">
+                                <button id="saveBulkEntriesBtn" class="bulk-btn primary">Save All Entries</button>
+                                <button id="cancelBulkEntryBtn" class="bulk-btn secondary">Cancel</button>
+                            </div>
+                        </div>
                     </div>
                     
                     <div class="recent-vips">
@@ -2463,7 +2509,6 @@ class DailyRankingsApp {
                                 <span class="frequency-badge count-30-days"></span>
                                 <button type="button" id="refreshEditVIPFrequencyBtn" class="refresh-btn" title="Refresh VIP frequency info">🔄</button>
                             </div>
-                            <small class="form-help">Note: Alliance leaders are excluded from VIP selection</small>
                         </div>
                         <div class="form-group">
                             <label for="editVipConductor">Train Conductor:</label>
@@ -2471,7 +2516,21 @@ class DailyRankingsApp {
                                 <input type="text" id="editVipConductor" placeholder="Enter train conductor name" class="form-input" required>
                                 <div id="editVipConductorAutocomplete" class="autocomplete-dropdown"></div>
                             </div>
-                            <small class="form-help">Select the train conductor for this VIP selection</small>
+                            <div id="editConductorFrequencyInfo" class="vip-frequency-info" style="display: none;">
+                                <span class="frequency-badge days-ago"></span>
+                                <span class="frequency-badge count-30-days"></span>
+                                <button type="button" id="refreshEditConductorFrequencyBtn" class="refresh-btn" title="Refresh conductor frequency info">🔄</button>
+                            </div>
+                            <small class="form-help">Manual conductor selection (replaces automatic rotation)</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="editVipTrainTime">Train Time:</label>
+                            <select id="editVipTrainTime" class="form-input">
+                                <option value="04:00:00">4:00 AM</option>
+                                <option value="12:00:00">12:00 PM</option>
+                                <option value="20:00:00">8:00 PM</option>
+                            </select>
+                            <small class="form-help">Select train departure time</small>
                         </div>
                         <div class="form-group">
                             <label for="editVipNotes">Notes (optional):</label>
@@ -2645,6 +2704,35 @@ class DailyRankingsApp {
         } else {
             console.error('Add excused player button not found');
         }
+
+        // Bulk entry buttons
+        const checkMissingDatesBtn = document.getElementById('checkMissingDatesBtn');
+        if (checkMissingDatesBtn) {
+            checkMissingDatesBtn.addEventListener('click', () => {
+                this.checkMissingDates();
+            });
+        }
+
+        const bulkEntryBtn = document.getElementById('bulkEntryBtn');
+        if (bulkEntryBtn) {
+            bulkEntryBtn.addEventListener('click', () => {
+                this.enterBulkEntryMode();
+            });
+        }
+
+        const saveBulkEntriesBtn = document.getElementById('saveBulkEntriesBtn');
+        if (saveBulkEntriesBtn) {
+            saveBulkEntriesBtn.addEventListener('click', () => {
+                this.saveBulkEntries();
+            });
+        }
+
+        const cancelBulkEntryBtn = document.getElementById('cancelBulkEntryBtn');
+        if (cancelBulkEntryBtn) {
+            cancelBulkEntryBtn.addEventListener('click', () => {
+                this.cancelBulkEntry();
+            });
+        }
         
         // VIP frequency refresh buttons
         const refreshVIPFrequencyBtn = document.getElementById('refreshVIPFrequencyBtn');
@@ -2653,6 +2741,16 @@ class DailyRankingsApp {
                 const vipPlayerInput = document.getElementById('vipPlayer');
                 if (vipPlayerInput && vipPlayerInput.value.trim()) {
                     this.updateVIPFrequencyDisplay('vipPlayer', vipPlayerInput.value.trim());
+                }
+            });
+        }
+
+        const refreshConductorFrequencyBtn = document.getElementById('refreshConductorFrequencyBtn');
+        if (refreshConductorFrequencyBtn) {
+            refreshConductorFrequencyBtn.addEventListener('click', () => {
+                const conductorInput = document.getElementById('vipConductor');
+                if (conductorInput && conductorInput.value.trim()) {
+                    this.updateVIPFrequencyDisplay('vipConductor', conductorInput.value.trim());
                 }
             });
         }
@@ -3619,9 +3717,11 @@ class DailyRankingsApp {
     async setVIPForDate() {
         const vipDateInput = document.getElementById('vipDate');
         const vipPlayerInput = document.getElementById('vipPlayer');
+        const vipConductorInput = document.getElementById('vipConductor');
+        const vipTrainTimeInput = document.getElementById('vipTrainTime');
         const vipNotesInput = document.getElementById('vipNotes');
         
-        if (!vipDateInput || !vipPlayerInput || !vipNotesInput) {
+        if (!vipDateInput || !vipPlayerInput || !vipConductorInput || !vipTrainTimeInput || !vipNotesInput) {
             console.error('VIP form elements not found - admin content not loaded');
             this.uiManager.showError('Admin interface not ready. Please try again.');
             return;
@@ -3629,41 +3729,42 @@ class DailyRankingsApp {
         
         const date = vipDateInput.value;
         const vipPlayer = vipPlayerInput.value.trim();
+        const conductor = vipConductorInput.value.trim();
+        const trainTime = vipTrainTimeInput.value;
         const notes = vipNotesInput.value.trim();
         
-        if (!date || !vipPlayer) {
-            this.uiManager.showError('Please enter both date and VIP player name');
+        if (!date || !vipPlayer || !conductor) {
+            this.uiManager.showError('Please enter date, VIP player name, and conductor name');
             return;
         }
         
         try {
             // Create date in local timezone to avoid timezone shift
             const selectedDate = this.createLocalDate(date);
-            const trainConductor = this.leaderVIPManager.getCurrentTrainConductor(selectedDate);
             
-            if (!trainConductor) {
-                this.uiManager.showError('No train conductor available for the selected date');
-                return;
-            }
+            await this.leaderVIPManager.setVIPForDate(selectedDate, conductor, vipPlayer, trainTime, notes);
+            this.uiManager.showSuccess(`Successfully set "${vipPlayer}" as VIP with "${conductor}" as conductor for ${date} at ${trainTime}`);
             
-            await this.leaderVIPManager.setVIPForDate(selectedDate, trainConductor, vipPlayer, notes);
-            this.uiManager.showSuccess(`Successfully set "${vipPlayer}" as VIP for ${date}`);
-            
-            // Show frequency info for the newly set VIP before clearing
+            // Show frequency info for the newly set VIP and conductor before clearing
             this.updateVIPFrequencyDisplay('vipPlayer', vipPlayer);
+            this.updateVIPFrequencyDisplay('vipConductor', conductor);
             
             // Clear form
             vipDateInput.value = '';
             vipPlayerInput.value = '';
+            vipConductorInput.value = '';
+            vipTrainTimeInput.value = '04:00:00';
             vipNotesInput.value = '';
             
             // Hide frequency info after a short delay
             setTimeout(() => {
                 this.updateVIPFrequencyDisplay('vipPlayer', '');
+                this.updateVIPFrequencyDisplay('vipConductor', '');
             }, 3000);
             
-            // Update VIP display
+            // Update VIP display and rotation status
             this.updateRecentVIPsList();
+            this.updateRotationStatus();
             
             // Refresh current tab to show VIP badges
             if (this.currentTabDate) {
@@ -4349,7 +4450,15 @@ class DailyRankingsApp {
     async updateVIPFrequencyDisplay(inputId, playerName) {
         console.log(`updateVIPFrequencyDisplay called for ${inputId} with player: "${playerName}"`);
         
-        const frequencyInfoElement = document.getElementById(inputId === 'vipPlayer' ? 'vipFrequencyInfo' : 'editVipFrequencyInfo');
+        // Map input IDs to their corresponding frequency info elements
+        const frequencyElementMap = {
+            'vipPlayer': 'vipFrequencyInfo',
+            'editVipPlayer': 'editVipFrequencyInfo',
+            'vipConductor': 'conductorFrequencyInfo',
+            'editVipConductor': 'editConductorFrequencyInfo'
+        };
+        
+        const frequencyInfoElement = document.getElementById(frequencyElementMap[inputId]);
         if (!frequencyInfoElement) {
             console.error(`Frequency info element not found for ${inputId}`);
             return;
@@ -4369,7 +4478,7 @@ class DailyRankingsApp {
             return;
         }
         
-        console.log(`Getting VIP frequency info for: ${playerName}`);
+        console.log(`Getting VIP/Conductor frequency info for: ${playerName}`);
         
         // Refresh VIP data to ensure we have the latest information
         await this.leaderVIPManager.refreshVIPData();
@@ -4378,12 +4487,12 @@ class DailyRankingsApp {
         console.log('Frequency data:', frequencyData);
         
         if (frequencyData.lastSelectedDays === null) {
-            // Player has never been VIP
-            console.log(`Player ${playerName} has never been VIP`);
-            daysAgoBadge.textContent = 'Never VIP';
+            // Player has never been VIP or conductor
+            console.log(`Player ${playerName} has never been VIP or conductor`);
+            daysAgoBadge.textContent = 'Never VIP/Conductor';
             count30DaysBadge.textContent = '0 times (30d)';
         } else {
-            console.log(`Player ${playerName} was VIP ${frequencyData.lastSelectedDays} days ago, ${frequencyData.frequency30Days} times in 30d`);
+            console.log(`Player ${playerName} was VIP/Conductor ${frequencyData.lastSelectedDays} days ago, ${frequencyData.frequency30Days} times in 30d`);
             daysAgoBadge.textContent = `${frequencyData.lastSelectedDays} days ago`;
             count30DaysBadge.textContent = `${frequencyData.frequency30Days} times (30d)`;
         }
@@ -4985,6 +5094,34 @@ class DailyRankingsApp {
         
         // Setup drag and drop after rendering
         this.setupDragAndDrop();
+        
+        // Update rotation status
+        this.updateRotationStatus();
+    }
+
+    updateRotationStatus() {
+        const statusIndicator = document.getElementById('rotationStatusIndicator');
+        if (!statusIndicator) return;
+        
+        const today = new Date();
+        const leaderDue = this.leaderVIPManager.getNextLeaderDue();
+        const isPaused = this.leaderVIPManager.isRotationPaused(today);
+        
+        if (isPaused && leaderDue) {
+            statusIndicator.innerHTML = `
+                <span class="status-icon">⏸️</span>
+                <span class="status-text">Rotation Paused</span>
+                <span class="status-details">${leaderDue} is due but not selected</span>
+            `;
+            statusIndicator.className = 'rotation-status-indicator paused';
+        } else {
+            statusIndicator.innerHTML = `
+                <span class="status-icon">▶️</span>
+                <span class="status-text">Rotation Active</span>
+                <span class="status-details">Next leader: ${leaderDue || 'None'}</span>
+            `;
+            statusIndicator.className = 'rotation-status-indicator active';
+        }
     }
 
     setupRotationEventListeners() {
@@ -5386,7 +5523,7 @@ class DailyRankingsApp {
             console.warn('Leader autocomplete elements not found');
         }
         
-        // Setup autocomplete for VIP selection
+        // Setup autocomplete for VIP selection (now includes alliance leaders)
         const vipInput = document.getElementById('vipPlayer');
         const vipDropdown = document.getElementById('vipAutocomplete');
         if (vipInput && vipDropdown) {
@@ -5400,11 +5537,32 @@ class DailyRankingsApp {
                     // Update VIP frequency info
                     this.updateVIPFrequencyDisplay('vipPlayer', selectedName);
                 },
-                true, // Exclude leaders
-                true  // Exclude removed players
+                false, // Don't exclude leaders anymore
+                true   // Exclude removed players
             );
         } else {
             console.warn('VIP autocomplete elements not found');
+        }
+        
+        // Setup autocomplete for conductor selection
+        const conductorInput = document.getElementById('vipConductor');
+        const conductorDropdown = document.getElementById('vipConductorAutocomplete');
+        if (conductorInput && conductorDropdown) {
+            console.log('Setting up conductor autocomplete');
+            this.autocompleteService.setupAutocomplete(
+                conductorInput,
+                conductorDropdown,
+                (selectedName) => {
+                    conductorInput.value = selectedName;
+                    console.log('Conductor selected:', selectedName);
+                    // Update conductor frequency info
+                    this.updateVIPFrequencyDisplay('vipConductor', selectedName);
+                },
+                false, // Include all players for conductor selection
+                true   // Exclude removed players
+            );
+        } else {
+            console.warn('Conductor autocomplete elements not found');
         }
         
         // Setup autocomplete for old player name
@@ -5424,7 +5582,7 @@ class DailyRankingsApp {
             console.warn('Old player autocomplete elements not found');
         }
         
-        // Setup autocomplete for edit VIP player
+        // Setup autocomplete for edit VIP player (now includes alliance leaders)
         const editVipInput = document.getElementById('editVipPlayer');
         const editVipDropdown = document.getElementById('editVipAutocomplete');
         if (editVipInput && editVipDropdown) {
@@ -5438,7 +5596,7 @@ class DailyRankingsApp {
                     // Update VIP frequency info
                     this.updateVIPFrequencyDisplay('editVipPlayer', selectedName);
                 },
-                true // Exclude leaders
+                false // Don't exclude leaders anymore
             );
         } else {
             console.warn('Edit VIP autocomplete elements not found');
@@ -5462,6 +5620,187 @@ class DailyRankingsApp {
         }
         
         console.log('Autocomplete setup completed');
+    }
+
+    // Bulk entry functionality for missing train dates
+    async checkMissingDates() {
+        const missingDates = this.leaderVIPManager.getMissingDates();
+        const missingDatesList = document.getElementById('missingDatesList');
+        const missingDatesContainer = document.getElementById('missingDatesContainer');
+        const checkMissingDatesBtn = document.getElementById('checkMissingDatesBtn');
+        const bulkEntryBtn = document.getElementById('bulkEntryBtn');
+        
+        if (missingDates.length === 0) {
+            this.uiManager.showInfo('No missing dates found! All train dates are up to date.');
+            return;
+        }
+        
+        this.uiManager.showInfo(`Found ${missingDates.length} missing train dates. Click "Bulk Entry Mode" to fill them in.`);
+        
+        // Show the bulk entry button
+        if (bulkEntryBtn) {
+            bulkEntryBtn.style.display = 'inline-block';
+        }
+        
+        // Store missing dates for bulk entry
+        this.missingDates = missingDates;
+    }
+
+    async enterBulkEntryMode() {
+        const missingDatesList = document.getElementById('missingDatesList');
+        const missingDatesContainer = document.getElementById('missingDatesContainer');
+        const bulkEntryBtn = document.getElementById('bulkEntryBtn');
+        
+        if (!this.missingDates || this.missingDates.length === 0) {
+            this.uiManager.showError('No missing dates to enter. Please check for missing dates first.');
+            return;
+        }
+        
+        // Show the bulk entry interface
+        if (missingDatesList) {
+            missingDatesList.style.display = 'block';
+        }
+        
+        // Hide the bulk entry button
+        if (bulkEntryBtn) {
+            bulkEntryBtn.style.display = 'none';
+        }
+        
+        // Generate bulk entry forms
+        if (missingDatesContainer) {
+            missingDatesContainer.innerHTML = this.missingDates.map((date, index) => `
+                <div class="bulk-entry-item" data-index="${index}">
+                    <div class="bulk-date">${this.formatDateForDisplay(this.formatDateForStorage(date))}</div>
+                    <div class="bulk-fields">
+                        <div class="bulk-field">
+                            <label>VIP Player:</label>
+                            <div class="autocomplete-container">
+                                <input type="text" class="bulk-vip-player" placeholder="Enter VIP player name" data-index="${index}">
+                                <div class="autocomplete-dropdown bulk-vip-autocomplete" data-index="${index}"></div>
+                            </div>
+                        </div>
+                        <div class="bulk-field">
+                            <label>Conductor:</label>
+                            <div class="autocomplete-container">
+                                <input type="text" class="bulk-conductor" placeholder="Enter conductor name" data-index="${index}">
+                                <div class="autocomplete-dropdown bulk-conductor-autocomplete" data-index="${index}"></div>
+                            </div>
+                        </div>
+                        <div class="bulk-field">
+                            <label>Time:</label>
+                            <select class="bulk-train-time" data-index="${index}">
+                                <option value="04:00:00">4:00 AM</option>
+                                <option value="12:00:00">12:00 PM</option>
+                                <option value="20:00:00">8:00 PM</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
+            // Setup autocomplete for bulk entry fields
+            this.setupBulkEntryAutocomplete();
+        }
+    }
+
+    setupBulkEntryAutocomplete() {
+        // Setup autocomplete for all bulk entry VIP fields
+        document.querySelectorAll('.bulk-vip-player').forEach(input => {
+            const index = input.getAttribute('data-index');
+            const dropdown = document.querySelector(`.bulk-vip-autocomplete[data-index="${index}"]`);
+            
+            if (dropdown) {
+                this.autocompleteService.setupAutocomplete(
+                    input,
+                    dropdown,
+                    (selectedName) => {
+                        input.value = selectedName;
+                    },
+                    false, // Don't exclude leaders
+                    true   // Exclude removed players
+                );
+            }
+        });
+        
+        // Setup autocomplete for all bulk entry conductor fields
+        document.querySelectorAll('.bulk-conductor').forEach(input => {
+            const index = input.getAttribute('data-index');
+            const dropdown = document.querySelector(`.bulk-conductor-autocomplete[data-index="${index}"]`);
+            
+            if (dropdown) {
+                this.autocompleteService.setupAutocomplete(
+                    input,
+                    dropdown,
+                    (selectedName) => {
+                        input.value = selectedName;
+                    },
+                    false, // Include all players
+                    true   // Exclude removed players
+                );
+            }
+        });
+    }
+
+    async saveBulkEntries() {
+        const bulkEntries = [];
+        
+        // Collect all bulk entry data
+        document.querySelectorAll('.bulk-entry-item').forEach(item => {
+            const index = item.getAttribute('data-index');
+            const date = this.missingDates[index];
+            const vipPlayer = item.querySelector('.bulk-vip-player').value.trim();
+            const conductor = item.querySelector('.bulk-conductor').value.trim();
+            const trainTime = item.querySelector('.bulk-train-time').value;
+            
+            if (vipPlayer && conductor) {
+                bulkEntries.push({
+                    date: date,
+                    vipPlayer: vipPlayer,
+                    conductor: conductor,
+                    trainTime: trainTime
+                });
+            }
+        });
+        
+        if (bulkEntries.length === 0) {
+            this.uiManager.showError('Please fill in at least one complete entry (VIP player and conductor).');
+            return;
+        }
+        
+        try {
+            // Save all bulk entries
+            for (const entry of bulkEntries) {
+                await this.leaderVIPManager.setVIPForDate(entry.date, entry.conductor, entry.vipPlayer, entry.trainTime, '');
+            }
+            
+            this.uiManager.showSuccess(`Successfully saved ${bulkEntries.length} train entries!`);
+            
+            // Clear bulk entry interface
+            this.cancelBulkEntry();
+            
+            // Update displays
+            this.updateRecentVIPsList();
+            this.updateRotationStatus();
+            
+        } catch (error) {
+            console.error('Error saving bulk entries:', error);
+            this.uiManager.showError(`Error saving bulk entries: ${error.message}`);
+        }
+    }
+
+    cancelBulkEntry() {
+        const missingDatesList = document.getElementById('missingDatesList');
+        const bulkEntryBtn = document.getElementById('bulkEntryBtn');
+        
+        if (missingDatesList) {
+            missingDatesList.style.display = 'none';
+        }
+        
+        if (bulkEntryBtn) {
+            bulkEntryBtn.style.display = 'inline-block';
+        }
+        
+        this.missingDates = null;
     }
 
     setupVIPEditListeners() {

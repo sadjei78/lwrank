@@ -283,7 +283,7 @@ export class LeaderVIPManager {
         }
     }
 
-    // Get current train conductor for a specific date
+    // Get current train conductor for a specific date (now returns the leader due for rotation)
     getCurrentTrainConductor(date) {
         // Filter to only active rotation entries
         const activeRotation = this.trainConductorRotation.filter(entry => entry.is_active);
@@ -296,6 +296,53 @@ export class LeaderVIPManager {
         const rotationIndex = daysDiff % activeRotation.length;
         
         return activeRotation[rotationIndex]?.player_name || null;
+    }
+
+    // Get the next leader due in rotation (for manual conductor selection)
+    getNextLeaderDue() {
+        const activeRotation = this.trainConductorRotation.filter(entry => entry.is_active);
+        if (activeRotation.length === 0) return null;
+        
+        // Find the leader with rotation_order = 1 (front of the line)
+        return activeRotation.find(entry => entry.rotation_order === 1)?.player_name || null;
+    }
+
+    // Check if rotation is paused (leader due is not selected as conductor or VIP)
+    isRotationPaused(date) {
+        const leaderDue = this.getNextLeaderDue();
+        if (!leaderDue) return false;
+        
+        const dateString = this.formatDateForStorage(date);
+        const vipForDate = this.vipSelections[dateString];
+        
+        // Check if the leader due is selected as conductor or VIP
+        if (vipForDate) {
+            return !(vipForDate.train_conductor.toLowerCase() === leaderDue.toLowerCase() ||
+                    vipForDate.vip_player.toLowerCase() === leaderDue.toLowerCase());
+        }
+        
+        return true; // No VIP entry for this date means rotation is paused
+    }
+
+    // Advance rotation (move current leader to back, next leader to front)
+    async advanceRotation() {
+        const activeRotation = this.trainConductorRotation.filter(entry => entry.is_active);
+        if (activeRotation.length === 0) return;
+        
+        // Move the first leader to the end
+        const firstLeader = activeRotation.find(entry => entry.rotation_order === 1);
+        if (firstLeader) {
+            firstLeader.rotation_order = activeRotation.length;
+            
+            // Move all other leaders up by one
+            activeRotation.forEach(entry => {
+                if (entry.rotation_order > 1) {
+                    entry.rotation_order -= 1;
+                }
+            });
+            
+            await this.saveToDatabase();
+        }
     }
 
     // Get VIP for a specific date
@@ -342,15 +389,16 @@ export class LeaderVIPManager {
         return weekEnd;
     }
 
-    // Set VIP for a specific date
-    async setVIPForDate(date, trainConductor, vipPlayer, notes = '') {
+    // Set VIP for a specific date with manual conductor selection
+    async setVIPForDate(date, conductorName, vipPlayer, trainTime = '04:00:00', notes = '') {
         // Format date as YYYY-MM-DD in local timezone to avoid timezone shift
         const dateString = this.formatDateForStorage(date);
         
         this.vipSelections[dateString] = {
             date: dateString,
-            train_conductor: trainConductor,
+            train_conductor: conductorName,
             vip_player: vipPlayer,
+            train_time: trainTime,
             notes: notes
         };
 
@@ -364,6 +412,51 @@ export class LeaderVIPManager {
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const day = String(date.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
+    }
+
+    // Get the next default date for train assignments (next calendar day from last entry)
+    getNextDefaultDate() {
+        const vipDates = Object.keys(this.vipSelections);
+        if (vipDates.length === 0) {
+            // No entries yet, use tomorrow
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            return tomorrow;
+        }
+        
+        // Find the latest date
+        const latestDateString = vipDates.sort((a, b) => b.localeCompare(a))[0];
+        const latestDate = this.parseDateString(latestDateString);
+        
+        // Add one day
+        const nextDate = new Date(latestDate);
+        nextDate.setDate(latestDate.getDate() + 1);
+        
+        return nextDate;
+    }
+
+    // Get missing dates between last entry and today (for bulk entry)
+    getMissingDates() {
+        const vipDates = Object.keys(this.vipSelections);
+        if (vipDates.length === 0) return [];
+        
+        const latestDateString = vipDates.sort((a, b) => b.localeCompare(a))[0];
+        const latestDate = this.parseDateString(latestDateString);
+        const today = new Date();
+        
+        const missingDates = [];
+        const currentDate = new Date(latestDate);
+        currentDate.setDate(currentDate.getDate() + 1); // Start from day after latest
+        
+        while (currentDate <= today) {
+            const dateString = this.formatDateForStorage(currentDate);
+            if (!this.vipSelections[dateString]) {
+                missingDates.push(new Date(currentDate));
+            }
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+        
+        return missingDates;
     }
 
     // Get recent VIP selections
@@ -521,7 +614,7 @@ export class LeaderVIPManager {
         }
     }
 
-    // Get VIP frequency information for a player
+    // Get VIP frequency information for a player (includes both VIP and conductor roles)
     getVIPFrequencyInfo(playerName) {
         
         // Get today's date in YYYY-MM-DD format to avoid timezone issues
@@ -536,19 +629,22 @@ export class LeaderVIPManager {
         let lastSelectedDays = null;
         let frequency30Days = 0;
         
-        // Get all VIP selections for this player
-        const playerVIPs = Object.values(this.vipSelections)
-            .filter(vip => vip.vip_player.toLowerCase() === playerName.toLowerCase())
+        // Get all VIP selections for this player (both as VIP and as conductor)
+        const playerRoles = Object.values(this.vipSelections)
+            .filter(vip => 
+                vip.vip_player.toLowerCase() === playerName.toLowerCase() ||
+                vip.train_conductor.toLowerCase() === playerName.toLowerCase()
+            )
             .sort((a, b) => this.compareDates(b.date, a.date));
         
-        if (playerVIPs.length > 0) {
+        if (playerRoles.length > 0) {
             // Calculate days since last selection using string comparison
-            const lastVIPDateString = playerVIPs[0].date;
-            const daysDiff = this.calculateDaysDifference(lastVIPDateString, todayString);
+            const lastRoleDateString = playerRoles[0].date;
+            const daysDiff = this.calculateDaysDifference(lastRoleDateString, todayString);
             lastSelectedDays = daysDiff;
             
             // Count selections in last 30 days using string comparison
-            frequency30Days = playerVIPs.filter(vip => {
+            frequency30Days = playerRoles.filter(vip => {
                 // Direct string comparison for dates (YYYY-MM-DD format)
                 return vip.date >= thirtyDaysAgoString;
             }).length;
