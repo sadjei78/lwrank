@@ -99,7 +99,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.98 loaded successfully!');
+        console.log('🚀 LWRank v1.1.99 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -478,7 +478,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.98';
+                versionElement.textContent = 'v1.1.99';
             }
         }
 
@@ -6017,6 +6017,8 @@ class DailyRankingsApp {
                     vip.train_conductor.toLowerCase() === playerName.toLowerCase()
                 ).length;
                 
+                const totalCount = vipCount + conductorCount;
+                
                 // Find most recent VIP and Conductor dates
                 const vipEntries = recentVIPs.filter(vip => 
                     vip.vip_player.toLowerCase() === playerName.toLowerCase()
@@ -6033,6 +6035,7 @@ class DailyRankingsApp {
                     name: playerName,
                     vipCount,
                     conductorCount,
+                    totalCount,
                     mostRecentVIP,
                     mostRecentConductor,
                     isAllianceLeader: allianceLeaders.includes(playerName.toLowerCase())
@@ -6127,11 +6130,15 @@ class DailyRankingsApp {
             
             console.log(`Found ${recentVIPs.length} VIP entries in last 30 days`);
             
-            // Get all unique players
+            // Get all unique players (excluding "n/a")
             const allPlayers = new Set();
             recentVIPs.forEach(vip => {
-                allPlayers.add(vip.vip_player);
-                allPlayers.add(vip.train_conductor);
+                if (vip.vip_player && vip.vip_player.toLowerCase() !== 'n/a') {
+                    allPlayers.add(vip.vip_player);
+                }
+                if (vip.train_conductor && vip.train_conductor.toLowerCase() !== 'n/a') {
+                    allPlayers.add(vip.train_conductor);
+                }
             });
             
             // Get alliance leaders for sorting
@@ -6149,6 +6156,8 @@ class DailyRankingsApp {
                     vip.train_conductor.toLowerCase() === playerName.toLowerCase()
                 ).length;
                 
+                const totalCount = vipCount + conductorCount;
+                
                 // Find most recent VIP and Conductor dates
                 const vipEntries = recentVIPs.filter(vip => 
                     vip.vip_player.toLowerCase() === playerName.toLowerCase()
@@ -6165,6 +6174,7 @@ class DailyRankingsApp {
                     name: playerName,
                     vipCount,
                     conductorCount,
+                    totalCount,
                     mostRecentVIP,
                     mostRecentConductor,
                     isAllianceLeader: allianceLeaders.includes(playerName.toLowerCase())
@@ -6190,6 +6200,7 @@ class DailyRankingsApp {
                     name: player.name,
                     vipCount: player.vipCount,
                     conductorCount: player.conductorCount,
+                    totalCount: player.totalCount,
                     mostRecentVIP: player.mostRecentVIP ? this.formatDateForDisplay(player.mostRecentVIP) : 'Never',
                     mostRecentConductor: player.mostRecentConductor ? this.formatDateForDisplay(player.mostRecentConductor) : 'Never',
                     isAllianceLeader: player.isAllianceLeader
@@ -6721,11 +6732,12 @@ class DailyRankingsApp {
             </div>
             <div class="frequency-report-grid">
                 <div class="frequency-grid-header">
-                    <div class="grid-cell player-name">Player Name</div>
-                    <div class="grid-cell vip-count">VIP Count</div>
-                    <div class="grid-cell conductor-count">Conductor Count</div>
-                    <div class="grid-cell recent-vip">Most Recent VIP</div>
-                    <div class="grid-cell recent-conductor">Most Recent Conductor</div>
+                    <div class="grid-cell player-name sortable" data-sort="name">Player Name ↕</div>
+                    <div class="grid-cell vip-count sortable" data-sort="vipCount">VIP Count ↕</div>
+                    <div class="grid-cell conductor-count sortable" data-sort="conductorCount">Conductor Count ↕</div>
+                    <div class="grid-cell total-count sortable" data-sort="totalCount">Total ↕</div>
+                    <div class="grid-cell recent-vip sortable" data-sort="mostRecentVIP">Most Recent VIP ↕</div>
+                    <div class="grid-cell recent-conductor sortable" data-sort="mostRecentConductor">Most Recent Conductor ↕</div>
                 </div>
         `;
         
@@ -6739,6 +6751,7 @@ class DailyRankingsApp {
                     </div>
                     <div class="grid-cell vip-count">${player.vipCount}</div>
                     <div class="grid-cell conductor-count">${player.conductorCount}</div>
+                    <div class="grid-cell total-count">${player.totalCount}</div>
                     <div class="grid-cell recent-vip">${player.mostRecentVIP}</div>
                     <div class="grid-cell recent-conductor">${player.mostRecentConductor}</div>
                 </div>
@@ -6747,6 +6760,90 @@ class DailyRankingsApp {
         
         html += '</div>';
         content.innerHTML = html;
+        
+        // Add sorting functionality
+        this.setupFrequencyReportSorting(data.players);
+    }
+    
+    setupFrequencyReportSorting(playersData) {
+        const sortableHeaders = document.querySelectorAll('.frequency-grid-header .sortable');
+        let currentSort = { column: null, direction: 'asc' };
+        
+        sortableHeaders.forEach(header => {
+            header.addEventListener('click', () => {
+                const sortColumn = header.dataset.sort;
+                const isCurrentColumn = currentSort.column === sortColumn;
+                
+                // Toggle direction if same column, otherwise default to asc
+                const newDirection = isCurrentColumn && currentSort.direction === 'asc' ? 'desc' : 'asc';
+                currentSort = { column: sortColumn, direction: newDirection };
+                
+                // Update header indicators
+                sortableHeaders.forEach(h => {
+                    h.innerHTML = h.innerHTML.replace(/↕|↑|↓/g, '↕');
+                });
+                header.innerHTML = header.innerHTML.replace('↕', newDirection === 'asc' ? '↑' : '↓');
+                
+                // Sort the data
+                const sortedPlayers = [...playersData].sort((a, b) => {
+                    let aVal = a[sortColumn];
+                    let bVal = b[sortColumn];
+                    
+                    // Handle different data types
+                    if (sortColumn === 'name') {
+                        aVal = aVal.toLowerCase();
+                        bVal = bVal.toLowerCase();
+                    } else if (sortColumn === 'mostRecentVIP' || sortColumn === 'mostRecentConductor') {
+                        // Handle date sorting (Never comes last)
+                        if (aVal === 'Never' && bVal === 'Never') return 0;
+                        if (aVal === 'Never') return 1;
+                        if (bVal === 'Never') return -1;
+                        aVal = new Date(aVal);
+                        bVal = new Date(bVal);
+                    } else {
+                        // Numeric sorting
+                        aVal = Number(aVal) || 0;
+                        bVal = Number(bVal) || 0;
+                    }
+                    
+                    if (aVal < bVal) return newDirection === 'asc' ? -1 : 1;
+                    if (aVal > bVal) return newDirection === 'asc' ? 1 : -1;
+                    return 0;
+                });
+                
+                // Re-render the grid with sorted data
+                this.renderSortedFrequencyGrid(sortedPlayers);
+            });
+        });
+    }
+    
+    renderSortedFrequencyGrid(sortedPlayers) {
+        const grid = document.querySelector('.frequency-report-grid');
+        if (!grid) return;
+        
+        // Keep the header
+        const header = grid.querySelector('.frequency-grid-header');
+        
+        // Generate new rows
+        let rowsHtml = '';
+        sortedPlayers.forEach(player => {
+            const leaderBadge = player.isAllianceLeader ? '<span class="leader-badge">👑</span>' : '';
+            
+            rowsHtml += `
+                <div class="frequency-grid-row ${player.isAllianceLeader ? 'alliance-leader' : ''}">
+                    <div class="grid-cell player-name">
+                        ${leaderBadge} ${this.escapeHTML(player.name)}
+                    </div>
+                    <div class="grid-cell vip-count">${player.vipCount}</div>
+                    <div class="grid-cell conductor-count">${player.conductorCount}</div>
+                    <div class="grid-cell total-count">${player.totalCount}</div>
+                    <div class="grid-cell recent-vip">${player.mostRecentVIP}</div>
+                    <div class="grid-cell recent-conductor">${player.mostRecentConductor}</div>
+                </div>
+            `;
+        });
+        
+        grid.innerHTML = header.outerHTML + rowsHtml;
     }
 
     displayReportError(message) {

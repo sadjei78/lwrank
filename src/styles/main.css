@@ -3593,16 +3593,28 @@ header h1 {
 
 .frequency-grid-header {
     display: grid;
-    grid-template-columns: 2fr 1fr 1fr 1.5fr 1.5fr;
+    grid-template-columns: 2fr 1fr 1fr 1fr 1.5fr 1.5fr;
     background: rgba(0, 123, 255, 0.2);
     font-weight: 600;
     color: #fff;
     border-bottom: 2px solid rgba(0, 123, 255, 0.3);
 }
 
+.frequency-grid-header .sortable {
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s;
+    padding: 8px;
+    border-radius: 4px;
+}
+
+.frequency-grid-header .sortable:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
 .frequency-grid-row {
     display: grid;
-    grid-template-columns: 2fr 1fr 1fr 1.5fr 1.5fr;
+    grid-template-columns: 2fr 1fr 1fr 1fr 1.5fr 1.5fr;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     transition: background-color 0.2s;
 }
