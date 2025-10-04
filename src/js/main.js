@@ -99,7 +99,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.97 loaded successfully!');
+        console.log('🚀 LWRank v1.1.98 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -478,7 +478,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.97';
+                versionElement.textContent = 'v1.1.98';
             }
         }
 
@@ -6113,6 +6113,97 @@ class DailyRankingsApp {
         console.log(`Frequency report generated for ${playerData.length} players`);
     }
 
+    async generateVIPConductorFrequencyReport() {
+        console.log('Generating VIP & Conductor frequency report for reports tab...');
+        
+        try {
+            // Get all VIP selections from the last 30 days
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            const thirtyDaysAgoString = thirtyDaysAgo.toISOString().split('T')[0];
+            
+            const allVIPs = Object.values(this.leaderVIPManager.vipSelections);
+            const recentVIPs = allVIPs.filter(vip => vip.date >= thirtyDaysAgoString);
+            
+            console.log(`Found ${recentVIPs.length} VIP entries in last 30 days`);
+            
+            // Get all unique players
+            const allPlayers = new Set();
+            recentVIPs.forEach(vip => {
+                allPlayers.add(vip.vip_player);
+                allPlayers.add(vip.train_conductor);
+            });
+            
+            // Get alliance leaders for sorting
+            const allianceLeaders = this.leaderVIPManager.allianceLeaders
+                .filter(leader => leader.is_active)
+                .map(leader => leader.player_name.toLowerCase());
+            
+            // Calculate frequency data for each player
+            const playerData = Array.from(allPlayers).map(playerName => {
+                const vipCount = recentVIPs.filter(vip => 
+                    vip.vip_player.toLowerCase() === playerName.toLowerCase()
+                ).length;
+                
+                const conductorCount = recentVIPs.filter(vip => 
+                    vip.train_conductor.toLowerCase() === playerName.toLowerCase()
+                ).length;
+                
+                // Find most recent VIP and Conductor dates
+                const vipEntries = recentVIPs.filter(vip => 
+                    vip.vip_player.toLowerCase() === playerName.toLowerCase()
+                ).sort((a, b) => b.date.localeCompare(a.date));
+                
+                const conductorEntries = recentVIPs.filter(vip => 
+                    vip.train_conductor.toLowerCase() === playerName.toLowerCase()
+                ).sort((a, b) => b.date.localeCompare(a.date));
+                
+                const mostRecentVIP = vipEntries.length > 0 ? vipEntries[0].date : null;
+                const mostRecentConductor = conductorEntries.length > 0 ? conductorEntries[0].date : null;
+                
+                return {
+                    name: playerName,
+                    vipCount,
+                    conductorCount,
+                    mostRecentVIP,
+                    mostRecentConductor,
+                    isAllianceLeader: allianceLeaders.includes(playerName.toLowerCase())
+                };
+            });
+            
+            // Sort: Alliance leaders first, then alphabetically
+            playerData.sort((a, b) => {
+                if (a.isAllianceLeader && !b.isAllianceLeader) return -1;
+                if (!a.isAllianceLeader && b.isAllianceLeader) return 1;
+                return a.name.localeCompare(b.name);
+            });
+            
+            // Format data for the reports system
+            const reportData = {
+                summary: {
+                    totalEntries: recentVIPs.length,
+                    allianceLeaders: playerData.filter(p => p.isAllianceLeader).length,
+                    regularPlayers: playerData.length - playerData.filter(p => p.isAllianceLeader).length,
+                    period: 'Last 30 Days'
+                },
+                players: playerData.map(player => ({
+                    name: player.name,
+                    vipCount: player.vipCount,
+                    conductorCount: player.conductorCount,
+                    mostRecentVIP: player.mostRecentVIP ? this.formatDateForDisplay(player.mostRecentVIP) : 'Never',
+                    mostRecentConductor: player.mostRecentConductor ? this.formatDateForDisplay(player.mostRecentConductor) : 'Never',
+                    isAllianceLeader: player.isAllianceLeader
+                }))
+            };
+            
+            return reportData;
+            
+        } catch (error) {
+            console.error('Error generating VIP & Conductor frequency report:', error);
+            throw error;
+        }
+    }
+
     setupVIPEditListeners() {
         const editButtons = document.querySelectorAll('.edit-vip-btn');
         editButtons.forEach(button => {
@@ -6344,6 +6435,10 @@ class DailyRankingsApp {
                     reportData = await this.generatePlayerPerformanceReport(playerName, dateRange);
                     reportTitle = `👤 ${playerName} - Performance Analysis`;
                     break;
+                case 'vip-conductor-frequency':
+                    reportData = await this.generateVIPConductorFrequencyReport();
+                    reportTitle = '🚂 VIP & Conductor Frequency Report';
+                    break;
                 default:
                     throw new Error('Unknown report type');
             }
@@ -6368,6 +6463,12 @@ class DailyRankingsApp {
     displayReport(title, data) {
         const content = document.getElementById('reportContent');
         if (!content) return;
+        
+        // Check if this is a VIP & Conductor frequency report
+        if (title.includes('VIP & Conductor Frequency Report') && data.summary && data.players) {
+            this.displayVIPConductorFrequencyReport(title, data);
+            return;
+        }
         
         // Check if this is a player performance report
         if (data.length > 0 && data[0].player && title.includes('Performance Analysis')) {
@@ -6600,6 +6701,51 @@ class DailyRankingsApp {
             </div>
         `;
         
+        content.innerHTML = html;
+    }
+
+    displayVIPConductorFrequencyReport(title, data) {
+        const content = document.getElementById('reportContent');
+        if (!content) return;
+        
+        let html = `
+            <div class="report-header">
+                <h3>${title}</h3>
+                <div class="report-meta">
+                    <span class="meta-item">📊 ${data.summary.totalEntries} total entries</span>
+                    <span class="meta-item">👑 ${data.summary.allianceLeaders} alliance leaders</span>
+                    <span class="meta-item">👤 ${data.summary.regularPlayers} regular players</span>
+                    <span class="meta-item">📅 ${data.summary.period}</span>
+                    <span class="meta-item">⏰ Generated: ${new Date().toLocaleString()}</span>
+                </div>
+            </div>
+            <div class="frequency-report-grid">
+                <div class="frequency-grid-header">
+                    <div class="grid-cell player-name">Player Name</div>
+                    <div class="grid-cell vip-count">VIP Count</div>
+                    <div class="grid-cell conductor-count">Conductor Count</div>
+                    <div class="grid-cell recent-vip">Most Recent VIP</div>
+                    <div class="grid-cell recent-conductor">Most Recent Conductor</div>
+                </div>
+        `;
+        
+        data.players.forEach(player => {
+            const leaderBadge = player.isAllianceLeader ? '<span class="leader-badge">👑</span>' : '';
+            
+            html += `
+                <div class="frequency-grid-row ${player.isAllianceLeader ? 'alliance-leader' : ''}">
+                    <div class="grid-cell player-name">
+                        ${leaderBadge} ${this.escapeHTML(player.name)}
+                    </div>
+                    <div class="grid-cell vip-count">${player.vipCount}</div>
+                    <div class="grid-cell conductor-count">${player.conductorCount}</div>
+                    <div class="grid-cell recent-vip">${player.mostRecentVIP}</div>
+                    <div class="grid-cell recent-conductor">${player.mostRecentConductor}</div>
+                </div>
+            `;
+        });
+        
+        html += '</div>';
         content.innerHTML = html;
     }
 
