@@ -99,7 +99,7 @@ class DailyRankingsApp {
         this.setupRotationDateUpdates();
         
         console.log('Daily Rankings Manager initialized');
-        console.log('🚀 LWRank v1.1.96 loaded successfully!');
+        console.log('🚀 LWRank v1.1.97 loaded successfully!');
         console.log('📝 VIP frequency real-time updates are now active');
         console.log('🔍 Check browser console for VIP frequency debugging');
     }
@@ -478,7 +478,7 @@ class DailyRankingsApp {
             updateVersionNumber() {
             const versionElement = document.getElementById('versionNumber');
             if (versionElement) {
-                versionElement.textContent = 'v1.1.96';
+                versionElement.textContent = 'v1.1.97';
             }
         }
 
@@ -2198,23 +2198,40 @@ class DailyRankingsApp {
                     </div>
                     
                     <!-- Bulk Entry for Missing Dates -->
-                    <div class="bulk-entry-section">
-                        <h4>📅 Bulk Entry for Missing Dates</h4>
-                        <div class="bulk-entry-controls">
-                            <button id="checkMissingDatesBtn" class="bulk-btn">Check Missing Dates</button>
-                            <button id="bulkEntryBtn" class="bulk-btn" style="display: none;">Bulk Entry Mode</button>
-                        </div>
-                        <div id="missingDatesList" class="missing-dates-list" style="display: none;">
-                            <p class="missing-dates-header">Missing train dates detected:</p>
-                            <div id="missingDatesContainer" class="missing-dates-container">
-                                <!-- Missing dates will be populated here -->
+                        <div class="bulk-entry-section">
+                            <h4>📅 Bulk Entry for Missing Dates</h4>
+                            <div class="bulk-entry-controls">
+                                <button id="checkMissingDatesBtn" class="bulk-btn">Check Missing Dates</button>
+                                <button id="bulkEntryBtn" class="bulk-btn" style="display: none;">Bulk Entry Mode</button>
                             </div>
-                            <div class="bulk-entry-actions">
-                                <button id="saveBulkEntriesBtn" class="bulk-btn primary">Save All Entries</button>
-                                <button id="cancelBulkEntryBtn" class="bulk-btn secondary">Cancel</button>
+                            <div id="missingDatesList" class="missing-dates-list" style="display: none;">
+                                <p class="missing-dates-header">Missing train dates detected:</p>
+                                <div id="missingDatesContainer" class="missing-dates-container">
+                                    <!-- Missing dates will be populated here -->
+                                </div>
+                                <div class="bulk-entry-actions">
+                                    <button id="saveBulkEntriesBtn" class="bulk-btn primary">Save All Entries</button>
+                                    <button id="cancelBulkEntryBtn" class="bulk-btn secondary">Cancel</button>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                        
+                        <div class="frequency-report-section">
+                            <h4>📊 VIP & Conductor Frequency Report</h4>
+                            <div class="report-controls">
+                                <button id="generateFrequencyReportBtn" class="report-btn">Generate Report</button>
+                                <button id="refreshFrequencyReportBtn" class="report-btn secondary" style="display: none;">Refresh Report</button>
+                            </div>
+                            <div id="frequencyReportContainer" class="frequency-report-container" style="display: none;">
+                                <div class="report-header">
+                                    <h5>VIP & Conductor Activity (Last 30 Days)</h5>
+                                    <div class="report-summary" id="reportSummary"></div>
+                                </div>
+                                <div class="frequency-report-grid" id="frequencyReportGrid">
+                                    <!-- Report data will be populated here -->
+                                </div>
+                            </div>
+                        </div>
                     
                     <div class="recent-vips">
                         <h4>Recent VIP Selections</h4>
@@ -2759,6 +2776,21 @@ class DailyRankingsApp {
         if (editSwapVIPConductorBtn) {
             editSwapVIPConductorBtn.addEventListener('click', () => {
                 this.swapEditVIPConductor();
+            });
+        }
+
+        // Frequency report buttons
+        const generateFrequencyReportBtn = document.getElementById('generateFrequencyReportBtn');
+        if (generateFrequencyReportBtn) {
+            generateFrequencyReportBtn.addEventListener('click', () => {
+                this.generateFrequencyReport();
+            });
+        }
+
+        const refreshFrequencyReportBtn = document.getElementById('refreshFrequencyReportBtn');
+        if (refreshFrequencyReportBtn) {
+            refreshFrequencyReportBtn.addEventListener('click', () => {
+                this.generateFrequencyReport();
             });
         }
         
@@ -5947,6 +5979,138 @@ class DailyRankingsApp {
         this.uiManager.showSuccess('VIP and Conductor swapped successfully!');
         
         console.log(`Edit form - Swapped VIP: "${vipValue}" ↔ Conductor: "${conductorValue}"`);
+    }
+
+    async generateFrequencyReport() {
+        console.log('Generating VIP & Conductor frequency report...');
+        
+        try {
+            // Get all VIP selections from the last 30 days
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            const thirtyDaysAgoString = thirtyDaysAgo.toISOString().split('T')[0];
+            
+            const allVIPs = Object.values(this.leaderVIPManager.vipSelections);
+            const recentVIPs = allVIPs.filter(vip => vip.date >= thirtyDaysAgoString);
+            
+            console.log(`Found ${recentVIPs.length} VIP entries in last 30 days`);
+            
+            // Get all unique players
+            const allPlayers = new Set();
+            recentVIPs.forEach(vip => {
+                allPlayers.add(vip.vip_player);
+                allPlayers.add(vip.train_conductor);
+            });
+            
+            // Get alliance leaders for sorting
+            const allianceLeaders = this.leaderVIPManager.allianceLeaders
+                .filter(leader => leader.is_active)
+                .map(leader => leader.player_name.toLowerCase());
+            
+            // Calculate frequency data for each player
+            const playerData = Array.from(allPlayers).map(playerName => {
+                const vipCount = recentVIPs.filter(vip => 
+                    vip.vip_player.toLowerCase() === playerName.toLowerCase()
+                ).length;
+                
+                const conductorCount = recentVIPs.filter(vip => 
+                    vip.train_conductor.toLowerCase() === playerName.toLowerCase()
+                ).length;
+                
+                // Find most recent VIP and Conductor dates
+                const vipEntries = recentVIPs.filter(vip => 
+                    vip.vip_player.toLowerCase() === playerName.toLowerCase()
+                ).sort((a, b) => b.date.localeCompare(a.date));
+                
+                const conductorEntries = recentVIPs.filter(vip => 
+                    vip.train_conductor.toLowerCase() === playerName.toLowerCase()
+                ).sort((a, b) => b.date.localeCompare(a.date));
+                
+                const mostRecentVIP = vipEntries.length > 0 ? vipEntries[0].date : null;
+                const mostRecentConductor = conductorEntries.length > 0 ? conductorEntries[0].date : null;
+                
+                return {
+                    name: playerName,
+                    vipCount,
+                    conductorCount,
+                    mostRecentVIP,
+                    mostRecentConductor,
+                    isAllianceLeader: allianceLeaders.includes(playerName.toLowerCase())
+                };
+            });
+            
+            // Sort: Alliance leaders first, then alphabetically
+            playerData.sort((a, b) => {
+                if (a.isAllianceLeader && !b.isAllianceLeader) return -1;
+                if (!a.isAllianceLeader && b.isAllianceLeader) return 1;
+                return a.name.localeCompare(b.name);
+            });
+            
+            // Display the report
+            this.displayFrequencyReport(playerData, recentVIPs.length);
+            
+        } catch (error) {
+            console.error('Error generating frequency report:', error);
+            this.uiManager.showError(`Error generating report: ${error.message}`);
+        }
+    }
+
+    displayFrequencyReport(playerData, totalEntries) {
+        const container = document.getElementById('frequencyReportContainer');
+        const grid = document.getElementById('frequencyReportGrid');
+        const summary = document.getElementById('reportSummary');
+        const refreshBtn = document.getElementById('refreshFrequencyReportBtn');
+        
+        if (!container || !grid || !summary || !refreshBtn) {
+            console.error('Frequency report UI elements not found');
+            return;
+        }
+        
+        // Show container and refresh button
+        container.style.display = 'block';
+        refreshBtn.style.display = 'inline-block';
+        
+        // Update summary
+        const allianceLeaders = playerData.filter(p => p.isAllianceLeader).length;
+        const regularPlayers = playerData.length - allianceLeaders;
+        summary.innerHTML = `
+            <span class="summary-item">📊 ${totalEntries} total entries</span>
+            <span class="summary-item">👑 ${allianceLeaders} alliance leaders</span>
+            <span class="summary-item">👤 ${regularPlayers} regular players</span>
+        `;
+        
+        // Generate grid HTML
+        let html = `
+            <div class="frequency-grid-header">
+                <div class="grid-cell player-name">Player Name</div>
+                <div class="grid-cell vip-count">VIP Count</div>
+                <div class="grid-cell conductor-count">Conductor Count</div>
+                <div class="grid-cell recent-vip">Most Recent VIP</div>
+                <div class="grid-cell recent-conductor">Most Recent Conductor</div>
+            </div>
+        `;
+        
+        playerData.forEach(player => {
+            const leaderBadge = player.isAllianceLeader ? '<span class="leader-badge">👑</span>' : '';
+            const vipDate = player.mostRecentVIP ? this.formatDateForDisplay(player.mostRecentVIP) : 'Never';
+            const conductorDate = player.mostRecentConductor ? this.formatDateForDisplay(player.mostRecentConductor) : 'Never';
+            
+            html += `
+                <div class="frequency-grid-row ${player.isAllianceLeader ? 'alliance-leader' : ''}">
+                    <div class="grid-cell player-name">
+                        ${leaderBadge} ${this.escapeHTML(player.name)}
+                    </div>
+                    <div class="grid-cell vip-count">${player.vipCount}</div>
+                    <div class="grid-cell conductor-count">${player.conductorCount}</div>
+                    <div class="grid-cell recent-vip">${vipDate}</div>
+                    <div class="grid-cell recent-conductor">${conductorDate}</div>
+                </div>
+            `;
+        });
+        
+        grid.innerHTML = html;
+        
+        console.log(`Frequency report generated for ${playerData.length} players`);
     }
 
     setupVIPEditListeners() {
