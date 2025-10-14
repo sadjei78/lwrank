@@ -5132,14 +5132,14 @@ class DailyRankingsApp {
     }
 
     initializeRankings() {
-        // Import and initialize the RankingsManager
-        import('./rankings-manager.js').then(({ RankingsManager }) => {
-            if (!window.rankingsManager) {
-                window.rankingsManager = new RankingsManager();
-                console.log('RankingsManager initialized successfully');
+        // Import and initialize the OCRRankingsManager
+        import('./rankings-manager.js').then(({ OCRRankingsManager }) => {
+            if (!window.ocrRankingsManager) {
+                window.ocrRankingsManager = new OCRRankingsManager();
+                console.log('OCRRankingsManager initialized successfully');
             }
         }).catch(error => {
-            console.error('Error loading rankings manager:', error);
+            console.error('Error loading OCR rankings manager:', error);
         });
     }
 

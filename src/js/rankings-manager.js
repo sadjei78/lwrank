@@ -6,7 +6,7 @@
 import { OCRService } from './ocr-service.js';
 import { supabase } from './supabase-client.js';
 
-export class RankingsManager {
+export class OCRRankingsManager {
     constructor() {
         this.ocrService = new OCRService();
         this.currentDate = new Date().toISOString().split('T')[0];
