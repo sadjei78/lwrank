@@ -58,7 +58,7 @@ export class OCRService {
      * @returns {Promise<Array>} Extracted ranking data
      */
     async extractRankingData(imageData) {
-        // For now, we'll simulate OCR extraction based on the provided data
+        // For now, we'll simulate OCR extraction
         // In a real implementation, you'd integrate with services like:
         // - Google Cloud Vision API
         // - AWS Textract
@@ -68,32 +68,11 @@ export class OCRService {
         return new Promise((resolve) => {
             // Simulate processing time
             setTimeout(() => {
-                // This would be replaced with actual OCR logic
-                // For now, return sample data structure
-                const sampleData = this.generateSampleData();
-                resolve(sampleData);
+                // Return empty array to indicate no data extracted
+                // This will prompt the user to manually enter data or try a different image
+                resolve([]);
             }, 1000);
         });
-    }
-
-    /**
-     * Generate sample data based on the provided raw data
-     * This simulates what OCR would extract
-     * @returns {Array} Sample ranking data
-     */
-    generateSampleData() {
-        return [
-            { ranking: 1, commander: "gnrbrdmn", points: "112,846,145" },
-            { ranking: 2, commander: "TDubs31", points: "84,347,912" },
-            { ranking: 3, commander: "sHåFt", points: "72,478,429" },
-            { ranking: 4, commander: "A P 2 3", points: "50,100,224" },
-            { ranking: 5, commander: "robson Cordeiro", points: "42,784,128" },
-            { ranking: 6, commander: "TheGambit1", points: "40,214,171" },
-            { ranking: 7, commander: "Longshanks II", points: "32,035,689" },
-            { ranking: 8, commander: "Chmkashmir1", points: "30,915,856" },
-            { ranking: 9, commander: "Cassiano Glb", points: "27,397,164" },
-            { ranking: 10, commander: "Major Benson Payne", points: "26,261,377" }
-        ];
     }
 
     /**

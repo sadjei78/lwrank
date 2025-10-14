@@ -77,6 +77,15 @@ export class RankingsManager {
         if (searchInput) {
             searchInput.addEventListener('input', (e) => this.filterPlayers(e.target.value));
         }
+
+        // Search button
+        const searchBtn = document.getElementById('searchPlayer');
+        if (searchBtn) {
+            searchBtn.addEventListener('click', () => {
+                const searchTerm = document.getElementById('playerSearch').value;
+                this.filterPlayers(searchTerm);
+            });
+        }
     }
 
     /**
@@ -193,6 +202,13 @@ export class RankingsManager {
             // Process image with OCR
             this.extractedData = await this.ocrService.processImage(file);
             
+            // Check if any data was extracted
+            if (!this.extractedData || this.extractedData.length === 0) {
+                this.showMessage('No ranking data could be extracted from the image. You can manually enter the data below.', 'warning');
+                // Initialize with empty data for manual entry
+                this.extractedData = [];
+            }
+            
             // Show results
             this.showResults();
             this.renderExtractedData();
@@ -234,6 +250,41 @@ export class RankingsManager {
         const container = document.getElementById('extractedData');
         if (!container) return;
 
+        // If no data extracted, show manual entry form
+        if (!this.extractedData || this.extractedData.length === 0) {
+            container.innerHTML = `
+                <div class="manual-entry-section">
+                    <h4>📝 Manual Data Entry</h4>
+                    <p>No data was extracted from the image. You can manually enter the ranking data below:</p>
+                    
+                    <div class="manual-entry-form">
+                        <div class="form-row">
+                            <label>Number of Rankings:</label>
+                            <input type="number" id="numRankings" min="1" max="100" value="10" class="form-input">
+                            <button type="button" id="generateRows" class="btn primary">Generate Rows</button>
+                        </div>
+                    </div>
+                    
+                    <div class="data-table" id="manualDataTable" style="display: none;">
+                        <div class="table-header">
+                            <div class="col-ranking">Ranking</div>
+                            <div class="col-commander">Commander</div>
+                            <div class="col-points">Points</div>
+                            <div class="col-actions">Actions</div>
+                        </div>
+                        <div class="table-body" id="manualTableBody">
+                            <!-- Manual entry rows will be generated here -->
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Setup manual entry event listeners
+            this.setupManualEntryListeners();
+            return;
+        }
+
+        // Render extracted data normally
         container.innerHTML = `
             <div class="data-table">
                 <div class="table-header">
@@ -280,6 +331,109 @@ export class RankingsManager {
                 </div>
             </div>
         `;
+    }
+
+    /**
+     * Setup manual entry event listeners
+     */
+    setupManualEntryListeners() {
+        const generateBtn = document.getElementById('generateRows');
+        if (generateBtn) {
+            generateBtn.addEventListener('click', () => this.generateManualRows());
+        }
+    }
+
+    /**
+     * Generate manual entry rows
+     */
+    generateManualRows() {
+        const numRankings = parseInt(document.getElementById('numRankings').value) || 10;
+        const tableBody = document.getElementById('manualTableBody');
+        const dataTable = document.getElementById('manualDataTable');
+        
+        if (!tableBody || !dataTable) return;
+
+        // Initialize extractedData array
+        this.extractedData = [];
+        
+        // Generate rows
+        let rowsHTML = '';
+        for (let i = 1; i <= numRankings; i++) {
+            this.extractedData.push({
+                ranking: i,
+                commander: '',
+                points: '',
+                isValid: false
+            });
+            
+            rowsHTML += `
+                <div class="table-row" data-index="${i-1}">
+                    <div class="col-ranking">
+                        <span class="ranking-number">${i}</span>
+                    </div>
+                    <div class="col-commander">
+                        <div class="commander-input-group">
+                            <input type="text" 
+                                   placeholder="Enter player name" 
+                                   class="commander-input" 
+                                   data-index="${i-1}">
+                            <button type="button" 
+                                    class="edit-commander-btn" 
+                                    onclick="rankingsManager.editCommander(${i-1})">
+                                ✏️
+                            </button>
+                        </div>
+                        <div class="commander-suggestions" id="suggestions-${i-1}" style="display: none;">
+                            <!-- Suggestions will be populated here -->
+                        </div>
+                    </div>
+                    <div class="col-points">
+                        <input type="text" 
+                               placeholder="Enter points" 
+                               class="points-input" 
+                               data-index="${i-1}">
+                    </div>
+                    <div class="col-actions">
+                        <button type="button" 
+                                class="btn small danger" 
+                                onclick="rankingsManager.removeRow(${i-1})">
+                            Remove
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+        
+        tableBody.innerHTML = rowsHTML;
+        dataTable.style.display = 'block';
+        
+        // Setup input event listeners for manual entry
+        this.setupManualInputListeners();
+    }
+
+    /**
+     * Setup manual input event listeners
+     */
+    setupManualInputListeners() {
+        // Commander name inputs
+        document.querySelectorAll('.commander-input').forEach(input => {
+            input.addEventListener('input', (e) => {
+                const index = parseInt(e.target.dataset.index);
+                if (this.extractedData[index]) {
+                    this.extractedData[index].commander = e.target.value;
+                }
+            });
+        });
+        
+        // Points inputs
+        document.querySelectorAll('.points-input').forEach(input => {
+            input.addEventListener('input', (e) => {
+                const index = parseInt(e.target.dataset.index);
+                if (this.extractedData[index]) {
+                    this.extractedData[index].points = e.target.value.replace(/,/g, '');
+                }
+            });
+        });
     }
 
     /**
@@ -421,12 +575,15 @@ export class RankingsManager {
      * Filter players based on search input
      */
     async filterPlayers(searchTerm) {
+        console.log('Searching for:', searchTerm);
+        
         if (!searchTerm || searchTerm.length < 2) {
             document.getElementById('playerResults').innerHTML = '';
             return;
         }
 
         try {
+            console.log('Querying database for players...');
             const { data, error } = await supabase
                 .from('rankings')
                 .select('commander, ranking, points, date')
@@ -434,13 +591,17 @@ export class RankingsManager {
                 .order('date', { ascending: false })
                 .limit(50);
 
-            if (error) throw error;
+            if (error) {
+                console.error('Database error:', error);
+                throw error;
+            }
 
+            console.log('Search results:', data);
             this.renderPlayerResults(data);
             
         } catch (error) {
             console.error('Error searching players:', error);
-            this.showMessage('Error searching players.', 'error');
+            this.showMessage('Error searching players: ' + error.message, 'error');
         }
     }
 
@@ -628,11 +789,29 @@ export class RankingsManager {
      * Show message to user
      */
     showMessage(message, type = 'info') {
-        // This would integrate with your existing message system
-        console.log(`${type.toUpperCase()}: ${message}`);
+        // Create message element
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message message-${type}`;
+        messageDiv.textContent = message;
         
-        // Simple alert for now
-        alert(message);
+        // Add to messages container
+        const messagesContainer = document.getElementById('messages');
+        if (messagesContainer) {
+            messagesContainer.appendChild(messageDiv);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (messageDiv.parentNode) {
+                    messageDiv.parentNode.removeChild(messageDiv);
+                }
+            }, 5000);
+        } else {
+            // Fallback to console and alert
+            console.log(`${type.toUpperCase()}: ${message}`);
+            if (type === 'error') {
+                alert(`Error: ${message}`);
+            }
+        }
     }
 }
 
