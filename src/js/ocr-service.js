@@ -11,8 +11,18 @@ export class OCRService {
     }
 
     initCanvas() {
-        this.canvas = document.createElement('canvas');
-        this.ctx = this.canvas.getContext('2d');
+        try {
+            this.canvas = document.createElement('canvas');
+            this.ctx = this.canvas.getContext('2d');
+            if (!this.ctx) {
+                throw new Error('Canvas context not supported');
+            }
+        } catch (error) {
+            console.error('Error initializing canvas:', error);
+            // Create fallback canvas
+            this.canvas = document.createElement('canvas');
+            this.ctx = this.canvas.getContext('2d');
+        }
     }
 
     /**

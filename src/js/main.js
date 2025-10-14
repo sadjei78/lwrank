@@ -5136,6 +5136,7 @@ class DailyRankingsApp {
         import('./rankings-manager.js').then(({ RankingsManager }) => {
             if (!window.rankingsManager) {
                 window.rankingsManager = new RankingsManager();
+                console.log('RankingsManager initialized successfully');
             }
         }).catch(error => {
             console.error('Error loading rankings manager:', error);

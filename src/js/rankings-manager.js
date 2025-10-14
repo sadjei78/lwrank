@@ -13,13 +13,28 @@ export class RankingsManager {
         this.existingPlayers = [];
         this.extractedData = [];
         
-        this.init();
+        // Don't initialize immediately - wait for DOM to be ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                this.init();
+            });
+        } else {
+            // DOM is already ready
+            setTimeout(() => this.init(), 100);
+        }
     }
 
     async init() {
-        await this.loadExistingPlayers();
-        this.setupEventListeners();
-        this.render();
+        try {
+            console.log('Initializing RankingsManager...');
+            await this.loadExistingPlayers();
+            this.setupEventListeners();
+            this.render();
+            console.log('RankingsManager initialized successfully');
+        } catch (error) {
+            console.error('Error initializing RankingsManager:', error);
+            this.showMessage('Error initializing rankings manager: ' + error.message, 'error');
+        }
     }
 
     /**
@@ -27,15 +42,21 @@ export class RankingsManager {
      */
     async loadExistingPlayers() {
         try {
+            console.log('Loading existing players...');
             const { data, error } = await supabase
                 .from('rankings')
                 .select('commander')
                 .not('commander', 'is', null);
             
-            if (error) throw error;
+            if (error) {
+                console.warn('Error loading existing players:', error);
+                this.existingPlayers = [];
+                return;
+            }
             
             // Get unique player names
             this.existingPlayers = [...new Set(data.map(item => item.commander))];
+            console.log(`Loaded ${this.existingPlayers.length} existing players`);
         } catch (error) {
             console.error('Error loading existing players:', error);
             this.existingPlayers = [];
@@ -815,5 +836,5 @@ export class RankingsManager {
     }
 }
 
-// Make it globally available
-window.rankingsManager = new RankingsManager();
+// Don't create global instance immediately - let main.js handle initialization
+// window.rankingsManager = new RankingsManager();
