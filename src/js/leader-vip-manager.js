@@ -403,17 +403,40 @@ export class LeaderVIPManager {
 
     // Check if a player is VIP for the current week
     isVIPForWeek(playerName, date) {
-        const weekStart = this.getWeekStart(date);
-        const weekEnd = this.getWeekEnd(date);
-        
-        // Check if any VIP selection exists for this week
-        for (let d = new Date(weekStart); d <= weekEnd; d.setDate(d.getDate() + 1)) {
-            const vip = this.getVIPForDate(d);
-            if (vip && vip.vip_player.toLowerCase() === playerName.toLowerCase()) {
-                return true;
+        try {
+            // Validate inputs
+            if (!playerName || typeof playerName !== 'string') {
+                console.error('Invalid playerName passed to isVIPForWeek:', playerName);
+                return false;
             }
+            
+            if (!date || isNaN(date.getTime())) {
+                console.error('Invalid date passed to isVIPForWeek:', date);
+                return false;
+            }
+            
+            const weekStart = this.getWeekStart(date);
+            const weekEnd = this.getWeekEnd(date);
+            
+            // Check if any VIP selection exists for this week
+            for (let d = new Date(weekStart); d <= weekEnd; d.setDate(d.getDate() + 1)) {
+                const trains = this.getVIPForDate(d);
+                if (trains && Array.isArray(trains)) {
+                    // Check each train for VIP player
+                    for (const train of trains) {
+                        if (train && train.vip_player && typeof train.vip_player === 'string') {
+                            if (train.vip_player.toLowerCase() === playerName.toLowerCase()) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+            return false;
+        } catch (error) {
+            console.error('Error in isVIPForWeek:', error, 'playerName:', playerName, 'date:', date);
+            return false;
         }
-        return false;
     }
 
     // Get week start (Monday)
