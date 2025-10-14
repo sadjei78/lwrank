@@ -494,7 +494,15 @@ export class UIManager {
         
         try {
             console.log('createTrainConductorVIPDisplay: Processing date', date);
-            const trains = this.leaderVIPManager.getVIPForDate(new Date(date));
+            
+            // Validate date before creating new Date object
+            const dateObj = new Date(date);
+            if (isNaN(dateObj.getTime())) {
+                console.error('createTrainConductorVIPDisplay: Invalid date provided:', date);
+                return '';
+            }
+            
+            const trains = this.leaderVIPManager.getVIPForDate(dateObj);
             
             console.log('createTrainConductorVIPDisplay: Results', { trains });
             

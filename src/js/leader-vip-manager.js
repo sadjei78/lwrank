@@ -367,20 +367,31 @@ export class LeaderVIPManager {
 
     // Get VIP for a specific date (returns all trains for that date)
     getVIPForDate(date) {
-        const dateString = date.toISOString().split('T')[0];
-        const trains = [];
-        
-        // Find all trains for this date
-        for (const [key, vipData] of Object.entries(this.vipSelections)) {
-            if (vipData.date === dateString) {
-                trains.push(vipData);
+        try {
+            // Validate the date before calling toISOString()
+            if (!date || isNaN(date.getTime())) {
+                console.error('Invalid date passed to getVIPForDate:', date);
+                return null;
             }
+            
+            const dateString = date.toISOString().split('T')[0];
+            const trains = [];
+            
+            // Find all trains for this date
+            for (const [key, vipData] of Object.entries(this.vipSelections)) {
+                if (vipData.date === dateString) {
+                    trains.push(vipData);
+                }
+            }
+            
+            // Sort by train time
+            trains.sort((a, b) => a.train_time.localeCompare(b.train_time));
+            
+            return trains.length > 0 ? trains : null;
+        } catch (error) {
+            console.error('Error in getVIPForDate:', error, 'date:', date);
+            return null;
         }
-        
-        // Sort by train time
-        trains.sort((a, b) => a.train_time.localeCompare(b.train_time));
-        
-        return trains.length > 0 ? trains : null;
     }
 
     // Check if a player is an active alliance leader
