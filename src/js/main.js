@@ -235,6 +235,8 @@ class DailyRankingsApp {
                 
                 if (tabType === 'reports') {
                     await this.showTab('reports');
+                } else if (tabType === 'rankings') {
+                    await this.showTab('rankings');
                 } else if (dateKey) {
                     await this.showTab(dateKey);
                 }
@@ -811,6 +813,23 @@ class DailyRankingsApp {
         console.log('All tabs in container:', tabsContainer.querySelectorAll('.tab').length);
         console.log('Reports tab computed styles:', window.getComputedStyle(reportsTab));
         
+        // Add Rankings Management tab
+        const rankingsTab = document.createElement('button');
+        rankingsTab.className = 'tab rankings-tab';
+        rankingsTab.textContent = '📷 Rankings';
+        rankingsTab.setAttribute('data-type', 'rankings');
+        rankingsTab.style.display = 'inline-block';
+        rankingsTab.style.visibility = 'visible';
+        tabsContainer.appendChild(rankingsTab);
+        
+        // Add click handler for rankings tab
+        rankingsTab.addEventListener('click', () => {
+            console.log('Rankings tab clicked');
+            this.showTab('rankings');
+        });
+        
+        console.log('Rankings tab created and added to DOM');
+        
         // Add Admin tab (only show if admin mode is active)
         console.log('Checking admin status:', this.isAdmin(), 'adminAuthenticated:', this.adminAuthenticated);
         if (this.isAdmin()) {
@@ -889,6 +908,47 @@ class DailyRankingsApp {
             // Initialize reports functionality
             this.initializeReports();
             console.log('Reports functionality initialized');
+            return;
+        }
+        
+        // Check if this is the Rankings tab
+        if (dateKey === 'rankings') {
+            console.log('Showing Rankings tab...');
+            
+            // Show rankings tab
+            const rankingsTabElement = document.getElementById('rankingsTab');
+            const adminTabElement = document.getElementById('adminTab');
+            const tabsContainerElement = document.querySelector('.tabs-container');
+            
+            console.log('Rankings tab element found:', !!rankingsTabElement);
+            console.log('Admin tab element found:', !!adminTabElement);
+            console.log('Tabs container found:', !!tabsContainerElement);
+            
+            if (rankingsTabElement) {
+                rankingsTabElement.style.display = 'block';
+                console.log('Rankings tab display set to block');
+            }
+            
+            if (adminTabElement) {
+                adminTabElement.style.display = 'none';
+            }
+            
+            if (tabsContainerElement) {
+                tabsContainerElement.style.display = 'none';
+            }
+            
+            // Add active class to rankings tab
+            const rankingsTab = document.querySelector('.tab[data-type="rankings"]');
+            if (rankingsTab) {
+                rankingsTab.classList.add('active');
+                console.log('Active class added to Rankings tab');
+            } else {
+                console.error('Rankings tab button not found in DOM');
+            }
+            
+            // Initialize rankings functionality
+            this.initializeRankings();
+            console.log('Rankings functionality initialized');
             return;
         } else if (dateKey === 'admin') {
             // Show admin tab
@@ -5069,6 +5129,17 @@ class DailyRankingsApp {
             // Add keyboard navigation
             playerName.addEventListener('keydown', (e) => this.handlePlayerNameKeydown(e));
         }
+    }
+
+    initializeRankings() {
+        // Import and initialize the RankingsManager
+        import('./rankings-manager.js').then(({ RankingsManager }) => {
+            if (!window.rankingsManager) {
+                window.rankingsManager = new RankingsManager();
+            }
+        }).catch(error => {
+            console.error('Error loading rankings manager:', error);
+        });
     }
 
     showAdminTab() {
