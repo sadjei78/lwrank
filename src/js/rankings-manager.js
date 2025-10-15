@@ -800,12 +800,19 @@ export class RankingsManager {
         try {
             console.log('Loading performance for:', playerName);
             
+            // Update the dropdown to show the selected player
+            const performanceSelect = document.getElementById('playerPerformanceSelect');
+            if (performanceSelect) {
+                performanceSelect.value = playerName;
+            }
+            
             const thirtyDaysAgo = new Date();
             thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
             const dateString = thirtyDaysAgo.toISOString().split('T')[0];
 
             console.log('Querying rankings for player:', playerName, 'from date:', dateString);
             
+            // Try to get data from Supabase
             const { data, error } = await supabase
                 .from('rankings')
                 .select('date, ranking, points')
@@ -815,9 +822,17 @@ export class RankingsManager {
 
             if (error) {
                 console.error('Database error:', error);
-                // If we're in offline mode, show a message
-                this.renderPerformanceChart(playerName, []);
-                this.showMessage('Performance data not available in offline mode', 'warning');
+                console.log('Attempting to use localStorage fallback...');
+                
+                // Try localStorage fallback
+                const localData = this.getLocalPerformanceData(playerName, dateString);
+                if (localData && localData.length > 0) {
+                    console.log('Using localStorage data:', localData);
+                    this.renderPerformanceChart(playerName, localData);
+                } else {
+                    this.renderPerformanceChart(playerName, []);
+                    this.showMessage('Performance data not available in offline mode', 'warning');
+                }
                 return;
             }
 
@@ -828,6 +843,43 @@ export class RankingsManager {
             console.error('Error loading player performance:', error);
             this.renderPerformanceChart(playerName, []);
             this.showMessage('Error loading player performance: ' + error.message, 'error');
+        }
+    }
+
+    /**
+     * Get performance data from localStorage as fallback
+     */
+    getLocalPerformanceData(playerName, fromDate) {
+        try {
+            const storedData = localStorage.getItem('rankingsData');
+            if (!storedData) return [];
+
+            const rankingsData = JSON.parse(storedData);
+            const playerData = [];
+
+            // Filter data for the specific player and date range
+            Object.keys(rankingsData).forEach(date => {
+                if (date >= fromDate) {
+                    const dayData = rankingsData[date];
+                    if (Array.isArray(dayData)) {
+                        const playerRecord = dayData.find(record => 
+                            record.commander && record.commander.toLowerCase() === playerName.toLowerCase()
+                        );
+                        if (playerRecord) {
+                            playerData.push({
+                                date: date,
+                                ranking: playerRecord.ranking,
+                                points: playerRecord.points
+                            });
+                        }
+                    }
+                }
+            });
+
+            return playerData.sort((a, b) => new Date(a.date) - new Date(b.date));
+        } catch (error) {
+            console.error('Error getting local performance data:', error);
+            return [];
         }
     }
 
@@ -844,7 +896,7 @@ export class RankingsManager {
         if (!data || data.length === 0) {
             container.innerHTML = `
                 <div class="no-performance-data">
-                    <h4>Ranking Trend</h4>
+                    <h4>Ranking Trend - ${playerName}</h4>
                     <div class="chart-stats" id="performanceStats">
                         <div class="stat">
                             <span class="stat-label">No data available</span>
@@ -867,7 +919,7 @@ export class RankingsManager {
 
         container.innerHTML = `
             <div class="performance-chart-container">
-                <h4>30-Day Performance: ${playerName}</h4>
+                <h4>Ranking Trend - ${playerName}</h4>
                 <div class="chart-stats">
                     <div class="chart-stat">
                         <span class="stat-label">Data Points:</span>
