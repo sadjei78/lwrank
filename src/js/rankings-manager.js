@@ -157,7 +157,7 @@ export class RankingsManager {
             performanceSelect.addEventListener('change', (e) => {
                 const selectedPlayer = e.target.value;
                 if (selectedPlayer) {
-                    this.loadPlayerPerformance(selectedPlayer);
+                    this.viewPlayerPerformance(selectedPlayer);
                 }
             });
         }
@@ -783,10 +783,6 @@ export class RankingsManager {
                                 <span class="stat-label">Latest Points:</span>
                                 <span class="stat-value">${this.formatPoints(records[0].points)}</span>
                             </div>
-                            <div class="stat">
-                                <span class="stat-label">Last Seen:</span>
-                                <span class="stat-value">${new Date(records[0].date).toLocaleDateString()}</span>
-                            </div>
                         </div>
                         <button class="btn small primary" onclick="rankingsManager.viewPlayerPerformance('${name}')">
                             View 30-Day Performance
@@ -802,38 +798,13 @@ export class RankingsManager {
      */
     async viewPlayerPerformance(playerName) {
         try {
-            const thirtyDaysAgo = new Date();
-            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-            const dateString = thirtyDaysAgo.toISOString().split('T')[0];
-
-            const { data, error } = await supabase
-                .from('rankings')
-                .select('date, ranking, points')
-                .eq('commander', playerName)
-                .gte('date', dateString)
-                .order('date', { ascending: true });
-
-            if (error) throw error;
-
-            this.renderPerformanceChart(playerName, data);
-            
-        } catch (error) {
-            console.error('Error loading player performance:', error);
-            this.showMessage('Error loading player performance.', 'error');
-        }
-    }
-
-    /**
-     * Load player performance data
-     */
-    async loadPlayerPerformance(playerName) {
-        try {
             console.log('Loading performance for:', playerName);
             
-            // Get last 30 days of data for this player
             const thirtyDaysAgo = new Date();
             thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
             const dateString = thirtyDaysAgo.toISOString().split('T')[0];
+
+            console.log('Querying rankings for player:', playerName, 'from date:', dateString);
             
             const { data, error } = await supabase
                 .from('rankings')
@@ -843,15 +814,19 @@ export class RankingsManager {
                 .order('date', { ascending: true });
 
             if (error) {
-                console.error('Error loading player performance:', error);
-                throw error;
+                console.error('Database error:', error);
+                // If we're in offline mode, show a message
+                this.renderPerformanceChart(playerName, []);
+                this.showMessage('Performance data not available in offline mode', 'warning');
+                return;
             }
 
             console.log('Performance data loaded:', data);
-            this.renderPerformanceChart(playerName, data);
+            this.renderPerformanceChart(playerName, data || []);
             
         } catch (error) {
             console.error('Error loading player performance:', error);
+            this.renderPerformanceChart(playerName, []);
             this.showMessage('Error loading player performance: ' + error.message, 'error');
         }
     }
@@ -867,7 +842,19 @@ export class RankingsManager {
         }
 
         if (!data || data.length === 0) {
-            container.innerHTML = `<p class="no-data">No performance data available for ${playerName} in the last 30 days.</p>`;
+            container.innerHTML = `
+                <div class="no-performance-data">
+                    <h4>Ranking Trend</h4>
+                    <div class="chart-stats" id="performanceStats">
+                        <div class="stat">
+                            <span class="stat-label">No data available</span>
+                        </div>
+                    </div>
+                    <div class="simple-chart" id="rankingChart">
+                        <p class="no-data">No performance data available for ${playerName} in the last 30 days.</p>
+                    </div>
+                </div>
+            `;
             return;
         }
 
