@@ -1,17 +1,15 @@
 /**
  * Rankings Management Page
- * Handles uploading screenshots, OCR processing, and managing ranking data
+ * Handles CSV upload/paste and managing ranking data
  */
 
-import { OCRService } from './ocr-service.js';
 import { supabase } from './supabase-client.js';
 
-export class OCRRankingsManager {
+export class RankingsManager {
     constructor() {
-        this.ocrService = new OCRService();
         this.currentDate = new Date().toISOString().split('T')[0];
         this.existingPlayers = [];
-        this.extractedData = [];
+        this.parsedData = [];
         
         // Don't initialize immediately - wait for DOM to be ready
         if (document.readyState === 'loading') {
@@ -67,10 +65,55 @@ export class OCRRankingsManager {
      * Setup event listeners for the rankings page
      */
     setupEventListeners() {
-        // File upload
-        const fileInput = document.getElementById('rankingImageUpload');
-        if (fileInput) {
-            fileInput.addEventListener('change', (e) => this.handleFileUpload(e));
+        // CSV file upload
+        const csvFileInput = document.getElementById('csvFileUpload');
+        const csvUploadBtn = document.getElementById('csvUploadBtn');
+        const csvUploadArea = document.getElementById('csvUploadArea');
+        
+        if (csvFileInput && csvUploadBtn && csvUploadArea) {
+            csvUploadBtn.addEventListener('click', () => csvFileInput.click());
+            csvUploadArea.addEventListener('click', () => csvFileInput.click());
+            
+            csvUploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                csvUploadArea.classList.add('dragover');
+            });
+            
+            csvUploadArea.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                csvUploadArea.classList.remove('dragover');
+            });
+            
+            csvUploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                csvUploadArea.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0 && files[0].type === 'text/csv') {
+                    csvFileInput.files = files;
+                    this.handleCsvFileUpload(files[0]);
+                }
+            });
+            
+            csvFileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    this.handleCsvFileUpload(e.target.files[0]);
+                }
+            });
+        }
+
+        // CSV paste functionality
+        const csvPasteArea = document.getElementById('csvPasteArea');
+        const parseCsvBtn = document.getElementById('parseCsvBtn');
+        
+        if (csvPasteArea && parseCsvBtn) {
+            parseCsvBtn.addEventListener('click', () => {
+                const csvData = csvPasteArea.value.trim();
+                if (csvData) {
+                    this.parseCsvData(csvData);
+                } else {
+                    this.showMessage('Please enter CSV data to parse.', 'error');
+                }
+            });
         }
 
         // Date picker
@@ -81,29 +124,29 @@ export class OCRRankingsManager {
             });
         }
 
-        // Submit button
-        const submitBtn = document.getElementById('submitRankings');
+        // Submit rankings
+        const submitBtn = document.getElementById('submitRankingsBtn');
         if (submitBtn) {
             submitBtn.addEventListener('click', () => this.submitRankings());
         }
 
-        // Re-upload button
-        const reuploadBtn = document.getElementById('reuploadImage');
-        if (reuploadBtn) {
-            reuploadBtn.addEventListener('click', () => this.resetUpload());
+        // Reset upload
+        const resetBtn = document.getElementById('resetUploadBtn');
+        if (resetBtn) {
+            resetBtn.addEventListener('click', () => this.resetUpload());
         }
 
         // Player search
-        const searchInput = document.getElementById('playerSearch');
+        const searchInput = document.getElementById('playerSearchInput');
         if (searchInput) {
             searchInput.addEventListener('input', (e) => this.filterPlayers(e.target.value));
         }
 
         // Search button
-        const searchBtn = document.getElementById('searchPlayer');
+        const searchBtn = document.getElementById('playerSearchBtn');
         if (searchBtn) {
             searchBtn.addEventListener('click', () => {
-                const searchTerm = document.getElementById('playerSearch').value;
+                const searchTerm = document.getElementById('playerSearchInput').value;
                 this.filterPlayers(searchTerm);
             });
         }
@@ -120,50 +163,63 @@ export class OCRRankingsManager {
             <div class="rankings-container">
                 <div class="rankings-header">
                     <h2>📊 Rankings Management</h2>
-                    <p>Upload screenshots to extract and manage ranking data</p>
+                    <p>Upload CSV file or paste ranking data to manage daily player rankings.</p>
                 </div>
 
                 <div class="rankings-content">
-                    <!-- Upload Section -->
-                    <div class="upload-section">
-                        <div class="upload-area" id="uploadArea">
+                    <!-- CSV Upload Section -->
+                    <div class="csv-upload-section" id="csvUploadSection">
+                        <h3>📁 Upload CSV File</h3>
+                        <div class="upload-area" id="csvUploadArea">
+                            <input type="file" id="csvFileUpload" accept=".csv,text/csv" style="display: none;">
                             <div class="upload-content">
-                                <div class="upload-icon">📷</div>
-                                <h3>Upload Ranking Screenshot</h3>
-                                <p>Drag and drop your screenshot here or click to browse</p>
-                                <input type="file" id="rankingImageUpload" accept="image/*" style="display: none;">
-                                <button type="button" class="upload-btn" onclick="document.getElementById('rankingImageUpload').click()">
-                                    Choose File
-                                </button>
+                                <span class="upload-icon">📄</span>
+                                <h4>Drag & Drop CSV File or Click to Browse</h4>
+                                <p>Supports CSV files with Ranking, Commander, Points columns</p>
+                                <button type="button" class="upload-btn" id="csvUploadBtn">Choose CSV File</button>
                             </div>
+                        </div>
+                        
+                        <div class="csv-paste-section">
+                            <h4>📋 Or Paste CSV Data</h4>
+                            <textarea id="csvPasteArea" placeholder="Paste your CSV data here...&#10;&#10;Example:&#10;Ranking,Commander,Points&#10;1,PlayerName,1000000&#10;2,AnotherPlayer,900000"></textarea>
+                            <button type="button" class="btn primary" id="parseCsvBtn">Parse CSV Data</button>
                         </div>
                         
                         <div class="date-selector">
                             <label for="rankingDate">Ranking Date:</label>
-                            <input type="date" id="rankingDate" value="${this.currentDate}" class="date-input">
+                            <input type="date" id="rankingDate" class="date-input" value="${this.currentDate}">
                         </div>
                     </div>
 
-                    <!-- Processing Section -->
+                    <!-- Processing Section (Hidden by default) -->
                     <div class="processing-section" id="processingSection" style="display: none;">
+                        <div class="loading-spinner"></div>
                         <div class="processing-content">
-                            <div class="loading-spinner"></div>
-                            <p>Processing image and extracting data...</p>
+                            <h3>Processing CSV Data...</h3>
+                            <p>Parsing and validating ranking data. This may take a moment.</p>
                         </div>
                     </div>
 
-                    <!-- Results Section -->
+                    <!-- Results Section (Hidden by default) -->
                     <div class="results-section" id="resultsSection" style="display: none;">
                         <div class="results-header">
-                            <h3>Extracted Data Preview</h3>
+                            <h3>Parsed Rankings</h3>
                             <div class="results-actions">
-                                <button id="reuploadImage" class="btn secondary">Re-upload Image</button>
-                                <button id="submitRankings" class="btn primary">Submit Rankings</button>
+                                <button type="button" class="btn primary" id="submitRankingsBtn">✅ Submit Rankings</button>
+                                <button type="button" class="btn secondary" id="resetUploadBtn">🔄 Reset</button>
                             </div>
                         </div>
-                        
-                        <div class="extracted-data" id="extractedData">
-                            <!-- Extracted data will be populated here -->
+                        <div class="data-table">
+                            <div class="table-header">
+                                <div>Rank</div>
+                                <div>Commander</div>
+                                <div>Points</div>
+                                <div>Actions</div>
+                            </div>
+                            <div class="table-body" id="rankingsTableBody">
+                                <!-- Parsed data will be inserted here -->
+                            </div>
                         </div>
                     </div>
 
@@ -172,27 +228,33 @@ export class OCRRankingsManager {
                         <h3>🔍 Player Search & Performance</h3>
                         <div class="search-controls">
                             <div class="search-input-group">
-                                <input type="text" id="playerSearch" placeholder="Search for a player..." class="search-input">
-                                <button id="searchPlayer" class="search-btn">Search</button>
+                                <input type="text" id="playerSearchInput" class="search-input" placeholder="Search for a player...">
+                                <button type="button" class="search-btn" id="playerSearchBtn">Search</button>
                             </div>
                         </div>
-                        
-                        <div class="player-results" id="playerResults">
-                            <!-- Player search results will be populated here -->
+                        <div id="playerSearchResults" class="player-results-list">
+                            <!-- Search results will be displayed here -->
                         </div>
                     </div>
 
-                    <!-- 30-Day Performance Section -->
+                    <!-- Player Performance Section -->
                     <div class="performance-section">
-                        <h3>📈 30-Day Performance View</h3>
+                        <h3>📈 Player Performance (Last 30 Days)</h3>
                         <div class="performance-controls">
-                            <select id="performancePlayer" class="player-select">
+                            <select id="playerPerformanceSelect" class="player-select">
                                 <option value="">Select a player to view performance...</option>
+                                <!-- Player names will be loaded here -->
                             </select>
                         </div>
-                        
-                        <div class="performance-chart" id="performanceChart">
-                            <!-- Performance chart will be rendered here -->
+                        <div id="playerPerformanceChart" class="performance-chart-container">
+                            <h4>Ranking Trend</h4>
+                            <div class="chart-stats" id="performanceStats">
+                                <!-- Stats like Avg Rank, Best Rank, Latest Points -->
+                            </div>
+                            <div class="simple-chart" id="rankingChart">
+                                <!-- Chart bars will be rendered here -->
+                            </div>
+                            <p class="no-data" id="noPerformanceData" style="display: none;">No performance data available for the last 30 days.</p>
                         </div>
                     </div>
                 </div>
@@ -204,15 +266,14 @@ export class OCRRankingsManager {
     }
 
     /**
-     * Handle file upload
+     * Handle CSV file upload
      */
-    async handleFileUpload(event) {
-        const file = event.target.files[0];
+    async handleCsvFileUpload(file) {
         if (!file) return;
 
         // Validate file type
-        if (!file.type.startsWith('image/')) {
-            this.showMessage('Please upload a valid image file.', 'error');
+        if (!file.type.includes('csv') && !file.name.endsWith('.csv')) {
+            this.showMessage('Please upload a valid CSV file.', 'error');
             return;
         }
 
@@ -220,23 +281,92 @@ export class OCRRankingsManager {
         this.showProcessing();
 
         try {
-            // Process image with OCR
-            this.extractedData = await this.ocrService.processImage(file);
+            const csvData = await this.readFileAsText(file);
+            await this.parseCsvData(csvData);
+        } catch (error) {
+            console.error('Error reading CSV file:', error);
+            this.showMessage('Error reading CSV file. Please try again.', 'error');
+            this.hideProcessing();
+        }
+    }
+
+    /**
+     * Read file as text
+     */
+    readFileAsText(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result);
+            reader.onerror = (e) => reject(e);
+            reader.readAsText(file);
+        });
+    }
+
+    /**
+     * Parse CSV data
+     */
+    async parseCsvData(csvData) {
+        try {
+            this.showProcessing();
             
-            // Check if any data was extracted
-            if (!this.extractedData || this.extractedData.length === 0) {
-                this.showMessage('No ranking data could be extracted from the image. You can manually enter the data below.', 'warning');
-                // Initialize with empty data for manual entry
-                this.extractedData = [];
+            // Parse CSV
+            const lines = csvData.trim().split('\n');
+            if (lines.length < 2) {
+                throw new Error('CSV must have at least a header row and one data row');
             }
+
+            // Parse header
+            const header = lines[0].split(',').map(h => h.trim().toLowerCase());
+            const expectedHeaders = ['ranking', 'commander', 'points'];
             
+            // Check if headers match expected format
+            const hasValidHeaders = expectedHeaders.every(expected => 
+                header.some(h => h.includes(expected))
+            );
+            
+            if (!hasValidHeaders) {
+                throw new Error('CSV must contain columns: Ranking, Commander, Points');
+            }
+
+            // Find column indices
+            const rankingIndex = header.findIndex(h => h.includes('ranking'));
+            const commanderIndex = header.findIndex(h => h.includes('commander'));
+            const pointsIndex = header.findIndex(h => h.includes('points'));
+
+            // Parse data rows
+            this.parsedData = [];
+            for (let i = 1; i < lines.length; i++) {
+                const row = lines[i].split(',').map(cell => cell.trim());
+                
+                if (row.length < 3) continue; // Skip incomplete rows
+                
+                const ranking = parseInt(row[rankingIndex]);
+                const commander = row[commanderIndex];
+                const points = row[pointsIndex].replace(/,/g, ''); // Remove commas from points
+                
+                if (isNaN(ranking) || !commander || !points) continue; // Skip invalid rows
+                
+                this.parsedData.push({
+                    ranking: ranking,
+                    commander: commander,
+                    points: points
+                });
+            }
+
+            if (this.parsedData.length === 0) {
+                throw new Error('No valid ranking data found in CSV');
+            }
+
             // Show results
+            this.hideProcessing();
             this.showResults();
-            this.renderExtractedData();
+            this.renderParsedData();
+            
+            this.showMessage(`Successfully parsed ${this.parsedData.length} rankings from CSV.`, 'success');
             
         } catch (error) {
-            console.error('Error processing image:', error);
-            this.showMessage('Error processing image. Please try again.', 'error');
+            console.error('Error parsing CSV:', error);
+            this.showMessage('Error parsing CSV: ' + error.message, 'error');
             this.hideProcessing();
         }
     }
@@ -265,93 +395,62 @@ export class OCRRankingsManager {
     }
 
     /**
-     * Render extracted data for review
+     * Render parsed data for review
      */
-    renderExtractedData() {
-        const container = document.getElementById('extractedData');
+    renderParsedData() {
+        const container = document.getElementById('rankingsTableBody');
         if (!container) return;
 
-        // If no data extracted, show manual entry form
-        if (!this.extractedData || this.extractedData.length === 0) {
-            container.innerHTML = `
-                <div class="manual-entry-section">
-                    <h4>📝 Manual Data Entry</h4>
-                    <p>No data was extracted from the image. You can manually enter the ranking data below:</p>
-                    
-                    <div class="manual-entry-form">
-                        <div class="form-row">
-                            <label>Number of Rankings:</label>
-                            <input type="number" id="numRankings" min="1" max="100" value="10" class="form-input">
-                            <button type="button" id="generateRows" class="btn primary">Generate Rows</button>
-                        </div>
+        container.innerHTML = '';
+
+        this.parsedData.forEach((item, index) => {
+            const row = document.createElement('div');
+            row.className = 'table-row';
+            row.innerHTML = `
+                <div class="col-ranking"><span class="ranking-number">${item.ranking}</span></div>
+                <div class="col-commander">
+                    <div class="commander-input-group">
+                        <input type="text" 
+                               value="${item.commander}" 
+                               class="commander-input" 
+                               data-index="${index}"
+                               readonly>
+                        <button type="button" 
+                                class="edit-commander-btn" 
+                                onclick="rankingsManager.editCommander(${index})">
+                            ✏️
+                        </button>
                     </div>
-                    
-                    <div class="data-table" id="manualDataTable" style="display: none;">
-                        <div class="table-header">
-                            <div class="col-ranking">Ranking</div>
-                            <div class="col-commander">Commander</div>
-                            <div class="col-points">Points</div>
-                            <div class="col-actions">Actions</div>
-                        </div>
-                        <div class="table-body" id="manualTableBody">
-                            <!-- Manual entry rows will be generated here -->
-                        </div>
+                    <div class="commander-suggestions" id="suggestions-${index}" style="display: none;">
+                        <!-- Suggestions will be populated here -->
                     </div>
+                </div>
+                <div class="col-points"><span class="points-value">${this.formatPoints(item.points)}</span></div>
+                <div class="col-actions">
+                    <button type="button" 
+                            class="btn small danger" 
+                            onclick="rankingsManager.removeRow(${index})">
+                        Remove
+                    </button>
                 </div>
             `;
-            
-            // Setup manual entry event listeners
-            this.setupManualEntryListeners();
-            return;
-        }
+            container.appendChild(row);
 
-        // Render extracted data normally
-        container.innerHTML = `
-            <div class="data-table">
-                <div class="table-header">
-                    <div class="col-ranking">Ranking</div>
-                    <div class="col-commander">Commander</div>
-                    <div class="col-points">Points</div>
-                    <div class="col-actions">Actions</div>
-                </div>
-                <div class="table-body">
-                    ${this.extractedData.map((item, index) => `
-                        <div class="table-row" data-index="${index}">
-                            <div class="col-ranking">
-                                <span class="ranking-number">${item.ranking}</span>
-                            </div>
-                            <div class="col-commander">
-                                <div class="commander-input-group">
-                                    <input type="text" 
-                                           value="${item.commander}" 
-                                           class="commander-input" 
-                                           data-index="${index}"
-                                           readonly>
-                                    <button type="button" 
-                                            class="edit-commander-btn" 
-                                            onclick="rankingsManager.editCommander(${index})">
-                                        ✏️
-                                    </button>
-                                </div>
-                                <div class="commander-suggestions" id="suggestions-${index}" style="display: none;">
-                                    <!-- Suggestions will be populated here -->
-                                </div>
-                            </div>
-                            <div class="col-points">
-                                <span class="points-value">${this.formatPoints(item.points)}</span>
-                            </div>
-                            <div class="col-actions">
-                                <button type="button" 
-                                        class="btn small danger" 
-                                        onclick="rankingsManager.removeRow(${index})">
-                                    Remove
-                                </button>
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-            </div>
-        `;
+            // Setup commander input event listeners
+            const commanderInput = row.querySelector(`.commander-input[data-index="${index}"]`);
+            const editBtn = row.querySelector(`.edit-commander-btn[data-index="${index}"]`);
+            const suggestionsContainer = row.querySelector(`#suggestions-${index}`);
+
+            if (commanderInput) {
+                commanderInput.addEventListener('input', () => this.handleCommanderInput(commanderInput, suggestionsContainer));
+                commanderInput.addEventListener('focus', () => this.handleCommanderInput(commanderInput, suggestionsContainer));
+                commanderInput.addEventListener('blur', () => setTimeout(() => suggestionsContainer.style.display = 'none', 200));
+            }
+
+            if (editBtn) {
+                editBtn.addEventListener('click', () => this.toggleCommanderEdit(commanderInput, editBtn));
+            }
+        });
     }
 
     /**
@@ -537,35 +636,38 @@ export class OCRRankingsManager {
     }
 
     /**
-     * Remove a row from extracted data
+     * Remove a row from parsed data
      */
     removeRow(index) {
-        this.extractedData.splice(index, 1);
-        this.renderExtractedData();
+        this.parsedData.splice(index, 1);
+        this.renderParsedData();
     }
 
     /**
      * Reset upload section
      */
     resetUpload() {
-        document.getElementById('rankingImageUpload').value = '';
-        document.getElementById('resultsSection').style.display = 'none';
+        document.getElementById('csvFileUpload').value = '';
+        document.getElementById('csvPasteArea').value = '';
+        document.getElementById('rankingsTableBody').innerHTML = '';
+        document.getElementById('csvUploadSection').style.display = 'block';
         document.getElementById('processingSection').style.display = 'none';
-        this.extractedData = [];
+        document.getElementById('resultsSection').style.display = 'none';
+        this.parsedData = [];
     }
 
     /**
      * Submit rankings to database
      */
     async submitRankings() {
-        if (!this.extractedData || this.extractedData.length === 0) {
+        if (!this.parsedData || this.parsedData.length === 0) {
             this.showMessage('No data to submit.', 'error');
             return;
         }
 
         try {
             // Prepare data for insertion
-            const rankingsData = this.extractedData.map(item => ({
+            const rankingsData = this.parsedData.map(item => ({
                 date: this.currentDate,
                 day: this.getDayName(this.currentDate),
                 ranking: item.ranking,
@@ -838,3 +940,4 @@ export class OCRRankingsManager {
 
 // Don't create global instance immediately - let main.js handle initialization
 // window.rankingsManager = new RankingsManager();
+
