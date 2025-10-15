@@ -2599,6 +2599,9 @@ class DailyRankingsApp {
         // Setup collapsible sections immediately after content is loaded
         this.setupCollapsibleSections();
         
+        // Setup player alias event listeners after all admin content is loaded
+        this.setupPlayerAliasEventListeners();
+        
         console.log('Admin content loaded and initialized successfully');
     }
 
@@ -5821,9 +5824,6 @@ class DailyRankingsApp {
                 this.autocompleteService.closeDropdown(autocompleteDropdown);
             }, 200);
         });
-
-        // Player Alias Event Listeners
-        this.setupPlayerAliasEventListeners();
     }
 
     setupPlayerAliasEventListeners() {
@@ -5831,10 +5831,13 @@ class DailyRankingsApp {
 
         // Create alias button
         const createAliasBtn = document.getElementById('createAliasBtn');
+        console.log('Create alias button found:', !!createAliasBtn);
         if (createAliasBtn) {
             createAliasBtn.addEventListener('click', () => {
+                console.log('Create alias button clicked!');
                 this.createPlayerAlias();
             });
+            console.log('Create alias button event listener added');
         } else {
             console.error('Create alias button not found');
         }
@@ -8068,9 +8071,16 @@ class DailyRankingsApp {
 
     // Player Alias Management Methods
     async createPlayerAlias() {
+        console.log('createPlayerAlias method called');
         const primaryNameInput = document.getElementById('primaryNameInput');
         const aliasNameInput = document.getElementById('aliasNameInput');
         const createdByInput = document.getElementById('aliasCreatedBy');
+
+        console.log('Form elements found:', {
+            primaryNameInput: !!primaryNameInput,
+            aliasNameInput: !!aliasNameInput,
+            createdByInput: !!createdByInput
+        });
 
         if (!primaryNameInput || !aliasNameInput || !createdByInput) {
             this.uiManager.showError('Alias form elements not found - admin content not loaded');
