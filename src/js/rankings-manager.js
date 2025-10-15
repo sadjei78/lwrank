@@ -800,6 +800,9 @@ export class RankingsManager {
         try {
             console.log('Loading performance for:', playerName);
             
+            // Debug data sources
+            await this.debugDataSources();
+            
             // Update the dropdown to show the selected player
             const performanceSelect = document.getElementById('playerPerformanceSelect');
             if (performanceSelect) {
@@ -810,15 +813,47 @@ export class RankingsManager {
             thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
             const dateString = thirtyDaysAgo.toISOString().split('T')[0];
 
+            // Try to get data from Supabase - check both date and day columns
             console.log('Querying rankings for player:', playerName, 'from date:', dateString);
             
-            // Try to get data from Supabase
-            const { data, error } = await supabase
+            // First try with date column (new format)
+            let { data, error } = await supabase
                 .from('rankings')
                 .select('date, ranking, points')
                 .eq('commander', playerName)
                 .gte('date', dateString)
                 .order('date', { ascending: true });
+
+            // If no data found with date column, try with day column (legacy format)
+            if (!data || data.length === 0) {
+                console.log('No data found with date column, trying day column...');
+                
+                // Convert date range to day names for legacy format
+                const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                const today = new Date();
+                const thirtyDaysAgo = new Date();
+                thirtyDaysAgo.setDate(today.getDate() - 30);
+                
+                // Get all rankings for this player (legacy format doesn't have date filtering)
+                const { data: legacyData, error: legacyError } = await supabase
+                    .from('rankings')
+                    .select('day, ranking, points')
+                    .eq('commander', playerName)
+                    .order('day', { ascending: true });
+
+                if (!legacyError && legacyData && legacyData.length > 0) {
+                    console.log('Found legacy data:', legacyData);
+                    // Convert legacy format to new format for consistency
+                    data = legacyData.map(item => ({
+                        date: item.day, // Use day as date for now
+                        ranking: item.ranking,
+                        points: item.points
+                    }));
+                    error = null;
+                } else {
+                    error = legacyError;
+                }
+            }
 
             if (error) {
                 console.error('Database error:', error);
@@ -852,14 +887,24 @@ export class RankingsManager {
     getLocalPerformanceData(playerName, fromDate) {
         try {
             const storedData = localStorage.getItem('rankingsData');
-            if (!storedData) return [];
+            if (!storedData) {
+                console.log('No localStorage data found');
+                return [];
+            }
 
             const rankingsData = JSON.parse(storedData);
             const playerData = [];
 
+            console.log('Searching localStorage for player:', playerName, 'from date:', fromDate);
+            console.log('Available dates in localStorage:', Object.keys(rankingsData));
+
             // Filter data for the specific player and date range
             Object.keys(rankingsData).forEach(date => {
-                if (date >= fromDate) {
+                // Check if date is after fromDate (for YYYY-MM-DD format) or if it's a day name
+                const isRecentDate = date >= fromDate || 
+                    ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].includes(date.toLowerCase());
+                
+                if (isRecentDate) {
                     const dayData = rankingsData[date];
                     if (Array.isArray(dayData)) {
                         const playerRecord = dayData.find(record => 
@@ -876,11 +921,79 @@ export class RankingsManager {
                 }
             });
 
-            return playerData.sort((a, b) => new Date(a.date) - new Date(b.date));
+            console.log('Found localStorage data for player:', playerData);
+            return playerData.sort((a, b) => {
+                // Handle both date formats for sorting
+                if (a.date.match(/^\d{4}-\d{2}-\d{2}$/) && b.date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                    return new Date(a.date) - new Date(b.date);
+                }
+                return a.date.localeCompare(b.date);
+            });
         } catch (error) {
             console.error('Error getting local performance data:', error);
             return [];
         }
+    }
+
+    /**
+     * Debug method to check what data sources are available
+     */
+    async debugDataSources() {
+        console.log('=== DEBUGGING DATA SOURCES ===');
+        
+        // Check localStorage
+        const storedData = localStorage.getItem('rankingsData');
+        if (storedData) {
+            const rankingsData = JSON.parse(storedData);
+            console.log('localStorage data:', Object.keys(rankingsData));
+            console.log('Sample localStorage data:', rankingsData);
+        } else {
+            console.log('No localStorage data found');
+        }
+        
+        // Check database - try both columns
+        try {
+            console.log('Checking database for rankings data...');
+            
+            // Check date column
+            const { data: dateData, error: dateError } = await supabase
+                .from('rankings')
+                .select('date, commander, ranking, points')
+                .limit(5);
+            
+            if (!dateError && dateData) {
+                console.log('Date column data (first 5 records):', dateData);
+            } else {
+                console.log('Date column error:', dateError);
+            }
+            
+            // Check day column
+            const { data: dayData, error: dayError } = await supabase
+                .from('rankings')
+                .select('day, commander, ranking, points')
+                .limit(5);
+            
+            if (!dayError && dayData) {
+                console.log('Day column data (first 5 records):', dayData);
+            } else {
+                console.log('Day column error:', dayError);
+            }
+            
+            // Get unique commanders
+            const { data: commanders, error: commanderError } = await supabase
+                .from('rankings')
+                .select('commander')
+                .limit(10);
+            
+            if (!commanderError && commanders) {
+                console.log('Available commanders:', commanders.map(c => c.commander));
+            }
+            
+        } catch (error) {
+            console.error('Database debug error:', error);
+        }
+        
+        console.log('=== END DEBUG ===');
     }
 
     /**
