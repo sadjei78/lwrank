@@ -469,6 +469,9 @@ class DailyRankingsApp {
             // Load secure admin content
             this.loadAdminContent();
             
+            // Recreate Rankings tab now that admin is authenticated
+            this.createRankingsTab();
+            
             // Add admin tab
             await this.updateWeeklyTabs();
         } else {
@@ -813,22 +816,26 @@ class DailyRankingsApp {
         console.log('All tabs in container:', tabsContainer.querySelectorAll('.tab').length);
         console.log('Reports tab computed styles:', window.getComputedStyle(reportsTab));
         
-        // Add Rankings Management tab
-        const rankingsTab = document.createElement('button');
-        rankingsTab.className = 'tab rankings-tab';
-        rankingsTab.textContent = '📷 Rankings';
-        rankingsTab.setAttribute('data-type', 'rankings');
-        rankingsTab.style.display = 'inline-block';
-        rankingsTab.style.visibility = 'visible';
-        tabsContainer.appendChild(rankingsTab);
-        
-        // Add click handler for rankings tab
-        rankingsTab.addEventListener('click', () => {
-            console.log('Rankings tab clicked');
-            this.showTab('rankings');
-        });
-        
-        console.log('Rankings tab created and added to DOM');
+        // Add Rankings Management tab (only for admin users)
+        if (this.isAdmin() && this.adminAuthenticated) {
+            const rankingsTab = document.createElement('button');
+            rankingsTab.className = 'tab rankings-tab';
+            rankingsTab.textContent = '📷 Rankings';
+            rankingsTab.setAttribute('data-type', 'rankings');
+            rankingsTab.style.display = 'inline-block';
+            rankingsTab.style.visibility = 'visible';
+            tabsContainer.appendChild(rankingsTab);
+            
+            // Add click handler for rankings tab
+            rankingsTab.addEventListener('click', () => {
+                console.log('Rankings tab clicked');
+                this.showTab('rankings');
+            });
+            
+            console.log('Rankings tab created and added to DOM (admin only)');
+        } else {
+            console.log('Rankings tab not created - not in admin mode');
+        }
         
         // Add Admin tab (only show if admin mode is active)
         console.log('Checking admin status:', this.isAdmin(), 'adminAuthenticated:', this.adminAuthenticated);
@@ -913,6 +920,12 @@ class DailyRankingsApp {
         
         // Check if this is the Rankings tab
         if (dateKey === 'rankings') {
+            // Only allow access if user is admin
+            if (!this.isAdmin() || !this.adminAuthenticated) {
+                console.log('Access denied to Rankings tab - not admin');
+                return;
+            }
+            
             console.log('Showing Rankings tab...');
             
             // Show rankings tab
@@ -5141,6 +5154,45 @@ class DailyRankingsApp {
         }).catch(error => {
             console.error('Error loading rankings manager:', error);
         });
+    }
+
+    createRankingsTab() {
+        // Only create Rankings tab if user is admin
+        if (!this.adminAuthenticated) {
+            console.log('Rankings tab not created - not in admin mode');
+            return;
+        }
+
+        // Check if Rankings tab already exists
+        const existingTab = document.querySelector('.tab[data-type="rankings"]');
+        if (existingTab) {
+            console.log('Rankings tab already exists');
+            return;
+        }
+
+        // Create Rankings tab
+        const rankingsTab = document.createElement('button');
+        rankingsTab.className = 'tab rankings-tab';
+        rankingsTab.textContent = '📷 Rankings';
+        rankingsTab.setAttribute('data-type', 'rankings');
+        rankingsTab.style.display = 'inline-block';
+        rankingsTab.style.visibility = 'visible';
+        
+        // Add to tabs container
+        const tabsContainer = document.querySelector('.tabs-container');
+        if (tabsContainer) {
+            tabsContainer.appendChild(rankingsTab);
+            
+            // Add click handler for rankings tab
+            rankingsTab.addEventListener('click', () => {
+                console.log('Rankings tab clicked');
+                this.showTab('rankings');
+            });
+            
+            console.log('Rankings tab created and added to DOM (admin only)');
+        } else {
+            console.error('Tabs container not found');
+        }
     }
 
     showAdminTab() {
