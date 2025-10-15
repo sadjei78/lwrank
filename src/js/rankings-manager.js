@@ -679,8 +679,8 @@ export class RankingsManager {
         try {
             // Prepare data for insertion
             const rankingsData = this.parsedData.map(item => ({
-                date: this.currentDate,
-                day: this.getDayName(this.currentDate),
+                date: null,  // Leave blank/null
+                day: this.currentDate,  // Use selected date (YYYY-MM-DD format)
                 ranking: item.ranking,
                 commander: item.commander,
                 points: item.points
