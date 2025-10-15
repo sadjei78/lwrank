@@ -8154,7 +8154,7 @@ class DailyRankingsApp {
                         <strong>${alias.name}</strong>
                         <span class="similarity-score">${Math.round(alias.similarity * 100)}% similar</span>
                     </div>
-                    <button class="btn secondary create-alias-btn" 
+                    <button class="create-alias-btn" 
                             data-primary="${playerName}" 
                             data-alias="${alias.name}">
                         Create Alias
@@ -8166,10 +8166,14 @@ class DailyRankingsApp {
 
             // Add event listeners to create alias buttons
             resultsContainer.querySelectorAll('.create-alias-btn').forEach(btn => {
+                console.log('Adding event listener to create alias button:', btn);
                 btn.addEventListener('click', async () => {
+                    console.log('Create alias button clicked from potential aliases!');
                     const primaryName = btn.getAttribute('data-primary');
                     const aliasName = btn.getAttribute('data-alias');
                     const createdBy = document.getElementById('aliasCreatedBy')?.value || 'Admin';
+                    
+                    console.log('Creating alias with data:', { primaryName, aliasName, createdBy });
                     
                     try {
                         const success = await this.playerAliasService.createAlias(primaryName, aliasName, createdBy);
@@ -8216,7 +8220,7 @@ class DailyRankingsApp {
                             Created by ${alias.created_by} on ${new Date(alias.created_at).toLocaleDateString()}
                         </span>
                     </div>
-                    <button class="btn danger deactivate-alias-btn" 
+                    <button class="deactivate-alias-btn" 
                             data-primary="${alias.primary_name}" 
                             data-alias="${alias.alias_name}">
                         Deactivate
