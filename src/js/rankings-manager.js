@@ -150,6 +150,17 @@ export class RankingsManager {
                 this.filterPlayers(searchTerm);
             });
         }
+
+        // Performance dropdown
+        const performanceSelect = document.getElementById('playerPerformanceSelect');
+        if (performanceSelect) {
+            performanceSelect.addEventListener('change', (e) => {
+                const selectedPlayer = e.target.value;
+                if (selectedPlayer) {
+                    this.loadPlayerPerformance(selectedPlayer);
+                }
+            });
+        }
     }
 
     /**
@@ -701,7 +712,10 @@ export class RankingsManager {
         console.log('Searching for:', searchTerm);
         
         if (!searchTerm || searchTerm.length < 2) {
-            document.getElementById('playerResults').innerHTML = '';
+            const resultsContainer = document.getElementById('playerSearchResults');
+            if (resultsContainer) {
+                resultsContainer.innerHTML = '';
+            }
             return;
         }
 
@@ -732,8 +746,11 @@ export class RankingsManager {
      * Render player search results
      */
     renderPlayerResults(players) {
-        const container = document.getElementById('playerResults');
-        if (!container) return;
+        const container = document.getElementById('playerSearchResults');
+        if (!container) {
+            console.error('Player search results container not found');
+            return;
+        }
 
         if (!players || players.length === 0) {
             container.innerHTML = '<p class="no-results">No players found.</p>';
@@ -807,11 +824,47 @@ export class RankingsManager {
     }
 
     /**
+     * Load player performance data
+     */
+    async loadPlayerPerformance(playerName) {
+        try {
+            console.log('Loading performance for:', playerName);
+            
+            // Get last 30 days of data for this player
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            const dateString = thirtyDaysAgo.toISOString().split('T')[0];
+            
+            const { data, error } = await supabase
+                .from('rankings')
+                .select('date, ranking, points')
+                .eq('commander', playerName)
+                .gte('date', dateString)
+                .order('date', { ascending: true });
+
+            if (error) {
+                console.error('Error loading player performance:', error);
+                throw error;
+            }
+
+            console.log('Performance data loaded:', data);
+            this.renderPerformanceChart(playerName, data);
+            
+        } catch (error) {
+            console.error('Error loading player performance:', error);
+            this.showMessage('Error loading player performance: ' + error.message, 'error');
+        }
+    }
+
+    /**
      * Render performance chart
      */
     renderPerformanceChart(playerName, data) {
-        const container = document.getElementById('performanceChart');
-        if (!container) return;
+        const container = document.getElementById('playerPerformanceChart');
+        if (!container) {
+            console.error('Player performance chart container not found');
+            return;
+        }
 
         if (!data || data.length === 0) {
             container.innerHTML = `<p class="no-data">No performance data available for ${playerName} in the last 30 days.</p>`;
@@ -861,8 +914,11 @@ export class RankingsManager {
      * Populate player select dropdown
      */
     async populatePlayerSelect() {
-        const select = document.getElementById('performancePlayer');
-        if (!select) return;
+        const select = document.getElementById('playerPerformanceSelect');
+        if (!select) {
+            console.error('Player performance select not found');
+            return;
+        }
 
         try {
             const { data, error } = await supabase
