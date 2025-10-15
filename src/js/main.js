@@ -8091,18 +8091,24 @@ class DailyRankingsApp {
         const aliasName = aliasNameInput.value.trim();
         const createdBy = createdByInput.value.trim();
 
+        console.log('Form values:', { primaryName, aliasName, createdBy });
+
         if (!primaryName || !aliasName || !createdBy) {
+            console.log('Validation failed: missing required fields');
             this.uiManager.showError('Please fill in all fields for the alias.');
             return;
         }
 
         if (primaryName.toLowerCase() === aliasName.toLowerCase()) {
+            console.log('Validation failed: names are the same');
             this.uiManager.showError('Primary name and alias name cannot be the same.');
             return;
         }
 
+        console.log('Validation passed, attempting to create alias...');
         try {
             const success = await this.playerAliasService.createAlias(primaryName, aliasName, createdBy);
+            console.log('Alias creation result:', success);
             
             if (success) {
                 this.uiManager.showSuccess(`Successfully created alias: ${aliasName} → ${primaryName}`);

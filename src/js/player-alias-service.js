@@ -152,6 +152,8 @@ export class PlayerAliasService {
      * @returns {Promise<boolean>} Success status
      */
     async createAlias(primaryName, aliasName, createdBy) {
+        console.log('PlayerAliasService.createAlias called with:', { primaryName, aliasName, createdBy });
+        
         if (!primaryName || !aliasName || !createdBy) {
             console.error('Missing required parameters for createAlias');
             return false;
@@ -162,6 +164,7 @@ export class PlayerAliasService {
             return false;
         }
 
+        console.log('About to insert alias into database...');
         try {
             const { error } = await supabase
                 .from('player_aliases')
@@ -172,11 +175,14 @@ export class PlayerAliasService {
                     is_active: true
                 });
 
+            console.log('Database insert result:', { error });
+
             if (error) {
                 console.error('Error creating player alias:', error);
                 return false;
             }
 
+            console.log('Alias inserted successfully, refreshing cache...');
             // Refresh cache
             await this.loadAliasesFromDatabase();
             
