@@ -4,6 +4,7 @@ import { UIManager } from './ui-manager.js';
 import { LeaderVIPManager } from './leader-vip-manager.js';
 import { AutocompleteService } from './autocomplete-service.js';
 import { SeasonRankingManager } from './season-ranking-manager.js';
+import { PlayerAliasService } from './player-alias-service.js';
 import { config } from './config.js';
 
 class DailyRankingsApp {
@@ -12,7 +13,8 @@ class DailyRankingsApp {
         this.csvProcessor = new CSVProcessor();
         this.uiManager = new UIManager();
         this.leaderVIPManager = new LeaderVIPManager();
-        this.autocompleteService = new AutocompleteService(this.rankingManager, this.leaderVIPManager);
+        this.playerAliasService = new PlayerAliasService();
+        this.autocompleteService = new AutocompleteService(this.rankingManager, this.leaderVIPManager, this.playerAliasService);
         this.seasonRankingManager = new SeasonRankingManager(this.rankingManager, this.leaderVIPManager);
         this.selectedDate = new Date();
         this.currentTabDate = null;
@@ -73,6 +75,15 @@ class DailyRankingsApp {
             await this.autocompleteService.initialize();
         } catch (error) {
             console.warn('Autocomplete service initialization failed:', error);
+        }
+        
+        // Initialize player alias service
+        try {
+            console.log('Initializing player alias service...');
+            await this.playerAliasService.initialize();
+            console.log('Player alias service initialization completed');
+        } catch (error) {
+            console.warn('Player alias service initialization failed:', error);
         }
         
         // Set initial date to current week
@@ -1840,9 +1851,21 @@ class DailyRankingsApp {
         // 4. Update seasonal rankings
         await this.seasonRankingManager.updatePlayerNameInSeasonRankings(oldName, newName);
         
-        // 5. Refresh all data to ensure consistency
+        // 5. Create an alias to link the old name to the new name
+        try {
+            await this.playerAliasService.createAlias(newName, oldName, 'Admin');
+            console.log(`Created alias: ${oldName} → ${newName}`);
+        } catch (error) {
+            console.warn('Failed to create alias during name update:', error);
+            // Don't fail the entire operation if alias creation fails
+        }
+        
+        // 6. Refresh all data to ensure consistency
         await this.leaderVIPManager.loadFromDatabase();
         await this.rankingManager.loadFromDatabase();
+        
+        // 7. Refresh alias service cache
+        await this.playerAliasService.loadAliasesFromDatabase();
     }
 
     async checkForNewNames() {
@@ -2446,6 +2469,66 @@ class DailyRankingsApp {
             </div>
         `;
         
+        // Add Player Aliases Section
+        const playerAliasesSection = `
+            <div class="admin-section collapsible">
+                <div class="collapsible-header" data-target="playerAliasesContent">
+                    <h3>👤 Player Aliases</h3>
+                    <span class="collapsible-icon">▼</span>
+                </div>
+                <div id="playerAliasesContent" class="collapsible-content collapsed">
+                    <div class="player-aliases">
+                        <!-- Create New Alias -->
+                        <div class="alias-form">
+                            <h4>➕ Create New Alias</h4>
+                            <div class="form-group">
+                                <label for="primaryNameInput">Primary Name:</label>
+                                <div class="autocomplete-container">
+                                    <input type="text" id="primaryNameInput" class="form-input" placeholder="Enter primary player name">
+                                    <div class="autocomplete-dropdown" id="primaryNameDropdown"></div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="aliasNameInput">Alias Name:</label>
+                                <input type="text" id="aliasNameInput" class="form-input" placeholder="Enter alias/variation name">
+                            </div>
+                            <div class="form-group">
+                                <label for="aliasCreatedBy">Created By:</label>
+                                <input type="text" id="aliasCreatedBy" class="form-input" placeholder="Admin name" value="Admin">
+                            </div>
+                            <button type="button" id="createAliasBtn" class="btn primary">Create Alias</button>
+                        </div>
+                        
+                        <!-- Find Potential Aliases -->
+                        <div class="potential-aliases">
+                            <h4>🔍 Find Potential Aliases</h4>
+                            <div class="form-group">
+                                <label for="potentialAliasSearch">Search for similar names:</label>
+                                <div class="autocomplete-container">
+                                    <input type="text" id="potentialAliasSearch" class="form-input" placeholder="Enter player name to find similar names">
+                                    <div class="autocomplete-dropdown" id="potentialAliasDropdown"></div>
+                                </div>
+                            </div>
+                            <div id="potentialAliasesResults" class="potential-aliases-results"></div>
+                        </div>
+                        
+                        <!-- Manage Existing Aliases -->
+                        <div class="existing-aliases">
+                            <h4>📋 Existing Aliases</h4>
+                            <div class="form-group">
+                                <label for="aliasSearchPlayer">Search player aliases:</label>
+                                <div class="autocomplete-container">
+                                    <input type="text" id="aliasSearchPlayer" class="form-input" placeholder="Enter player name to view aliases">
+                                    <div class="autocomplete-dropdown" id="aliasSearchDropdown"></div>
+                                </div>
+                            </div>
+                            <div id="existingAliasesResults" class="existing-aliases-results"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
         // Add Season Report Display Section (separate from collapsible sections)
         const seasonReportSection = `
             <div class="admin-section">
@@ -2469,10 +2552,19 @@ class DailyRankingsApp {
             </div>
         `;
         
-        // Find the admin sections container and append the season report section
+        // Find the admin sections container and append the player aliases section
         const adminSectionsContainer = document.querySelector('.admin-sections');
         if (adminSectionsContainer) {
-            adminSectionsContainer.innerHTML += seasonReportSection;
+            adminSectionsContainer.innerHTML += playerAliasesSection;
+            console.log('Player aliases section added to admin sections');
+        } else {
+            console.error('Admin sections container not found');
+        }
+        
+        // Find the admin sections container and append the season report section
+        const adminSectionsContainer2 = document.querySelector('.admin-sections');
+        if (adminSectionsContainer2) {
+            adminSectionsContainer2.innerHTML += seasonReportSection;
             console.log('Season report section added to admin sections');
         } else {
             console.error('Admin sections container not found');
@@ -5729,6 +5821,67 @@ class DailyRankingsApp {
                 this.autocompleteService.closeDropdown(autocompleteDropdown);
             }, 200);
         });
+
+        // Player Alias Event Listeners
+        this.setupPlayerAliasEventListeners();
+    }
+
+    setupPlayerAliasEventListeners() {
+        console.log('Setting up player alias event listeners...');
+
+        // Create alias button
+        const createAliasBtn = document.getElementById('createAliasBtn');
+        if (createAliasBtn) {
+            createAliasBtn.addEventListener('click', () => {
+                this.createPlayerAlias();
+            });
+        } else {
+            console.error('Create alias button not found');
+        }
+
+        // Setup autocomplete for primary name input
+        const primaryNameInput = document.getElementById('primaryNameInput');
+        const primaryNameDropdown = document.getElementById('primaryNameDropdown');
+        if (primaryNameInput && primaryNameDropdown) {
+            this.autocompleteService.setupAutocomplete(
+                primaryNameInput,
+                primaryNameDropdown,
+                (selectedName) => {
+                    primaryNameInput.value = selectedName;
+                    this.autocompleteService.closeDropdown(primaryNameDropdown);
+                }
+            );
+        }
+
+        // Setup autocomplete for potential alias search
+        const potentialAliasSearch = document.getElementById('potentialAliasSearch');
+        const potentialAliasDropdown = document.getElementById('potentialAliasDropdown');
+        if (potentialAliasSearch && potentialAliasDropdown) {
+            this.autocompleteService.setupAutocomplete(
+                potentialAliasSearch,
+                potentialAliasDropdown,
+                (selectedName) => {
+                    potentialAliasSearch.value = selectedName;
+                    this.autocompleteService.closeDropdown(potentialAliasDropdown);
+                    this.findPotentialAliases(selectedName);
+                }
+            );
+        }
+
+        // Setup autocomplete for alias search player
+        const aliasSearchPlayer = document.getElementById('aliasSearchPlayer');
+        const aliasSearchDropdown = document.getElementById('aliasSearchDropdown');
+        if (aliasSearchPlayer && aliasSearchDropdown) {
+            this.autocompleteService.setupAutocomplete(
+                aliasSearchPlayer,
+                aliasSearchDropdown,
+                (selectedName) => {
+                    aliasSearchPlayer.value = selectedName;
+                    this.autocompleteService.closeDropdown(aliasSearchDropdown);
+                    this.showExistingAliases(selectedName);
+                }
+            );
+        }
     }
 
     setupAutocomplete() {
@@ -7910,6 +8063,180 @@ class DailyRankingsApp {
                 csvContent.classList.add('active');
                 rawContent.classList.remove('active');
             }
+        }
+    }
+
+    // Player Alias Management Methods
+    async createPlayerAlias() {
+        const primaryNameInput = document.getElementById('primaryNameInput');
+        const aliasNameInput = document.getElementById('aliasNameInput');
+        const createdByInput = document.getElementById('aliasCreatedBy');
+
+        if (!primaryNameInput || !aliasNameInput || !createdByInput) {
+            this.uiManager.showError('Alias form elements not found - admin content not loaded');
+            return;
+        }
+
+        const primaryName = primaryNameInput.value.trim();
+        const aliasName = aliasNameInput.value.trim();
+        const createdBy = createdByInput.value.trim();
+
+        if (!primaryName || !aliasName || !createdBy) {
+            this.uiManager.showError('Please fill in all fields for the alias.');
+            return;
+        }
+
+        if (primaryName.toLowerCase() === aliasName.toLowerCase()) {
+            this.uiManager.showError('Primary name and alias name cannot be the same.');
+            return;
+        }
+
+        try {
+            const success = await this.playerAliasService.createAlias(primaryName, aliasName, createdBy);
+            
+            if (success) {
+                this.uiManager.showSuccess(`Successfully created alias: ${aliasName} → ${primaryName}`);
+                
+                // Clear form
+                primaryNameInput.value = '';
+                aliasNameInput.value = '';
+                
+                // Refresh autocomplete cache
+                await this.autocompleteService.loadAllPlayerNames();
+            } else {
+                this.uiManager.showError('Failed to create alias. Please try again.');
+            }
+        } catch (error) {
+            console.error('Error creating player alias:', error);
+            this.uiManager.showError(`Failed to create alias: ${error.message}`);
+        }
+    }
+
+    async findPotentialAliases(playerName) {
+        const resultsContainer = document.getElementById('potentialAliasesResults');
+        if (!resultsContainer) {
+            console.error('Potential aliases results container not found');
+            return;
+        }
+
+        try {
+            // Get all player names for comparison
+            const allRankings = await this.rankingManager.getAllRankings();
+            const allPlayerNames = [...new Set(allRankings.map(r => r.commander))];
+            
+            // Find potential aliases
+            const potentialAliases = this.playerAliasService.findPotentialAliases(playerName, allPlayerNames);
+            
+            if (potentialAliases.length === 0) {
+                resultsContainer.innerHTML = '<div class="no-results">No similar names found.</div>';
+                return;
+            }
+
+            const resultsHTML = potentialAliases.map(alias => `
+                <div class="potential-alias-item">
+                    <div class="alias-info">
+                        <strong>${alias.name}</strong>
+                        <span class="similarity-score">${Math.round(alias.similarity * 100)}% similar</span>
+                    </div>
+                    <button class="btn secondary create-alias-btn" 
+                            data-primary="${playerName}" 
+                            data-alias="${alias.name}">
+                        Create Alias
+                    </button>
+                </div>
+            `).join('');
+
+            resultsContainer.innerHTML = resultsHTML;
+
+            // Add event listeners to create alias buttons
+            resultsContainer.querySelectorAll('.create-alias-btn').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const primaryName = btn.getAttribute('data-primary');
+                    const aliasName = btn.getAttribute('data-alias');
+                    const createdBy = document.getElementById('aliasCreatedBy')?.value || 'Admin';
+                    
+                    try {
+                        const success = await this.playerAliasService.createAlias(primaryName, aliasName, createdBy);
+                        if (success) {
+                            this.uiManager.showSuccess(`Created alias: ${aliasName} → ${primaryName}`);
+                            // Refresh the results
+                            await this.findPotentialAliases(playerName);
+                        } else {
+                            this.uiManager.showError('Failed to create alias.');
+                        }
+                    } catch (error) {
+                        console.error('Error creating alias from potential:', error);
+                        this.uiManager.showError(`Failed to create alias: ${error.message}`);
+                    }
+                });
+            });
+
+        } catch (error) {
+            console.error('Error finding potential aliases:', error);
+            resultsContainer.innerHTML = '<div class="error">Error finding potential aliases.</div>';
+        }
+    }
+
+    async showExistingAliases(playerName) {
+        const resultsContainer = document.getElementById('existingAliasesResults');
+        if (!resultsContainer) {
+            console.error('Existing aliases results container not found');
+            return;
+        }
+
+        try {
+            const aliases = await this.playerAliasService.getAliasesForPlayer(playerName);
+            
+            if (aliases.length === 0) {
+                resultsContainer.innerHTML = '<div class="no-results">No aliases found for this player.</div>';
+                return;
+            }
+
+            const resultsHTML = aliases.map(alias => `
+                <div class="existing-alias-item">
+                    <div class="alias-info">
+                        <strong>${alias.alias_name}</strong>
+                        <span class="alias-details">
+                            Created by ${alias.created_by} on ${new Date(alias.created_at).toLocaleDateString()}
+                        </span>
+                    </div>
+                    <button class="btn danger deactivate-alias-btn" 
+                            data-primary="${alias.primary_name}" 
+                            data-alias="${alias.alias_name}">
+                        Deactivate
+                    </button>
+                </div>
+            `).join('');
+
+            resultsContainer.innerHTML = resultsHTML;
+
+            // Add event listeners to deactivate alias buttons
+            resultsContainer.querySelectorAll('.deactivate-alias-btn').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const primaryName = btn.getAttribute('data-primary');
+                    const aliasName = btn.getAttribute('data-alias');
+                    
+                    if (confirm(`Are you sure you want to deactivate the alias "${aliasName}" for "${primaryName}"?`)) {
+                        try {
+                            const success = await this.playerAliasService.deactivateAlias(primaryName, aliasName);
+                            if (success) {
+                                this.uiManager.showSuccess(`Deactivated alias: ${aliasName}`);
+                                // Refresh the results
+                                await this.showExistingAliases(playerName);
+                            } else {
+                                this.uiManager.showError('Failed to deactivate alias.');
+                            }
+                        } catch (error) {
+                            console.error('Error deactivating alias:', error);
+                            this.uiManager.showError(`Failed to deactivate alias: ${error.message}`);
+                        }
+                    }
+                });
+            });
+
+        } catch (error) {
+            console.error('Error showing existing aliases:', error);
+            resultsContainer.innerHTML = '<div class="error">Error loading aliases.</div>';
         }
     }
 }

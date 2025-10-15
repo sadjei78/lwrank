@@ -1,7 +1,8 @@
 export class AutocompleteService {
-    constructor(rankingManager, leaderVIPManager) {
+    constructor(rankingManager, leaderVIPManager, playerAliasService = null) {
         this.rankingManager = rankingManager;
         this.leaderVIPManager = leaderVIPManager;
+        this.playerAliasService = playerAliasService;
         this.allPlayerNames = new Set();
         this.filteredNames = [];
         this.selectedIndex = -1;
@@ -108,19 +109,65 @@ export class AutocompleteService {
             );
         }
 
-        // Filter player names based on input
-        this.filteredNames = availableNames
-            .filter(name => name.toLowerCase().includes(query))
+        // Create enhanced results that include aliases
+        const enhancedResults = [];
+        
+        // Add all primary names and their aliases
+        availableNames.forEach(name => {
+            const primaryName = this.playerAliasService ? 
+                this.playerAliasService.resolvePlayerName(name) : name;
+            
+            // Add the primary name
+            enhancedResults.push({
+                name: primaryName,
+                displayName: primaryName,
+                isAlias: false,
+                originalName: name
+            });
+            
+            // Add aliases if they match the query
+            if (this.playerAliasService) {
+                const variations = this.playerAliasService.getAllPlayerVariations(primaryName);
+                variations.forEach(variation => {
+                    if (variation.toLowerCase() !== primaryName.toLowerCase() && 
+                        variation.toLowerCase().includes(query)) {
+                        enhancedResults.push({
+                            name: primaryName, // Use primary name as the actual value
+                            displayName: `${variation} (alias for ${primaryName})`,
+                            isAlias: true,
+                            originalName: variation
+                        });
+                    }
+                });
+            }
+        });
+
+        // Filter and sort results
+        this.filteredNames = enhancedResults
+            .filter(result => {
+                const nameToCheck = result.originalName.toLowerCase();
+                return nameToCheck.includes(query);
+            })
             .sort((a, b) => {
-                // Prioritize names that start with the query
-                const aStartsWith = a.toLowerCase().startsWith(query);
-                const bStartsWith = b.toLowerCase().startsWith(query);
+                // Prioritize exact matches
+                const aExact = a.originalName.toLowerCase() === query;
+                const bExact = b.originalName.toLowerCase() === query;
+                if (aExact && !bExact) return -1;
+                if (!aExact && bExact) return 1;
+                
+                // Then prioritize names that start with the query
+                const aStartsWith = a.originalName.toLowerCase().startsWith(query);
+                const bStartsWith = b.originalName.toLowerCase().startsWith(query);
                 
                 if (aStartsWith && !bStartsWith) return -1;
                 if (!aStartsWith && bStartsWith) return 1;
                 
+                // Prioritize primary names over aliases
+                if (!a.isAlias && b.isAlias) return -1;
+                if (a.isAlias && !b.isAlias) return 1;
+                
                 // Then sort alphabetically
-                return a.localeCompare(b);
+                return a.originalName.localeCompare(b.originalName);
             })
             .slice(0, 10); // Limit to 10 results
 
@@ -174,8 +221,14 @@ export class AutocompleteService {
         } else {
             console.log('Showing dropdown with names:', names);
             let html = '';
-            names.forEach((name, index) => {
-                html += `<div class="autocomplete-item" data-index="${index}" data-value="${name}">${name}</div>`;
+            names.forEach((item, index) => {
+                // Handle both old format (string) and new format (object)
+                const name = typeof item === 'string' ? item : item.name;
+                const displayName = typeof item === 'string' ? item : item.displayName;
+                const isAlias = typeof item === 'object' ? item.isAlias : false;
+                
+                const cssClass = isAlias ? 'autocomplete-item autocomplete-alias' : 'autocomplete-item';
+                html += `<div class="${cssClass}" data-index="${index}" data-value="${name}">${displayName}</div>`;
             });
             dropdownElement.innerHTML = html;
         }
