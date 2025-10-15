@@ -5073,3 +5073,53 @@ header h1 {
 .csv-paste-section .btn {
     margin-top: 15px;
 }
+
+/* Duplicate row highlighting */
+.duplicate-row {
+    background-color: #fff3cd !important;
+    border-left: 4px solid #ffc107 !important;
+    animation: duplicatePulse 2s ease-in-out infinite;
+}
+
+.duplicate-warning {
+    background-color: #f8d7da;
+    color: #721c24;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    margin-top: 8px;
+    border: 1px solid #f5c6cb;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.duplicate-warning::before {
+    content: "⚠️";
+    font-size: 1.1rem;
+}
+
+@keyframes duplicatePulse {
+    0%, 100% {
+        background-color: #fff3cd;
+    }
+    50% {
+        background-color: #ffeaa7;
+    }
+}
+
+/* Enhanced duplicate row styling */
+.duplicate-row .ranking-number {
+    color: #856404;
+    font-weight: bold;
+}
+
+.duplicate-row .points-value {
+    color: #856404;
+    font-weight: bold;
+}
+
+.duplicate-row .commander-input {
+    background-color: #fff8e1 !important;
+    border-color: #ffc107 !important;
+}

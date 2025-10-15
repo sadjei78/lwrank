@@ -314,6 +314,53 @@ export class RankingsManager {
     }
 
     /**
+     * Check for existing rankings in the database
+     */
+    async checkExistingRankings(parsedData) {
+        try {
+            // Get all unique commanders from parsed data
+            const commanders = [...new Set(parsedData.map(item => item.commander))];
+            
+            // Query database for existing rankings on the selected date
+            const { data: existingRankings, error } = await supabase
+                .from('rankings')
+                .select('commander, ranking, points')
+                .eq('day', this.currentDate)
+                .in('commander', commanders);
+
+            if (error) {
+                console.error('Error checking existing rankings:', error);
+                return [];
+            }
+
+            return existingRankings || [];
+        } catch (error) {
+            console.error('Error checking existing rankings:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Mark duplicate entries in parsed data
+     */
+    markDuplicates(parsedData, existingRankings) {
+        parsedData.forEach(item => {
+            // Check if this commander already exists in the database for this date
+            const existingEntry = existingRankings.find(existing => 
+                existing.commander.toLowerCase() === item.commander.toLowerCase()
+            );
+            
+            if (existingEntry) {
+                item.isDuplicate = true;
+                item.existingRanking = existingEntry.ranking;
+                item.existingPoints = existingEntry.points;
+            } else {
+                item.isDuplicate = false;
+            }
+        });
+    }
+
+    /**
      * Parse CSV data
      */
     async parseCsvData(csvData) {
@@ -368,12 +415,20 @@ export class RankingsManager {
                 throw new Error('No valid ranking data found in CSV');
             }
 
+            // Check for existing rankings and mark duplicates
+            const existingRankings = await this.checkExistingRankings(this.parsedData);
+            this.markDuplicates(this.parsedData, existingRankings);
+
             // Show results
             this.hideProcessing();
             this.showResults();
             this.renderParsedData();
             
-            this.showMessage(`Successfully parsed ${this.parsedData.length} rankings from CSV.`, 'success');
+            const duplicateCount = this.parsedData.filter(item => item.isDuplicate).length;
+            const message = duplicateCount > 0 
+                ? `Successfully parsed ${this.parsedData.length} rankings from CSV. ${duplicateCount} duplicate(s) detected and highlighted.`
+                : `Successfully parsed ${this.parsedData.length} rankings from CSV.`;
+            this.showMessage(message, duplicateCount > 0 ? 'warning' : 'success');
             
         } catch (error) {
             console.error('Error parsing CSV:', error);
@@ -416,7 +471,12 @@ export class RankingsManager {
 
         this.parsedData.forEach((item, index) => {
             const row = document.createElement('div');
-            row.className = 'table-row';
+            row.className = `table-row ${item.isDuplicate ? 'duplicate-row' : ''}`;
+            
+            const duplicateWarning = item.isDuplicate 
+                ? `<div class="duplicate-warning">⚠️ Duplicate: Rank ${item.existingRanking}, ${this.formatPoints(item.existingPoints)} points</div>`
+                : '';
+            
             row.innerHTML = `
                 <div class="col-ranking"><span class="ranking-number">${item.ranking}</span></div>
                 <div class="col-commander">
@@ -435,6 +495,7 @@ export class RankingsManager {
                     <div class="commander-suggestions" id="suggestions-${index}" style="display: none;">
                         <!-- Suggestions will be populated here -->
                     </div>
+                    ${duplicateWarning}
                 </div>
                 <div class="col-points"><span class="points-value">${this.formatPoints(item.points)}</span></div>
                 <div class="col-actions">
