@@ -1,3 +1,10 @@
+# Test files and reports
+playwright-report/
+test-results/
+test-screenshots/
+*.webm
+*.png
+
 # Logs
 logs
 *.log
