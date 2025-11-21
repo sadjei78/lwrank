@@ -3520,9 +3520,10 @@ header h1 {
 .frequency-report-section {
     margin-top: 30px;
     padding: 20px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .report-controls {
@@ -3530,27 +3531,30 @@ header h1 {
 }
 
 .report-btn {
-    background: #007bff;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     border: none;
-    padding: 10px 20px;
-    border-radius: 4px;
+    padding: 12px 24px;
+    border-radius: 8px;
     cursor: pointer;
     font-size: 14px;
+    font-weight: 600;
     margin-right: 10px;
-    transition: background-color 0.2s;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(102, 126, 234, 0.2);
 }
 
 .report-btn:hover {
-    background: #0056b3;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
 }
 
 .report-btn.secondary {
-    background: #6c757d;
+    background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
 }
 
 .report-btn.secondary:hover {
-    background: #545b62;
+    background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
 }
 
 .frequency-report-container {
@@ -3558,54 +3562,68 @@ header h1 {
 }
 
 .report-header {
-    margin-bottom: 20px;
+    margin-bottom: 24px;
     text-align: center;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #e5e7eb;
 }
 
-.report-header h5 {
-    margin: 0 0 10px 0;
-    color: #fff;
-    font-size: 18px;
+.report-header h3 {
+    margin: 0 0 16px 0;
+    color: #1f2937;
+    font-size: 24px;
+    font-weight: 700;
 }
 
-.report-summary {
+.report-meta {
     display: flex;
     justify-content: center;
-    gap: 20px;
+    gap: 16px;
     flex-wrap: wrap;
+    margin-top: 12px;
 }
 
-.summary-item {
-    background: rgba(0, 123, 255, 0.2);
-    padding: 8px 16px;
+.meta-item {
+    background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+    padding: 10px 18px;
     border-radius: 20px;
     font-size: 14px;
-    color: #fff;
-    border: 1px solid rgba(0, 123, 255, 0.3);
+    font-weight: 600;
+    color: #0c4a6e;
+    border: 1px solid #7dd3fc;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .frequency-report-grid {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 8px;
+    background: white;
+    border-radius: 12px;
     overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .frequency-grid-header {
     display: grid;
     grid-template-columns: 2fr 1fr 1fr 1fr 1.5fr 1.5fr;
-    background: rgba(0, 123, 255, 0.2);
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
     font-weight: 600;
-    color: #fff;
-    border-bottom: 2px solid rgba(0, 123, 255, 0.3);
+    color: #ffffff;
+    border-bottom: 3px solid #667eea;
 }
 
 .frequency-grid-header .sortable {
     cursor: pointer;
     user-select: none;
     transition: background-color 0.2s;
-    padding: 8px;
-    border-radius: 4px;
+    padding: 16px;
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+}
+
+.frequency-grid-header .sortable:last-child {
+    border-right: none;
 }
 
 .frequency-grid-header .sortable:hover {
@@ -3615,30 +3633,40 @@ header h1 {
 .frequency-grid-row {
     display: grid;
     grid-template-columns: 2fr 1fr 1fr 1fr 1.5fr 1.5fr;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid #f3f4f6;
     transition: background-color 0.2s;
+    background: white;
+}
+
+.frequency-grid-row:nth-child(even) {
+    background: #f9fafb;
 }
 
 .frequency-grid-row:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: #f3f4f6 !important;
 }
 
 .frequency-grid-row.alliance-leader {
-    background: rgba(255, 215, 0, 0.1);
-    border-left: 3px solid #ffd700;
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border-left: 4px solid #f59e0b;
+}
+
+.frequency-grid-row.alliance-leader:nth-child(even) {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
 }
 
 .frequency-grid-row.alliance-leader:hover {
-    background: rgba(255, 215, 0, 0.15);
+    background: linear-gradient(135deg, #fde68a 0%, #fcd34d 100%) !important;
 }
 
 .grid-cell {
-    padding: 12px 16px;
-    color: #fff;
+    padding: 14px 16px;
+    color: #1f2937;
     font-size: 14px;
     display: flex;
     align-items: center;
-    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    border-right: 1px solid #e5e7eb;
+    line-height: 1.5;
 }
 
 .grid-cell:last-child {
@@ -3646,27 +3674,86 @@ header h1 {
 }
 
 .grid-cell.player-name {
-    font-weight: 500;
-    color: #fff;
+    font-weight: 600;
+    color: #1f2937;
+    font-size: 15px;
 }
 
 .grid-cell.vip-count,
 .grid-cell.conductor-count {
     text-align: center;
+    font-weight: 700;
+    color: #059669;
+    font-size: 16px;
+    justify-content: center;
+}
+
+.grid-cell.total-count {
+    text-align: center;
     font-weight: 600;
-    color: #28a745;
+    color: #667eea;
+    font-size: 15px;
+    justify-content: center;
 }
 
 .grid-cell.recent-vip,
 .grid-cell.recent-conductor {
     text-align: center;
-    color: #6c757d;
+    color: #4b5563;
     font-size: 13px;
+    justify-content: center;
+    font-weight: 500;
 }
 
 .leader-badge {
+    display: inline-block;
     margin-right: 8px;
     font-size: 16px;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+}
+
+/* Additional frequency report improvements */
+.report-meta {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+}
+
+.report-meta .meta-item {
+    background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+    padding: 10px 18px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #0c4a6e;
+    border: 1px solid #7dd3fc;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    white-space: nowrap;
+}
+
+.frequency-report-grid {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.frequency-report-grid::-webkit-scrollbar {
+    width: 10px;
+}
+
+.frequency-report-grid::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 5px;
+}
+
+.frequency-report-grid::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 5px;
+}
+
+.frequency-report-grid::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
 }
 
 /* Responsive design for frequency report */
@@ -5308,6 +5395,60 @@ header h1 {
     gap: 12px;
 }
 
+.activity-filters {
+    margin-bottom: 20px;
+    padding: 16px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: flex-end;
+}
+
+.activity-filters .filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.activity-filters .filter-group label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #374151;
+}
+
+.activity-filters .filter-input {
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+    min-width: 150px;
+}
+
+.activity-filters .filter-input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+#customDaysFilter {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+}
+
+#customDaysFilter .filter-group {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+}
+
+#customDaysFilter .filter-input {
+    min-width: 80px;
+}
+
 .activity-btn {
     padding: 10px 20px;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -5352,7 +5493,7 @@ header h1 {
 
 .activity-list-header {
     display: grid;
-    grid-template-columns: 2fr 1fr 1fr 1fr;
+    grid-template-columns: 2fr 1fr 1fr 1fr 120px;
     gap: 12px;
     padding: 16px 20px;
     background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
@@ -5369,7 +5510,7 @@ header h1 {
 
 .activity-list-item {
     display: grid;
-    grid-template-columns: 2fr 1fr 1fr 1fr;
+    grid-template-columns: 2fr 1fr 1fr 1fr 120px;
     gap: 12px;
     padding: 14px 20px;
     border-bottom: 1px solid #f3f4f6;
@@ -5428,6 +5569,35 @@ header h1 {
     font-style: italic;
 }
 
+.activity-item-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mark-inactive-btn {
+    padding: 6px 12px;
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.mark-inactive-btn:hover {
+    background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(217, 119, 6, 0.3);
+}
+
+.mark-inactive-btn:active {
+    transform: translateY(0);
+}
+
 /* Responsive design for member activity */
 @media (max-width: 768px) {
     .activity-list-header,
@@ -5467,5 +5637,34 @@ header h1 {
         content: "Last Date: ";
         font-weight: 600;
         color: #6b7280;
+    }
+    
+    .activity-item-actions::before {
+        content: "Actions: ";
+        font-weight: 600;
+        color: #6b7280;
+    }
+    
+    .mark-inactive-btn {
+        width: 100%;
+        margin-top: 8px;
+    }
+    
+    .activity-filters {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .activity-filters .filter-group {
+        width: 100%;
+    }
+    
+    .activity-filters .filter-input {
+        width: 100%;
+    }
+    
+    #customDaysFilter {
+        flex-direction: column;
+        align-items: stretch;
     }
 }

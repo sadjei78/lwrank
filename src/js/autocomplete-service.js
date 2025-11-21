@@ -36,21 +36,21 @@ export class AutocompleteService {
         }
     }
 
-    setupAutocomplete(inputElement, dropdownElement, onSelect, excludeLeaders = false, excludeRemoved = false) {
+    setupAutocomplete(inputElement, dropdownElement, onSelect, excludeLeaders = false, excludeRemoved = false, excludeInactive = false) {
         let debounceTimer;
         
         // Input event handler
         inputElement.addEventListener('input', (e) => {
             clearTimeout(debounceTimer);
             debounceTimer = setTimeout(() => {
-                this.handleInput(e.target.value, dropdownElement, onSelect, excludeLeaders, excludeRemoved);
+                this.handleInput(e.target.value, dropdownElement, onSelect, excludeLeaders, excludeRemoved, excludeInactive);
             }, 150); // Debounce for better performance
         });
 
         // Focus event handler
         inputElement.addEventListener('focus', () => {
             if (inputElement.value.trim()) {
-                this.handleInput(inputElement.value, dropdownElement, onSelect, excludeLeaders, excludeRemoved);
+                this.handleInput(inputElement.value, dropdownElement, onSelect, excludeLeaders, excludeRemoved, excludeInactive);
             }
         });
 
@@ -81,10 +81,10 @@ export class AutocompleteService {
         });
     }
 
-    handleInput(value, dropdownElement, onSelect, excludeLeaders = false, excludeRemoved = false) {
+    async handleInput(value, dropdownElement, onSelect, excludeLeaders = false, excludeRemoved = false, excludeInactive = false) {
         const query = value.trim().toLowerCase();
         
-        console.log('Autocomplete handleInput called:', { value, query, excludeLeaders, excludeRemoved });
+        console.log('Autocomplete handleInput called:', { value, query, excludeLeaders, excludeRemoved, excludeInactive });
         console.log('All player names count:', this.allPlayerNames.size);
         console.log('Dropdown element:', dropdownElement);
         
@@ -93,7 +93,7 @@ export class AutocompleteService {
             return;
         }
 
-        // Get player names, optionally excluding leaders and removed players
+        // Get player names, optionally excluding leaders, removed players, and inactive players
         let availableNames = Array.from(this.allPlayerNames);
         console.log('Available names before filtering:', availableNames.length);
         
@@ -107,6 +107,25 @@ export class AutocompleteService {
             availableNames = availableNames.filter(name => 
                 !this.rankingManager.isPlayerRemoved(name)
             );
+        }
+
+        if (excludeInactive && this.rankingManager) {
+            // Get inactive players and filter them out
+            const inactivePlayers = await this.rankingManager.getInactivePlayers();
+            const inactivePlayerNames = new Set(
+                inactivePlayers.map(p => {
+                    const name = p.player_name || p.playerName;
+                    return this.playerAliasService ? 
+                        this.playerAliasService.resolvePlayerName(name).toLowerCase() : 
+                        name.toLowerCase();
+                })
+            );
+            
+            availableNames = availableNames.filter(name => {
+                const resolvedName = this.playerAliasService ? 
+                    this.playerAliasService.resolvePlayerName(name) : name;
+                return !inactivePlayerNames.has(resolvedName.toLowerCase());
+            });
         }
 
         // Create enhanced results that include aliases

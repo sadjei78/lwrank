@@ -1091,6 +1091,118 @@ export class RankingManager {
         }
     }
 
+    // Inactive Players Management
+    async addInactivePlayer(playerName, markedBy, reason = null) {
+        try {
+            if (this.isOnline) {
+                const { data, error } = await supabase
+                    .from('inactive_players')
+                    .insert([{
+                        player_name: playerName,
+                        marked_by: markedBy,
+                        reason: reason
+                    }]);
+                
+                if (error) {
+                    console.error('Database error adding inactive player:', error);
+                    return false;
+                }
+                
+                // Also save to localStorage as backup
+                const inactivePlayers = JSON.parse(localStorage.getItem('inactivePlayers') || '[]');
+                inactivePlayers.push({
+                    playerName: playerName,
+                    markedBy: markedBy,
+                    reason: reason,
+                    markedInactiveDate: new Date().toISOString().split('T')[0]
+                });
+                localStorage.setItem('inactivePlayers', JSON.stringify(inactivePlayers));
+                
+                return true;
+            } else {
+                // Offline mode - save to localStorage only
+                const inactivePlayers = JSON.parse(localStorage.getItem('inactivePlayers') || '[]');
+                inactivePlayers.push({
+                    playerName: playerName,
+                    markedBy: markedBy,
+                    reason: reason,
+                    markedInactiveDate: new Date().toISOString().split('T')[0]
+                });
+                localStorage.setItem('inactivePlayers', JSON.stringify(inactivePlayers));
+                return true;
+            }
+        } catch (error) {
+            console.error('Error adding inactive player:', error);
+            return false;
+        }
+    }
+
+    async getInactivePlayers() {
+        try {
+            if (this.isOnline) {
+                const { data, error } = await supabase
+                    .from('inactive_players')
+                    .select('*')
+                    .order('marked_inactive_date', { ascending: false });
+                
+                if (error) {
+                    console.error('Database error getting inactive players:', error);
+                    // Fall back to localStorage
+                    return JSON.parse(localStorage.getItem('inactivePlayers') || '[]');
+                }
+                
+                // Also save to localStorage as backup
+                localStorage.setItem('inactivePlayers', JSON.stringify(data));
+                return data || [];
+            } else {
+                // Offline mode - use localStorage
+                return JSON.parse(localStorage.getItem('inactivePlayers') || '[]');
+            }
+        } catch (error) {
+            console.error('Error getting inactive players:', error);
+            return JSON.parse(localStorage.getItem('inactivePlayers') || '[]');
+        }
+    }
+
+    async removeInactivePlayer(playerName) {
+        try {
+            if (this.isOnline) {
+                const { error } = await supabase
+                    .from('inactive_players')
+                    .delete()
+                    .eq('player_name', playerName);
+                
+                if (error) {
+                    console.error('Database error removing inactive player:', error);
+                    return false;
+                }
+            }
+            
+            // Remove from localStorage
+            const inactivePlayers = JSON.parse(localStorage.getItem('inactivePlayers') || '[]');
+            const updated = inactivePlayers.filter(p => p.player_name !== playerName && p.playerName !== playerName);
+            localStorage.setItem('inactivePlayers', JSON.stringify(updated));
+            
+            return true;
+        } catch (error) {
+            console.error('Error removing inactive player:', error);
+            return false;
+        }
+    }
+
+    async isPlayerInactive(playerName) {
+        try {
+            const inactivePlayers = await this.getInactivePlayers();
+            return inactivePlayers.some(p => {
+                const name = p.player_name || p.playerName;
+                return name && name.toLowerCase() === playerName.toLowerCase();
+            });
+        } catch (error) {
+            console.error('Error checking if player is inactive:', error);
+            return false;
+        }
+    }
+
     async getRemovedPlayers() {
         try {
             if (this.isOnline) {

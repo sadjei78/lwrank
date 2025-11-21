@@ -21,6 +21,7 @@ class DailyRankingsApp {
         this.currentTabDate = null;
         this.adminAuthenticated = false;
         this.modalEventListenersSetup = false;
+        this.memberActivityData = null; // Store full activity data for filtering
         
         // Set the leader VIP manager in the UI manager
         this.uiManager.setLeaderVIPManager(this.leaderVIPManager);
@@ -1691,6 +1692,120 @@ class DailyRankingsApp {
         }
     }
 
+    async updateInactivePlayersList() {
+        try {
+            const inactivePlayers = await this.rankingManager.getInactivePlayers();
+            const inactivePlayersList = document.getElementById('currentInactivePlayersList');
+            const inactivePlayerCount = document.getElementById('inactivePlayerCount');
+            
+            if (!inactivePlayersList || !inactivePlayerCount) {
+                console.error('Inactive players list elements not found');
+                return;
+            }
+            
+            inactivePlayerCount.textContent = inactivePlayers.length;
+            
+            if (inactivePlayers.length === 0) {
+                inactivePlayersList.innerHTML = '<p class="no-inactive-players">No players are currently marked as inactive.</p>';
+                return;
+            }
+            
+            const inactivePlayersHTML = inactivePlayers.map(player => {
+                const playerName = player.player_name || player.playerName;
+                const markedDate = player.marked_inactive_date || player.markedInactiveDate;
+                const markedBy = player.marked_by || player.markedBy;
+                const reason = player.reason;
+                
+                return `
+                    <div class="inactive-player-item">
+                        <div class="inactive-player-info">
+                            <span class="inactive-player-name">${this.escapeHTML(playerName)}</span>
+                            <span class="inactive-date">Marked inactive: ${markedDate}</span>
+                            ${markedBy ? `<span class="marked-by">By: ${this.escapeHTML(markedBy)}</span>` : ''}
+                            ${reason ? `<span class="inactive-reason">Reason: ${this.escapeHTML(reason)}</span>` : ''}
+                        </div>
+                        <button class="restore-inactive-player-btn" data-player="${this.escapeHTML(playerName)}">🔄 Reactivate</button>
+                    </div>
+                `;
+            }).join('');
+            
+            inactivePlayersList.innerHTML = inactivePlayersHTML;
+            
+            // Add event listeners for reactivate buttons
+            inactivePlayersList.querySelectorAll('.restore-inactive-player-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const playerName = e.target.dataset.player;
+                    await this.restoreInactivePlayer(playerName);
+                });
+            });
+            
+        } catch (error) {
+            console.error('Error updating inactive players list:', error);
+        }
+    }
+
+    async addInactivePlayer() {
+        const inactivePlayerInput = document.getElementById('inactivePlayerName');
+        const inactiveReasonInput = document.getElementById('inactiveReason');
+        
+        if (!inactivePlayerInput || !inactiveReasonInput) {
+            console.error('Inactive player input elements not found');
+            return;
+        }
+        
+        const playerName = inactivePlayerInput.value.trim();
+        const reason = inactiveReasonInput.value.trim() || null;
+        
+        if (!playerName) {
+            this.uiManager.showError('Please enter a player name');
+            return;
+        }
+        
+        try {
+            const success = await this.rankingManager.addInactivePlayer(playerName, 'Admin', reason);
+            
+            if (success) {
+                this.uiManager.showSuccess(`Successfully marked "${playerName}" as inactive`);
+                
+                // Clear form
+                inactivePlayerInput.value = '';
+                inactiveReasonInput.value = '';
+                
+                // Update inactive players list
+                await this.updateInactivePlayersList();
+                
+                // Refresh autocomplete to exclude inactive players
+                await this.autocompleteService.refreshPlayerNames();
+            } else {
+                this.uiManager.showError('Failed to mark player as inactive. Please try again.');
+            }
+        } catch (error) {
+            console.error('Error adding inactive player:', error);
+            this.uiManager.showError(`Error marking player as inactive: ${error.message}`);
+        }
+    }
+
+    async restoreInactivePlayer(playerName) {
+        try {
+            const success = await this.rankingManager.removeInactivePlayer(playerName);
+            
+            if (success) {
+                this.uiManager.showSuccess(`Successfully reactivated "${playerName}"`);
+                
+                // Update inactive players list
+                await this.updateInactivePlayersList();
+                
+                // Refresh autocomplete to include reactivated player
+                await this.autocompleteService.refreshPlayerNames();
+            } else {
+                this.uiManager.showError('Failed to reactivate player. Please try again.');
+            }
+        } catch (error) {
+            console.error('Error restoring inactive player:', error);
+            this.uiManager.showError(`Error reactivating player: ${error.message}`);
+        }
+    }
+
     async addExcusedPlayer() {
         const excusedPlayerInput = document.getElementById('excusedPlayerName');
         const excusedReasonInput = document.getElementById('excusedReason');
@@ -2164,6 +2279,43 @@ class DailyRankingsApp {
                     </div>
                 </div>
 
+                <!-- Inactive Players Management Section -->
+                <div class="admin-section collapsible">
+                    <div class="collapsible-header" data-target="inactivePlayersContent">
+                        <h3>⏸️ Inactive Players Management</h3>
+                        <span class="collapsible-icon">▼</span>
+                    </div>
+                    <div id="inactivePlayersContent" class="collapsible-content collapsed">
+                        <div class="inactive-player-form">
+                            <div class="form-group">
+                                <label for="inactivePlayerName">Player Name:</label>
+                                <div class="autocomplete-container">
+                                    <input type="text" id="inactivePlayerName" placeholder="Enter player name" class="form-input">
+                                    <div id="inactivePlayerAutocomplete" class="autocomplete-dropdown"></div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="inactiveReason">Reason (Optional):</label>
+                                <textarea id="inactiveReason" placeholder="Enter reason for marking inactive..." class="form-input" rows="3"></textarea>
+                            </div>
+                            <button id="addInactivePlayerBtn" class="inactive-player-btn">Mark as Inactive</button>
+                            
+                            <div class="inactive-players-help">
+                                <small class="form-help">
+                                    <strong>Note:</strong> Inactive players will be excluded from recent activity reports and VIP/Conductor dropdowns, but will still appear in daily rankings and historical reports.
+                                </small>
+                            </div>
+                        </div>
+                        
+                        <div class="current-inactive-players">
+                            <h4>Currently Inactive Players (<span id="inactivePlayerCount">0</span>)</h4>
+                            <div id="currentInactivePlayersList" class="current-inactive-players-list">
+                                <p class="loading-inactive-players">Loading inactive players...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Alliance Leader Management Section -->
                 <div class="admin-section collapsible">
                     <div class="collapsible-header" data-target="allianceLeaderContent">
@@ -2543,6 +2695,29 @@ class DailyRankingsApp {
                             <button type="button" id="refreshMemberActivityBtn" class="activity-btn primary">🔄 Refresh Activity List</button>
                             <small class="form-help">Shows all alliance members with days since last VIP or Conductor role</small>
                         </div>
+                        <div class="activity-filters">
+                            <div class="filter-group">
+                                <label for="activityDaysFilter">Filter by Days Since:</label>
+                                <select id="activityDaysFilter" class="filter-input">
+                                    <option value="all">All Members</option>
+                                    <option value="0">Today (0 days)</option>
+                                    <option value="1">Yesterday (1 day)</option>
+                                    <option value="7">Last 7 days</option>
+                                    <option value="14">Last 14 days</option>
+                                    <option value="30">Last 30 days</option>
+                                    <option value="60">Last 60 days</option>
+                                    <option value="90">Last 90 days</option>
+                                    <option value="never">Never (no activity)</option>
+                                    <option value="custom">Custom Range</option>
+                                </select>
+                            </div>
+                            <div class="filter-group" id="customDaysFilter" style="display: none;">
+                                <label for="minDaysFilter">Min Days:</label>
+                                <input type="number" id="minDaysFilter" class="filter-input" min="0" placeholder="0">
+                                <label for="maxDaysFilter">Max Days:</label>
+                                <input type="number" id="maxDaysFilter" class="filter-input" min="0" placeholder="Any">
+                            </div>
+                        </div>
                         <div id="memberActivityList" class="member-activity-list">
                             <p class="loading-activity">Click "Refresh Activity List" to load member activity...</p>
                         </div>
@@ -2617,6 +2792,7 @@ class DailyRankingsApp {
         this.updateSpecialEventsList();
         this.updateRemovedPlayersList();
         this.updateExcusedPlayersList();
+        this.updateInactivePlayersList();
         
         // Setup autocomplete for leader and VIP inputs
         this.setupAutocomplete();
@@ -2626,6 +2802,9 @@ class DailyRankingsApp {
         
         // Setup autocomplete for excused player input
         this.setupExcusedPlayerAutocomplete();
+        
+        // Setup autocomplete for inactive player input
+        this.setupInactivePlayerAutocomplete();
         
         // Setup collapsible sections immediately after content is loaded
         this.setupCollapsibleSections();
@@ -2917,6 +3096,16 @@ class DailyRankingsApp {
             console.error('Add removed player button not found');
         }
 
+        // Add inactive player button
+        const addInactivePlayerBtn = document.getElementById('addInactivePlayerBtn');
+        if (addInactivePlayerBtn) {
+            addInactivePlayerBtn.addEventListener('click', () => {
+                this.addInactivePlayer();
+            });
+        } else {
+            console.error('Add inactive player button not found');
+        }
+
         // Add excused player button
         const addExcusedPlayerBtn = document.getElementById('addExcusedPlayerBtn');
         if (addExcusedPlayerBtn) {
@@ -3029,6 +3218,34 @@ class DailyRankingsApp {
         if (refreshMemberActivityBtn) {
             refreshMemberActivityBtn.addEventListener('click', async () => {
                 await this.updateMemberActivityList();
+            });
+        }
+
+        // Activity filter dropdown
+        const activityDaysFilter = document.getElementById('activityDaysFilter');
+        if (activityDaysFilter) {
+            activityDaysFilter.addEventListener('change', () => {
+                const customFilter = document.getElementById('customDaysFilter');
+                if (activityDaysFilter.value === 'custom') {
+                    customFilter.style.display = 'flex';
+                } else {
+                    customFilter.style.display = 'none';
+                }
+                this.applyActivityFilter();
+            });
+        }
+
+        // Custom filter inputs
+        const minDaysFilter = document.getElementById('minDaysFilter');
+        const maxDaysFilter = document.getElementById('maxDaysFilter');
+        if (minDaysFilter) {
+            minDaysFilter.addEventListener('input', () => {
+                this.applyActivityFilter();
+            });
+        }
+        if (maxDaysFilter) {
+            maxDaysFilter.addEventListener('input', () => {
+                this.applyActivityFilter();
             });
         }
 
@@ -4973,8 +5190,20 @@ class DailyRankingsApp {
             // Aggregate all member names from all sources
             const allMembers = await this.getAllMemberNames();
             
-            // Calculate days since last VIP or Conductor for each member
-            const memberActivity = await this.calculateMemberActivity(allMembers);
+            // Get inactive players and exclude them
+            const inactivePlayers = await this.rankingManager.getInactivePlayers();
+            const inactivePlayerNames = new Set(
+                inactivePlayers.map(p => (p.player_name || p.playerName).toLowerCase())
+            );
+            
+            // Filter out inactive players
+            const activeMembers = allMembers.filter(member => {
+                const resolvedName = this.playerAliasService.resolvePlayerName(member);
+                return !inactivePlayerNames.has(resolvedName.toLowerCase());
+            });
+            
+            // Calculate days since last VIP or Conductor for each active member
+            const memberActivity = await this.calculateMemberActivity(activeMembers);
             
             // Sort by days since last activity (most recent first, then never)
             memberActivity.sort((a, b) => {
@@ -4984,12 +5213,51 @@ class DailyRankingsApp {
                 return a.daysSince - b.daysSince; // Most recent first
             });
 
-            // Render the list
-            this.renderMemberActivityList(memberActivity);
+            // Store the full activity data for filtering
+            this.memberActivityData = memberActivity;
+
+            // Apply current filter and render
+            this.applyActivityFilter();
         } catch (error) {
             console.error('Error updating member activity list:', error);
             activityListContainer.innerHTML = `<p class="error-activity">Error loading member activity: ${error.message}</p>`;
         }
+    }
+
+    /**
+     * Apply filter to member activity list
+     */
+    applyActivityFilter() {
+        if (!this.memberActivityData) {
+            return;
+        }
+
+        const filterValue = document.getElementById('activityDaysFilter')?.value || 'all';
+        const minDaysInput = document.getElementById('minDaysFilter');
+        const maxDaysInput = document.getElementById('maxDaysFilter');
+        
+        let filteredActivity = [...this.memberActivityData];
+
+        if (filterValue === 'never') {
+            filteredActivity = filteredActivity.filter(m => m.daysSince === null);
+        } else if (filterValue === 'custom') {
+            const minDays = minDaysInput?.value ? parseInt(minDaysInput.value) : 0;
+            const maxDays = maxDaysInput?.value ? parseInt(maxDaysInput.value) : Infinity;
+            
+            filteredActivity = filteredActivity.filter(m => {
+                if (m.daysSince === null) return false; // Exclude "never" in custom range
+                return m.daysSince >= minDays && m.daysSince <= maxDays;
+            });
+        } else if (filterValue !== 'all') {
+            const daysThreshold = parseInt(filterValue);
+            filteredActivity = filteredActivity.filter(m => {
+                if (m.daysSince === null) return false; // Exclude "never" for specific day filters
+                return m.daysSince <= daysThreshold;
+            });
+        }
+
+        // Render the filtered list
+        this.renderMemberActivityList(filteredActivity);
     }
 
     /**
@@ -5234,36 +5502,81 @@ class DailyRankingsApp {
                 <div class="activity-header-item">Days Since</div>
                 <div class="activity-header-item">Last Role</div>
                 <div class="activity-header-item">Last Date</div>
+                <div class="activity-header-item">Actions</div>
             </div>
             <div class="activity-list-items">
         `;
 
-        memberActivity.forEach(member => {
-            const daysDisplay = member.daysSince === null 
-                ? '<span class="never-role">Never</span>' 
-                : member.daysSince === 0 
-                    ? '<span class="today-role">Today</span>'
-                    : member.daysSince === 1
-                        ? '<span class="yesterday-role">Yesterday</span>'
-                        : `<span class="days-role">${member.daysSince} days</span>`;
-            
-            const roleDisplay = member.lastRole || '<span class="no-role">-</span>';
-            const dateDisplay = member.lastDate 
-                ? this.formatDateForDisplay(member.lastDate.toISOString().split('T')[0])
-                : '-';
+        if (memberActivity.length === 0) {
+            html += '<div class="activity-list-item"><div class="activity-item-name" style="grid-column: 1 / -1; text-align: center; padding: 20px;">No members match the current filter</div></div>';
+        } else {
+            memberActivity.forEach(member => {
+                const daysDisplay = member.daysSince === null 
+                    ? '<span class="never-role">Never</span>' 
+                    : member.daysSince === 0 
+                        ? '<span class="today-role">Today</span>'
+                        : member.daysSince === 1
+                            ? '<span class="yesterday-role">Yesterday</span>'
+                            : `<span class="days-role">${member.daysSince} days</span>`;
+                
+                const roleDisplay = member.lastRole || '<span class="no-role">-</span>';
+                const dateDisplay = member.lastDate 
+                    ? this.formatDateForDisplay(member.lastDate.toISOString().split('T')[0])
+                    : '-';
 
-            html += `
-                <div class="activity-list-item">
-                    <div class="activity-item-name">${this.escapeHTML(member.name)}</div>
-                    <div class="activity-item-days">${daysDisplay}</div>
-                    <div class="activity-item-role">${roleDisplay}</div>
-                    <div class="activity-item-date">${dateDisplay}</div>
-                </div>
-            `;
-        });
+                html += `
+                    <div class="activity-list-item">
+                        <div class="activity-item-name">${this.escapeHTML(member.name)}</div>
+                        <div class="activity-item-days">${daysDisplay}</div>
+                        <div class="activity-item-role">${roleDisplay}</div>
+                        <div class="activity-item-date">${dateDisplay}</div>
+                        <div class="activity-item-actions">
+                            <button class="mark-inactive-btn" data-player="${this.escapeHTML(member.name)}" title="Mark as inactive">⏸️ Mark Inactive</button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
 
         html += '</div>';
         activityListContainer.innerHTML = html;
+
+        // Add event listeners for mark inactive buttons
+        activityListContainer.querySelectorAll('.mark-inactive-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const playerName = e.target.dataset.player;
+                if (confirm(`Mark "${playerName}" as inactive? They will be excluded from recent activity reports and VIP/Conductor selections.`)) {
+                    await this.quickMarkInactive(playerName);
+                }
+            });
+        });
+    }
+
+    /**
+     * Quick mark player as inactive from activity list
+     */
+    async quickMarkInactive(playerName) {
+        try {
+            const success = await this.rankingManager.addInactivePlayer(playerName, 'Admin', 'Marked inactive from activity list');
+            
+            if (success) {
+                this.uiManager.showSuccess(`Successfully marked "${playerName}" as inactive`);
+                
+                // Refresh the activity list (will exclude the newly inactive player)
+                await this.updateMemberActivityList();
+                
+                // Update inactive players list
+                await this.updateInactivePlayersList();
+                
+                // Refresh autocomplete to exclude inactive players
+                await this.autocompleteService.refreshPlayerNames();
+            } else {
+                this.uiManager.showError('Failed to mark player as inactive. Please try again.');
+            }
+        } catch (error) {
+            console.error('Error marking player as inactive:', error);
+            this.uiManager.showError(`Error marking player as inactive: ${error.message}`);
+        }
     }
 
     updateDataStatus() {
@@ -6172,6 +6485,57 @@ class DailyRankingsApp {
         });
     }
 
+    setupInactivePlayerAutocomplete() {
+        const inactivePlayerInput = document.getElementById('inactivePlayerName');
+        const autocompleteDropdown = document.getElementById('inactivePlayerAutocomplete');
+        
+        if (!inactivePlayerInput || !autocompleteDropdown) {
+            console.error('Inactive player autocomplete elements not found');
+            return;
+        }
+        
+        let debounceTimer;
+        
+        inactivePlayerInput.addEventListener('input', (e) => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                this.autocompleteService.handleInput(
+                    e.target.value, 
+                    autocompleteDropdown, 
+                    (selectedName) => {
+                        inactivePlayerInput.value = selectedName;
+                    },
+                    false, // Don't exclude leaders
+                    true,  // Exclude removed players
+                    true   // Exclude inactive players
+                );
+            }, 150);
+        });
+
+        // Focus event handler
+        inactivePlayerInput.addEventListener('focus', () => {
+            if (inactivePlayerInput.value.trim()) {
+                this.autocompleteService.handleInput(
+                    inactivePlayerInput.value, 
+                    autocompleteDropdown, 
+                    (selectedName) => {
+                        inactivePlayerInput.value = selectedName;
+                    },
+                    false, // Don't exclude leaders
+                    true,  // Exclude removed players
+                    true   // Exclude inactive players
+                );
+            }
+        });
+
+        // Blur event handler (close dropdown after a short delay)
+        inactivePlayerInput.addEventListener('blur', () => {
+            setTimeout(() => {
+                this.autocompleteService.closeDropdown(autocompleteDropdown);
+            }, 200);
+        });
+    }
+
     setupPlayerAliasEventListeners() {
         console.log('Setting up player alias event listeners...');
 
@@ -6268,7 +6632,8 @@ class DailyRankingsApp {
                     this.updateVIPFrequencyDisplay('vipPlayer', selectedName);
                 },
                 false, // Don't exclude leaders anymore
-                true   // Exclude removed players
+                true,  // Exclude removed players
+                true   // Exclude inactive players
             );
         } else {
             console.warn('VIP autocomplete elements not found');
@@ -6289,7 +6654,8 @@ class DailyRankingsApp {
                     this.updateVIPFrequencyDisplay('vipConductor', selectedName);
                 },
                 false, // Include all players for conductor selection
-                true   // Exclude removed players
+                true,  // Exclude removed players
+                true   // Exclude inactive players
             );
         } else {
             console.warn('Conductor autocomplete elements not found');
@@ -6326,7 +6692,9 @@ class DailyRankingsApp {
                     // Update VIP frequency info
                     this.updateVIPFrequencyDisplay('editVipPlayer', selectedName);
                 },
-                false // Don't exclude leaders anymore
+                false, // Don't exclude leaders anymore
+                true,  // Exclude removed players
+                true   // Exclude inactive players
             );
         } else {
             console.warn('Edit VIP autocomplete elements not found');
@@ -6343,7 +6711,10 @@ class DailyRankingsApp {
                 (selectedName) => {
                     editVipConductorInput.value = selectedName;
                     console.log('Edit VIP conductor selected:', selectedName);
-                }
+                },
+                false, // Include all players
+                true,  // Exclude removed players
+                true   // Exclude inactive players
             );
         } else {
             console.warn('Edit VIP conductor autocomplete elements not found');
