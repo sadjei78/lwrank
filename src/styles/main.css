@@ -5154,10 +5154,54 @@ header h1 {
     margin-bottom: 30px;
 }
 
-.csv-upload-section h3 {
-    color: #2c3e50;
+.upload-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 20px;
+}
+
+.upload-section-header h3 {
+    color: #2c3e50;
+    margin: 0;
     font-size: 1.5rem;
+}
+
+.toggle-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 6px;
+    transition: background-color 0.2s ease;
+    color: #7f8c8d;
+    font-size: 1.2rem;
+}
+
+.toggle-btn:hover {
+    background-color: #f8f9fa;
+    color: #2c3e50;
+}
+
+.toggle-icon {
+    transition: transform 0.3s ease;
+    display: inline-block;
+}
+
+.csv-upload-section .upload-section-content {
+    transition: max-height 0.3s ease, opacity 0.3s ease, margin-top 0.3s ease;
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    margin-top: 0;
+    display: none !important;
+}
+
+.csv-upload-section .upload-section-content.expanded {
+    max-height: 1000px;
+    opacity: 1;
+    margin-top: 20px;
+    display: block !important;
 }
 
 .csv-paste-section {

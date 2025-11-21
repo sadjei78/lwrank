@@ -65,6 +65,26 @@ export class RankingsManager {
      * Setup event listeners for the rankings page
      */
     setupEventListeners() {
+        // Upload section toggle
+        const uploadToggleBtn = document.getElementById('uploadToggleBtn');
+        const uploadSectionContent = document.getElementById('uploadSectionContent');
+        
+        if (uploadToggleBtn && uploadSectionContent) {
+            // Start with section collapsed (CSS handles the initial state)
+            uploadToggleBtn.querySelector('.toggle-icon').textContent = '▶';
+            
+            uploadToggleBtn.addEventListener('click', () => {
+                const isCollapsed = !uploadSectionContent.classList.contains('expanded');
+                if (isCollapsed) {
+                    uploadSectionContent.classList.add('expanded');
+                    uploadToggleBtn.querySelector('.toggle-icon').textContent = '▼';
+                } else {
+                    uploadSectionContent.classList.remove('expanded');
+                    uploadToggleBtn.querySelector('.toggle-icon').textContent = '▶';
+                }
+            });
+        }
+
         // CSV file upload
         const csvFileInput = document.getElementById('csvFileUpload');
         const csvUploadBtn = document.getElementById('csvUploadBtn');
@@ -180,26 +200,33 @@ export class RankingsManager {
                 <div class="rankings-content">
                     <!-- CSV Upload Section -->
                     <div class="csv-upload-section" id="csvUploadSection">
-                        <h3>📁 Upload CSV File</h3>
-                        <div class="upload-area" id="csvUploadArea">
-                            <input type="file" id="csvFileUpload" accept=".csv,text/csv" style="display: none;">
-                            <div class="upload-content">
-                                <span class="upload-icon">📄</span>
-                                <h4>Drag & Drop CSV File or Click to Browse</h4>
-                                <p>Supports CSV files with Ranking, Commander, Points columns</p>
-                                <button type="button" class="upload-btn" id="csvUploadBtn">Choose CSV File</button>
+                        <div class="upload-section-header">
+                            <h3>📁 Upload CSV File</h3>
+                            <button type="button" class="toggle-btn" id="uploadToggleBtn" aria-label="Toggle upload section">
+                                <span class="toggle-icon">▼</span>
+                            </button>
+                        </div>
+                        <div class="upload-section-content" id="uploadSectionContent">
+                            <div class="upload-area" id="csvUploadArea">
+                                <input type="file" id="csvFileUpload" accept=".csv,text/csv" style="display: none;">
+                                <div class="upload-content">
+                                    <span class="upload-icon">📄</span>
+                                    <h4>Drag & Drop CSV File or Click to Browse</h4>
+                                    <p>Supports CSV files with Ranking, Commander, Points columns</p>
+                                    <button type="button" class="upload-btn" id="csvUploadBtn">Choose CSV File</button>
+                                </div>
                             </div>
-                        </div>
-                        
-                        <div class="csv-paste-section">
-                            <h4>📋 Or Paste CSV Data</h4>
-                            <textarea id="csvPasteArea" placeholder="Paste your CSV data here...&#10;&#10;Example:&#10;Ranking,Commander,Points&#10;1,PlayerName,1000000&#10;2,AnotherPlayer,900000"></textarea>
-                            <button type="button" class="btn primary" id="parseCsvBtn">Parse CSV Data</button>
-                        </div>
-                        
-                        <div class="date-selector">
-                            <label for="rankingDate">Ranking Date:</label>
-                            <input type="date" id="rankingDate" class="date-input" value="${this.currentDate}">
+                            
+                            <div class="csv-paste-section">
+                                <h4>📋 Or Paste CSV Data</h4>
+                                <textarea id="csvPasteArea" placeholder="Paste your CSV data here...&#10;&#10;Example:&#10;Ranking,Commander,Points&#10;1,PlayerName,1000000&#10;2,AnotherPlayer,900000"></textarea>
+                                <button type="button" class="btn primary" id="parseCsvBtn">Parse CSV Data</button>
+                            </div>
+                            
+                            <div class="date-selector">
+                                <label for="rankingDate">Ranking Date:</label>
+                                <input type="date" id="rankingDate" class="date-input" value="${this.currentDate}">
+                            </div>
                         </div>
                     </div>
 
