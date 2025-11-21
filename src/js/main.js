@@ -5196,10 +5196,17 @@ class DailyRankingsApp {
                 inactivePlayers.map(p => (p.player_name || p.playerName).toLowerCase())
             );
             
-            // Filter out inactive players
+            // Get removed players and exclude them
+            const removedPlayers = await this.rankingManager.getRemovedPlayers();
+            const removedPlayerNames = new Set(
+                removedPlayers.map(p => (p.player_name || p.playerName).toLowerCase())
+            );
+            
+            // Filter out inactive and removed players
             const activeMembers = allMembers.filter(member => {
                 const resolvedName = this.playerAliasService.resolvePlayerName(member);
-                return !inactivePlayerNames.has(resolvedName.toLowerCase());
+                const lowerName = resolvedName.toLowerCase();
+                return !inactivePlayerNames.has(lowerName) && !removedPlayerNames.has(lowerName);
             });
             
             // Calculate days since last VIP or Conductor for each active member
