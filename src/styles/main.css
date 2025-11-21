@@ -5295,3 +5295,177 @@ header h1 {
     background-color: #fff8e1 !important;
     border-color: #ffc107 !important;
 }
+
+/* Alliance Member Activity Styles */
+.member-activity {
+    padding: 20px 0;
+}
+
+.activity-controls {
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.activity-btn {
+    padding: 10px 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(102, 126, 234, 0.2);
+}
+
+.activity-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+}
+
+.activity-btn.primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.member-activity-list {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    overflow: hidden;
+}
+
+.loading-activity,
+.error-activity,
+.no-activity {
+    padding: 40px 20px;
+    text-align: center;
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.error-activity {
+    color: #ef4444;
+}
+
+.activity-list-header {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 12px;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-bottom: 2px solid #e5e7eb;
+    font-weight: 600;
+    font-size: 14px;
+    color: #374151;
+}
+
+.activity-list-items {
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.activity-list-item {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 12px;
+    padding: 14px 20px;
+    border-bottom: 1px solid #f3f4f6;
+    transition: background-color 0.2s ease;
+}
+
+.activity-list-item:hover {
+    background-color: #f9fafb;
+}
+
+.activity-list-item:last-child {
+    border-bottom: none;
+}
+
+.activity-item-name {
+    font-weight: 500;
+    color: #1f2937;
+}
+
+.activity-item-days {
+    display: flex;
+    align-items: center;
+}
+
+.activity-item-role {
+    color: #6b7280;
+    font-size: 13px;
+}
+
+.activity-item-date {
+    color: #6b7280;
+    font-size: 13px;
+}
+
+.never-role {
+    color: #ef4444;
+    font-weight: 600;
+}
+
+.today-role {
+    color: #10b981;
+    font-weight: 600;
+}
+
+.yesterday-role {
+    color: #3b82f6;
+    font-weight: 600;
+}
+
+.days-role {
+    color: #6b7280;
+}
+
+.no-role {
+    color: #9ca3af;
+    font-style: italic;
+}
+
+/* Responsive design for member activity */
+@media (max-width: 768px) {
+    .activity-list-header,
+    .activity-list-item {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+    
+    .activity-list-header {
+        display: none;
+    }
+    
+    .activity-list-item {
+        padding: 12px;
+        border-bottom: 2px solid #e5e7eb;
+    }
+    
+    .activity-item-name::before {
+        content: "Member: ";
+        font-weight: 600;
+        color: #6b7280;
+    }
+    
+    .activity-item-days::before {
+        content: "Days Since: ";
+        font-weight: 600;
+        color: #6b7280;
+    }
+    
+    .activity-item-role::before {
+        content: "Last Role: ";
+        font-weight: 600;
+        color: #6b7280;
+    }
+    
+    .activity-item-date::before {
+        content: "Last Date: ";
+        font-weight: 600;
+        color: #6b7280;
+    }
+}

@@ -6,6 +6,7 @@ import { AutocompleteService } from './autocomplete-service.js';
 import { SeasonRankingManager } from './season-ranking-manager.js';
 import { PlayerAliasService } from './player-alias-service.js';
 import { config } from './config.js';
+import { supabase } from './supabase-client.js';
 
 class DailyRankingsApp {
     constructor() {
@@ -2529,6 +2530,27 @@ class DailyRankingsApp {
             </div>
         `;
         
+        // Add Alliance Member Activity Section
+        const allianceMemberActivitySection = `
+            <div class="admin-section collapsible">
+                <div class="collapsible-header" data-target="allianceMemberActivityContent">
+                    <h3>👥 Alliance Member Activity</h3>
+                    <span class="collapsible-icon">▼</span>
+                </div>
+                <div id="allianceMemberActivityContent" class="collapsible-content collapsed">
+                    <div class="member-activity">
+                        <div class="activity-controls">
+                            <button type="button" id="refreshMemberActivityBtn" class="activity-btn primary">🔄 Refresh Activity List</button>
+                            <small class="form-help">Shows all alliance members with days since last VIP or Conductor role</small>
+                        </div>
+                        <div id="memberActivityList" class="member-activity-list">
+                            <p class="loading-activity">Click "Refresh Activity List" to load member activity...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
         // Add Season Report Display Section (separate from collapsible sections)
         const seasonReportSection = `
             <div class="admin-section">
@@ -2557,6 +2579,15 @@ class DailyRankingsApp {
         if (adminSectionsContainer) {
             adminSectionsContainer.innerHTML += playerAliasesSection;
             console.log('Player aliases section added to admin sections');
+        } else {
+            console.error('Admin sections container not found');
+        }
+        
+        // Find the admin sections container and append the alliance member activity section
+        const adminSectionsContainerActivity = document.querySelector('.admin-sections');
+        if (adminSectionsContainerActivity) {
+            adminSectionsContainerActivity.innerHTML += allianceMemberActivitySection;
+            console.log('Alliance member activity section added to admin sections');
         } else {
             console.error('Admin sections container not found');
         }
@@ -2990,6 +3021,14 @@ class DailyRankingsApp {
                 if (editVipPlayerInput && editVipPlayerInput.value.trim()) {
                     this.updateVIPFrequencyDisplay('editVipPlayer', editVipPlayerInput.value.trim());
                 }
+            });
+        }
+
+        // Refresh Member Activity button
+        const refreshMemberActivityBtn = document.getElementById('refreshMemberActivityBtn');
+        if (refreshMemberActivityBtn) {
+            refreshMemberActivityBtn.addEventListener('click', async () => {
+                await this.updateMemberActivityList();
             });
         }
 
@@ -4918,7 +4957,314 @@ class DailyRankingsApp {
         this.setupVIPEditListeners();
     }
 
+    /**
+     * Update the Alliance Member Activity list showing days since last VIP or Conductor
+     */
+    async updateMemberActivityList() {
+        const activityListContainer = document.getElementById('memberActivityList');
+        if (!activityListContainer) {
+            console.log('Member activity container not found - admin content not loaded yet');
+            return;
+        }
 
+        activityListContainer.innerHTML = '<p class="loading-activity">Loading member activity data...</p>';
+
+        try {
+            // Aggregate all member names from all sources
+            const allMembers = await this.getAllMemberNames();
+            
+            // Calculate days since last VIP or Conductor for each member
+            const memberActivity = await this.calculateMemberActivity(allMembers);
+            
+            // Sort by days since last activity (most recent first, then never)
+            memberActivity.sort((a, b) => {
+                if (a.daysSince === null && b.daysSince === null) return 0;
+                if (a.daysSince === null) return 1; // Never at end
+                if (b.daysSince === null) return -1;
+                return a.daysSince - b.daysSince; // Most recent first
+            });
+
+            // Render the list
+            this.renderMemberActivityList(memberActivity);
+        } catch (error) {
+            console.error('Error updating member activity list:', error);
+            activityListContainer.innerHTML = `<p class="error-activity">Error loading member activity: ${error.message}</p>`;
+        }
+    }
+
+    /**
+     * Aggregate all member names from all database tables
+     */
+    async getAllMemberNames() {
+        const memberSet = new Set();
+
+        try {
+            // Get names from rankings table
+            const { data: rankings, error: rankingsError } = await supabase
+                .from('rankings')
+                .select('commander')
+                .not('commander', 'is', null);
+
+            if (!rankingsError && rankings) {
+                rankings.forEach(r => {
+                    if (r.commander && r.commander.trim()) {
+                        memberSet.add(r.commander.trim());
+                    }
+                });
+            }
+
+            // Get names from alliance_leaders table
+            const { data: leaders, error: leadersError } = await supabase
+                .from('alliance_leaders')
+                .select('player_name')
+                .not('player_name', 'is', null);
+
+            if (!leadersError && leaders) {
+                leaders.forEach(l => {
+                    if (l.player_name && l.player_name.trim()) {
+                        memberSet.add(l.player_name.trim());
+                    }
+                });
+            }
+
+            // Get names from vip_selections (both VIP and Conductor)
+            const { data: vipSelections, error: vipError } = await supabase
+                .from('vip_selections')
+                .select('vip_player, train_conductor')
+                .not('vip_player', 'is', null)
+                .not('train_conductor', 'is', null);
+
+            if (!vipError && vipSelections) {
+                vipSelections.forEach(vip => {
+                    if (vip.vip_player && vip.vip_player.trim()) {
+                        memberSet.add(vip.vip_player.trim());
+                    }
+                    if (vip.train_conductor && vip.train_conductor.trim()) {
+                        memberSet.add(vip.train_conductor.trim());
+                    }
+                });
+            }
+
+            // Get names from train_conductor_rotation
+            const { data: rotation, error: rotationError } = await supabase
+                .from('train_conductor_rotation')
+                .select('player_name, conductor_name')
+                .or('player_name.not.is.null,conductor_name.not.is.null');
+
+            if (!rotationError && rotation) {
+                rotation.forEach(r => {
+                    if (r.player_name && r.player_name.trim()) {
+                        memberSet.add(r.player_name.trim());
+                    }
+                    if (r.conductor_name && r.conductor_name.trim()) {
+                        memberSet.add(r.conductor_name.trim());
+                    }
+                });
+            }
+
+            // Get names from player_aliases (both primary and alias names)
+            const { data: aliases, error: aliasesError } = await supabase
+                .from('player_aliases')
+                .select('primary_name, alias_name')
+                .eq('is_active', true)
+                .or('primary_name.not.is.null,alias_name.not.is.null');
+
+            if (!aliasesError && aliases) {
+                aliases.forEach(a => {
+                    if (a.primary_name && a.primary_name.trim()) {
+                        memberSet.add(a.primary_name.trim());
+                    }
+                    if (a.alias_name && a.alias_name.trim()) {
+                        memberSet.add(a.alias_name.trim());
+                    }
+                });
+            }
+
+            // Resolve aliases to primary names using PlayerAliasService
+            const resolvedMembers = new Set();
+            for (const member of memberSet) {
+                const primaryName = this.playerAliasService.resolvePlayerName(member);
+                resolvedMembers.add(primaryName);
+            }
+
+            return Array.from(resolvedMembers).sort();
+        } catch (error) {
+            console.error('Error aggregating member names:', error);
+            return Array.from(memberSet).sort();
+        }
+    }
+
+    /**
+     * Calculate days since last VIP or Conductor for each member
+     */
+    async calculateMemberActivity(memberNames) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const activity = [];
+
+        try {
+            // Get all VIP selections
+            const { data: vipSelections, error: vipError } = await supabase
+                .from('vip_selections')
+                .select('date, vip_player, train_conductor')
+                .order('date', { ascending: false });
+
+            if (vipError) {
+                console.error('Error loading VIP selections:', vipError);
+            }
+
+            // Get all conductor rotation entries with dates
+            const { data: rotation, error: rotationError } = await supabase
+                .from('train_conductor_rotation')
+                .select('train_date, player_name, conductor_name')
+                .not('train_date', 'is', null)
+                .order('train_date', { ascending: false });
+
+            if (rotationError) {
+                console.error('Error loading conductor rotation:', rotationError);
+            }
+
+            // Create maps for quick lookup
+            const lastVIPDate = new Map();
+            const lastConductorDate = new Map();
+
+            // Process VIP selections
+            if (vipSelections) {
+                vipSelections.forEach(vip => {
+                    const vipDate = new Date(vip.date + 'T00:00:00');
+                    const vipName = this.playerAliasService.resolvePlayerName(vip.vip_player);
+                    const conductorName = this.playerAliasService.resolvePlayerName(vip.train_conductor);
+
+                    // Track VIP dates
+                    if (!lastVIPDate.has(vipName) || lastVIPDate.get(vipName) < vipDate) {
+                        lastVIPDate.set(vipName, vipDate);
+                    }
+
+                    // Track conductor dates
+                    if (!lastConductorDate.has(conductorName) || lastConductorDate.get(conductorName) < vipDate) {
+                        lastConductorDate.set(conductorName, vipDate);
+                    }
+                });
+            }
+
+            // Process conductor rotation
+            if (rotation) {
+                rotation.forEach(r => {
+                    if (r.train_date) {
+                        const conductorDate = new Date(r.train_date + 'T00:00:00');
+                        
+                        if (r.conductor_name) {
+                            const conductorName = this.playerAliasService.resolvePlayerName(r.conductor_name);
+                            if (!lastConductorDate.has(conductorName) || lastConductorDate.get(conductorName) < conductorDate) {
+                                lastConductorDate.set(conductorName, conductorDate);
+                            }
+                        }
+                        
+                        if (r.player_name) {
+                            const playerName = this.playerAliasService.resolvePlayerName(r.player_name);
+                            if (!lastConductorDate.has(playerName) || lastConductorDate.get(playerName) < conductorDate) {
+                                lastConductorDate.set(playerName, conductorDate);
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Calculate days since for each member
+            for (const memberName of memberNames) {
+                const resolvedName = this.playerAliasService.resolvePlayerName(memberName);
+                const lastVIP = lastVIPDate.get(resolvedName);
+                const lastConductor = lastConductorDate.get(resolvedName);
+
+                let mostRecentDate = null;
+                let role = null;
+
+                if (lastVIP && lastConductor) {
+                    if (lastVIP >= lastConductor) {
+                        mostRecentDate = lastVIP;
+                        role = 'VIP';
+                    } else {
+                        mostRecentDate = lastConductor;
+                        role = 'Conductor';
+                    }
+                } else if (lastVIP) {
+                    mostRecentDate = lastVIP;
+                    role = 'VIP';
+                } else if (lastConductor) {
+                    mostRecentDate = lastConductor;
+                    role = 'Conductor';
+                }
+
+                let daysSince = null;
+                if (mostRecentDate) {
+                    const diffTime = today - mostRecentDate;
+                    daysSince = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                }
+
+                activity.push({
+                    name: resolvedName,
+                    daysSince: daysSince,
+                    lastRole: role,
+                    lastDate: mostRecentDate
+                });
+            }
+        } catch (error) {
+            console.error('Error calculating member activity:', error);
+        }
+
+        return activity;
+    }
+
+    /**
+     * Render the member activity list
+     */
+    renderMemberActivityList(memberActivity) {
+        const activityListContainer = document.getElementById('memberActivityList');
+        if (!activityListContainer) return;
+
+        if (memberActivity.length === 0) {
+            activityListContainer.innerHTML = '<p class="no-activity">No member activity data found</p>';
+            return;
+        }
+
+        let html = `
+            <div class="activity-list-header">
+                <div class="activity-header-item">Member Name</div>
+                <div class="activity-header-item">Days Since</div>
+                <div class="activity-header-item">Last Role</div>
+                <div class="activity-header-item">Last Date</div>
+            </div>
+            <div class="activity-list-items">
+        `;
+
+        memberActivity.forEach(member => {
+            const daysDisplay = member.daysSince === null 
+                ? '<span class="never-role">Never</span>' 
+                : member.daysSince === 0 
+                    ? '<span class="today-role">Today</span>'
+                    : member.daysSince === 1
+                        ? '<span class="yesterday-role">Yesterday</span>'
+                        : `<span class="days-role">${member.daysSince} days</span>`;
+            
+            const roleDisplay = member.lastRole || '<span class="no-role">-</span>';
+            const dateDisplay = member.lastDate 
+                ? this.formatDateForDisplay(member.lastDate.toISOString().split('T')[0])
+                : '-';
+
+            html += `
+                <div class="activity-list-item">
+                    <div class="activity-item-name">${this.escapeHTML(member.name)}</div>
+                    <div class="activity-item-days">${daysDisplay}</div>
+                    <div class="activity-item-role">${roleDisplay}</div>
+                    <div class="activity-item-date">${dateDisplay}</div>
+                </div>
+            `;
+        });
+
+        html += '</div>';
+        activityListContainer.innerHTML = html;
+    }
 
     updateDataStatus() {
         const dataStatus = document.getElementById('dataStatus');
